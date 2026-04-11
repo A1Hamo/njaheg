@@ -1,0 +1,167 @@
+// src/api/client.js
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const client = axios.create({ baseURL: API, timeout: 30000 });
+
+client.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token');
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
+});
+
+let refreshing = false;
+let queue = [];
+const flush = (err, token) => { queue.forEach(p => err ? p.reject(err) : p.resolve(token)); queue = []; };
+
+client.interceptors.response.use(r => r, async err => {
+  const orig = err.config;
+  if (err.response?.status === 401 && !orig._retry) {
+    if (refreshing) return new Promise((res, rej) => queue.push({ resolve: res, reject: rej }))
+      .then(t => { orig.headers.Authorization = `Bearer ${t}`; return client(orig); });
+    orig._retry = true; refreshing = true;
+    const ref = localStorage.getItem('refresh');
+    if (!ref) {
+      import('../context/store').then(m => m.useAuthStore.getState().logout());
+      return Promise.reject(err);
+    }
+    try {
+      const { data } = await axios.post(`${API}/auth/refresh`, { refresh: ref });
+      localStorage.setItem('token', data.token);
+      client.defaults.headers.Authorization = `Bearer ${data.token}`;
+      flush(null, data.token);
+      orig.headers.Authorization = `Bearer ${data.token}`;
+      return client(orig);
+    } catch (e) {
+      flush(e);
+      import('../context/store').then(m => m.useAuthStore.getState().logout());
+      return Promise.reject(e);
+    } finally {
+      refreshing = false;
+    }
+  }
+  const msg = err.response?.data?.error;
+  if (err.response?.status === 429) {
+    toast.error('Too many requests. Please wait a moment.');
+    if (orig.url.includes('/auth/refresh')) {
+      import('../context/store').then(m => m.useAuthStore.getState().logout());
+    }
+  } else if (err.response?.status !== 401 && msg) {
+    toast.error(msg);
+  }
+  return Promise.reject(err);
+});
+
+export default client;
+
+// ── API Modules ──────────────────────────────────────────
+
+export const authAPI = {
+  register:       d  => client.post('/auth/register', d),
+  login:          d  => client.post('/auth/login', d),
+  refresh:        d  => client.post('/auth/refresh', d),
+  logout:         () => client.post('/auth/logout'),
+  me:             () => client.get('/auth/me'),
+  verifyEmail:    t  => client.get(`/auth/verify/${t}`),
+  forgotPassword: e  => client.post('/auth/forgot-password', { email: e }),
+  resetPassword:  d  => client.post('/auth/reset-password', d),
+  googleLogin:    () => { window.location.href = `${API}/auth/google`; },
+  guestRegister:  () => client.post('/auth/guest'),
+};
+
+export const usersAPI = {
+  getProfile:     ()       => client.get('/users/profile'),
+  updateProfile:  d        => client.patch('/users/profile', d),
+  uploadAvatar:   file     => { const fd = new FormData(); fd.append('avatar', file); return client.post('/users/avatar', fd); },
+  changePassword: d        => client.post('/users/change-password', d),
+  recordPomodoro: d        => client.post('/users/pomodoro', d),
+  getProgress:    ()       => client.get('/users/progress'),
+  getStats:       ()       => client.get('/users/stats'),
+  getPublicStats: ()       => client.get('/users/public/stats'),
+  getUser:        id       => client.get(`/users/${id}`),
+  searchUsers:    q        => client.get('/users/search', { params: { q } }),
+};
+
+export const plannerAPI = {
+  getSessions:   p       => client.get('/planner', { params: p }),
+  createSession: d       => client.post('/planner', d),
+  updateSession: (id, d) => client.patch(`/planner/${id}`, d),
+  deleteSession: id      => client.delete(`/planner/${id}`),
+};
+
+export const filesAPI = {
+  list:        p            => client.get('/files', { params: p }),
+  upload:      (file, meta, onProgress) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    Object.entries(meta).forEach(([k,v]) => v != null && fd.append(k, v));
+    return client.post('/files', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: e => onProgress?.(Math.round(e.loaded * 100 / e.total)),
+    });
+  },
+  get:         id           => client.get(`/files/${id}`),
+  update:      (id,d)       => client.patch(`/files/${id}`, d),
+  remove:      id           => client.delete(`/files/${id}`),
+  extractText: id           => client.get(`/files/${id}/extract`),
+};
+
+export const notesAPI = {
+  list:   p        => client.get('/notes', { params: p }),
+  create: d        => client.post('/notes', d),
+  get:    id       => client.get(`/notes/${id}`),
+  update: (id,d)   => client.put(`/notes/${id}`, d),
+  remove: id       => client.delete(`/notes/${id}`),
+};
+
+export const boardAPI = {
+  list:   p    => client.get('/board', { params: p }),
+  create: d    => client.post('/board', d),
+  like:   id   => client.post(`/board/${id}/like`),
+  save:   id   => client.post(`/board/${id}/save`),
+  remove: id   => client.delete(`/board/${id}`),
+};
+
+export const chatAPI = {
+  getRooms:    ()         => client.get('/chat/rooms'),
+  getMessages: (subj, p)  => client.get(`/chat/${subj}/messages`, { params: p }),
+};
+
+export const aiAPI = {
+  chat:              d  => client.post('/ai/chat', d),
+  getConversations:  () => client.get('/ai/conversations'),
+  getConversation:   id => client.get(`/ai/conversations/${id}`),
+  deleteConversation:id => client.delete(`/ai/conversations/${id}`),
+  summarize:         d  => client.post('/ai/summarize', d),
+  generateQuiz:      d  => client.post('/ai/quiz', d),
+  submitQuiz:        d  => client.post('/ai/quiz/submit', d),
+  studyPlan:         d  => client.post('/ai/study-plan', d),
+  askFile:           d  => client.post('/ai/ask-file', d),
+  // Provider discovery
+  getProvider:       () => client.get('/ai/provider'),
+  getCapabilities:   () => client.get('/ai/internal/capabilities'),
+};
+
+export const notificationsAPI = {
+  list:       p  => client.get('/notifications', { params: p }),
+  markRead:   id => client.patch(`/notifications/${id}/read`),
+  markAll:    () => client.patch('/notifications/read-all'),
+  remove:     id => client.delete(`/notifications/${id}`),
+};
+
+export const achievementsAPI = {
+  list:        () => client.get('/achievements'),
+  leaderboard: () => client.get('/achievements/leaderboard'),
+};
+
+export const analyticsAPI = {
+  dashboard:     () => client.get('/analytics/dashboard'),
+  streakHistory: () => client.get('/analytics/streak-history'),
+};
+
+export const quizAPI = {
+  history: p => client.get('/quiz/history', { params: p }),
+  stats:   () => client.get('/quiz/stats'),
+};

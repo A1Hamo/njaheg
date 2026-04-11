@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "passport-google-oauth20": "^2.0.0"
+  },
+  "scripts": {
+    "cap:sync": "npm run build --prefix frontend && npm run cap:sync --prefix frontend",
+    "cap:open:android": "npm run cap:open:android --prefix frontend",
+    "cap:open:ios": "npm run cap:open:ios --prefix frontend"
+  }
+}

@@ -1,0 +1,47 @@
+# Environment & Secrets — NEVER commit real .env files
+.env
+.env.*
+!.env.example
+
+# Env copy files (e.g. ".env copy.development") — always exclude
+*.env copy*
+.env copy*
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads (user-generated content — should not be in source control)
+backend/public/uploads/
+**/public/uploads/
+
+# Misc
+.cache/
+*.tsbuildinfo
+coverage/
+replacements.txt
+npm_install_log.txt
+output.txt

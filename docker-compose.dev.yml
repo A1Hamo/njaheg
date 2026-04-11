@@ -1,0 +1,25 @@
+# docker-compose.dev.yml — Databases only for local development
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       najah_db
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: password123
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: [mongodata:/data/db]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+volumes:
+  pgdata:
+  mongodata:

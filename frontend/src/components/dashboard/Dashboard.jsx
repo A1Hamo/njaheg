@@ -1,0 +1,474 @@
+// src/components/dashboard/Dashboard.jsx — Professional v3
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { useAuthStore } from '../../context/store';
+import { plannerAPI, usersAPI } from '../../api/index';
+import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState, Alert } from '../shared/UI';
+
+/* ── Data mappings ─────────────────────────────────────── */
+const SUBJ_COLOR = {
+  mathematics:'#7C3AED', science:'#10B981', arabic:'#F59E0B',
+  english:'#3B82F6', social_studies:'#F43F5E', biology:'#06B6D4',
+  physics:'#8B5CF6', chemistry:'#EC4899',
+};
+const SUBJ_ICON  = {
+  mathematics:'📐', science:'🔬', arabic:'📚', english:'🌐',
+  social_studies:'🌍', biology:'🧬', physics:'⚡', chemistry:'⚗️',
+};
+
+const QUICK_ACTIONS = [
+  { icon:'🤖', label:'AI Tutor',     sub:'Ask anything',    path:'/ai',           grad:'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+  { icon:'📅', label:'Planner',      sub:'Schedule study',  path:'/planner',      grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)' },
+  { icon:'✉️', label:'Messages',     sub:'Chat with peers', path:'/chat/private', grad:'linear-gradient(135deg,#10B981,#059669)' },
+  { icon:'📁', label:'Files',        sub:'Study materials',  path:'/files',        grad:'linear-gradient(135deg,#F59E0B,#D97706)' },
+  { icon:'⏱',  label:'Focus',        sub:'Pomodoro timer',  path:'/focus',        grad:'linear-gradient(135deg,#EF4444,#DC2626)' },
+  { icon:'🏆', label:'Achievements', sub:'View progress',   path:'/achievements', grad:'linear-gradient(135deg,#EC4899,#BE185D)' },
+];
+
+const MOTIVATIONAL = [
+  '"The more that you read, the more things you will know." — Dr. Seuss',
+  '"Success is the sum of small efforts, repeated day-in and day-out." — Collier',
+  '"Education is the most powerful weapon you can use to change the world." — Mandela',
+  '"The beautiful thing about learning is nobody can take it away from you." — B.B. King',
+  '"An investment in knowledge pays the best interest." — Benjamin Franklin',
+];
+// motivational quote index is computed inline below
+
+/* ── Stagger animation ─────────────────────────────────── */
+const stagger = {
+  container: { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } },
+  item:      { hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16,1,0.3,1] } } },
+};
+
+/* ════════════════════════════════════════════════════════
+   WelcomeBanner
+   ════════════════════════════════════════════════════════ */
+function WelcomeBanner({ user }) {
+  const hr      = new Date().getHours();
+  const greet   = hr < 5 ? 'Good Night' : hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+  const emoji   = hr < 5 ? '🌙' : hr < 12 ? '🌅' : hr < 17 ? '☀️' : '🌆';
+  const nextLvl = (Number(user?.level) || 1) * 500;
+  const curXp   = Number(user?.xp_points) || 0;
+  const pct     = Math.min(100, Math.round((curXp / nextLvl) * 100));
+  const name    = typeof user?.name === 'string' ? user.name.split(' ')[0] : 'Student';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      style={{
+        marginBottom: 28, borderRadius: 24,
+        background: 'linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(6,182,212,0.06) 60%, rgba(124,58,237,0.04) 100%)',
+        border: '1px solid rgba(124,58,237,0.22)',
+        boxShadow: '0 8px 40px rgba(124,58,237,0.12)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      {/* Background decoration */}
+      <div style={{
+        position: 'absolute', right: -60, top: -60,
+        width: 320, height: 320,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }}/>
+      <div style={{
+        position: 'absolute', left: '40%', bottom: -40,
+        width: 200, height: 200,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }}/>
+
+      <div style={{ padding: '32px 40px', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+          {/* Left — greeting */}
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8 }}>
+              {emoji} {greet}
+            </p>
+            <h2 style={{
+              fontSize: 36, fontWeight: 800,
+              fontFamily: 'var(--font-head)',
+              letterSpacing: '-0.04em',
+              marginBottom: 10,
+              background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>
+              {name}
+            </h2>
+            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 22, maxWidth: 500, lineHeight: 1.65 }}>
+              Ready to learn? You're on a{' '}
+              <span style={{ color: '#FBBF24', fontWeight: 700 }}>🔥 {user?.streak_days || 0} day streak</span>
+              . Keep the momentum going!
+            </p>
+
+            {/* Badges */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                { label: user?.grade || 'Egyptian Student', icon: '🎓', bg: 'rgba(124,58,237,0.15)', c: 'var(--primary-light)', bc: 'rgba(124,58,237,0.28)' },
+                { label: `Level ${user?.level || 1}`,        icon: '⭐', bg: 'rgba(245,158,11,0.12)', c: '#FBBF24',             bc: 'rgba(245,158,11,0.28)' },
+                { label: `${curXp.toLocaleString()} XP`,    icon: '💎', bg: 'rgba(16,185,129,0.12)', c: '#34D399',             bc: 'rgba(16,185,129,0.28)' },
+              ].map(b => (
+                <span key={b.label} style={{
+                  padding: '5px 13px', borderRadius: 99,
+                  fontSize: 12, fontWeight: 700,
+                  color: b.c, background: b.bg, border: `1px solid ${b.bc}`,
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}>
+                  {b.icon} {b.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right — XP progress */}
+          <div style={{ minWidth: 220 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Level Progress
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary-light)' }}>{pct}%</span>
+            </div>
+            <ProgressBar value={curXp} max={nextLvl} color="primary" height={10} />
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, textAlign: 'right' }}>
+              {curXp.toLocaleString()} / {nextLvl.toLocaleString()} XP to Level {(Number(user?.level) || 1) + 1}
+            </div>
+
+            {/* Mini stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+              {[
+                { label: 'Streak', value: `${user?.streak_days || 0}d`, icon: '🔥' },
+                { label: 'Rank',   value: user?.rank || '—',             icon: '🏅' },
+              ].map(s => (
+                <div key={s.label} style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '8px 12px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 16, marginBottom: 2 }}>{s.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   QuickActions
+   ════════════════════════════════════════════════════════ */
+function QuickActions({ navigate }) {
+  return (
+    <Card style={{ padding: 24 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 18, letterSpacing: '-0.02em' }}>
+        Quick Access
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {QUICK_ACTIONS.map((a, i) => (
+          <motion.button
+            key={a.label}
+            onClick={() => navigate(a.path)}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1, transition: { delay: i * 0.05 } }}
+            whileHover={{ y: -4, boxShadow: '0 12px 28px rgba(0,0,0,0.4)' }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'flex-start',
+              padding: '16px 14px',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 14,
+              cursor: 'pointer',
+              gap: 6,
+              transition: 'all 0.22s var(--ease)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Gradient accent bar */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: a.grad, borderRadius: '14px 14px 0 0',
+            }}/>
+            <span style={{ fontSize: 24 }}>{a.icon}</span>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{a.label}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 500 }}>{a.sub}</div>
+          </motion.button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   TodaySchedule
+   ════════════════════════════════════════════════════════ */
+function TodaySchedule({ sessions, isLoading, navigate }) {
+  return (
+    <Card style={{ padding: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+        <div>
+          <h3 style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.025em', marginBottom: 3 }}>
+            Today's Schedule
+          </h3>
+          <p style={{ fontSize: 12, color: 'var(--text3)' }}>
+            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/planner')}>
+          View All →
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+          <Spinner />
+        </div>
+      ) : sessions.length === 0 ? (
+        <EmptyState
+          icon="📅"
+          title="No sessions today"
+          subtitle="Add a study session to your planner and stay on track."
+          action={
+            <Button variant="primary" size="sm" onClick={() => navigate('/planner')}>
+              + Add Session
+            </Button>
+          }
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {sessions.map((s, i) => {
+            const color = SUBJ_COLOR[s.subject] || 'var(--primary)';
+            return (
+              <motion.div
+                key={s.id}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0, transition: { delay: i * 0.06 } }}
+                whileHover={{ x: 4 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 18px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderLeft: `3px solid ${color}`,
+                  cursor: 'pointer', transition: 'all 0.18s var(--ease)',
+                }}
+              >
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20,
+                  background: `${color}18`,
+                  border: `1px solid ${color}28`,
+                }}>
+                  {SUBJ_ICON[s.subject] || '📖'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', marginBottom: 2 }}>
+                    {s.subject?.replace(/_/g, ' ')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    {format(new Date(s.start_time), 'HH:mm')} · {s.duration} min
+                  </div>
+                </div>
+                <span style={{
+                  padding: '4px 11px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.04em',
+                  background: s.status === 'completed' ? 'rgba(16,185,129,0.12)' : 'rgba(124,58,237,0.12)',
+                  color: s.status === 'completed' ? 'var(--success)' : 'var(--primary-light)',
+                  border: `1px solid ${s.status === 'completed' ? 'rgba(16,185,129,0.24)' : 'rgba(124,58,237,0.24)'}`,
+                }}>
+                  {s.status}
+                </span>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   Main Dashboard
+   ════════════════════════════════════════════════════════ */
+export default function Dashboard() {
+  const { user }    = useAuthStore();
+  const navigate    = useNavigate();
+
+  const { data: sessData,   isLoading: loadSess }  = useQuery({
+    queryKey: ['sessions', 'today'],
+    queryFn:  () => plannerAPI.list({
+      start: new Date().toISOString().split('T')[0] + 'T00:00:00',
+      end:   new Date().toISOString().split('T')[0] + 'T23:59:59',
+    }),
+  });
+  const { data: statsData  } = useQuery({ queryKey: ['stats'],        queryFn: () => usersAPI.getStats() });
+  const { data: publicStats } = useQuery({ queryKey: ['public-stats'], queryFn: () => usersAPI.getPublicStats() });
+
+  const sessions     = sessData?.data?.sessions  || [];
+  const stats        = statsData?.data?.stats    || {};
+  const studentCount = publicStats?.data?.count  || 0;
+
+  const motivational = MOTIVATIONAL[new Date().getDay() % MOTIVATIONAL.length];
+
+  return (
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Welcome Banner */}
+      <motion.div variants={stagger.item}>
+        <WelcomeBanner user={user} />
+      </motion.div>
+
+      {/* KPI Stats Row */}
+      <motion.div
+        variants={stagger.item}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16, marginBottom: 28 }}
+      >
+        <StatCard
+          icon="👥" value={studentCount.toLocaleString()}
+          label="Students Online" color="#10B981"
+          sub="Active right now"
+        />
+        <StatCard
+          icon="📅" value={stats.sessions_done || 0}
+          label="Sessions Done" color="#7C3AED"
+          change={stats.sessions_done > 5 ? '+Great pace' : undefined}
+        />
+        <StatCard
+          icon="🎯" value={stats.quizzes_taken || 0}
+          label="Quizzes Taken" color="#06B6D4"
+          sub={`${stats.avg_score || 0}% avg score`}
+        />
+        <StatCard
+          icon="⭐" value={(user?.xp_points || 0).toLocaleString()}
+          label="Total XP" color="#F59E0B"
+          onClick={() => navigate('/achievements')}
+          sub="Tap for achievements"
+        />
+      </motion.div>
+
+      {/* Main Grid */}
+      <motion.div
+        variants={stagger.item}
+        style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, marginBottom: 28 }}
+      >
+        <TodaySchedule sessions={sessions} isLoading={loadSess} navigate={navigate} />
+        <QuickActions navigate={navigate} />
+      </motion.div>
+
+      {/* Motivational card + mini analytics strip */}
+      <motion.div
+        variants={stagger.item}
+        style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, marginBottom: 28, alignItems: 'stretch' }}
+      >
+        {/* Quote */}
+        <div style={{
+          padding: '28px 36px', borderRadius: 20,
+          background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 50%, #1e1b4b 100%)',
+          color: '#fff', position: 'relative', overflow: 'hidden',
+          boxShadow: '0 8px 36px rgba(124,58,237,0.35)',
+        }}>
+          <div style={{
+            position: 'absolute', right: -20, top: -20,
+            fontSize: 120, opacity: 0.06,
+            transform: 'rotate(-10deg)', userSelect: 'none', lineHeight: 1,
+          }}>
+            "
+          </div>
+          <div style={{ position: 'relative' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7, marginBottom: 10 }}>
+              Daily Inspiration
+            </p>
+            <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, maxWidth: 560, fontStyle: 'italic' }}>
+              {motivational}
+            </p>
+          </div>
+        </div>
+
+        {/* Study streak card */}
+        <div style={{
+          minWidth: 180, padding: '24px 20px',
+          background: 'var(--surface2)',
+          border: '1px solid var(--border)',
+          borderRadius: 20, textAlign: 'center',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <div style={{ fontSize: 44, lineHeight: 1. }}>🔥</div>
+          <div style={{ fontSize: 38, fontWeight: 900, fontFamily: 'var(--font-head)', color: '#FBBF24', lineHeight: 1, letterSpacing: '-0.04em' }}>
+            {user?.streak_days || 0}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Day Streak
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+            {user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Feature spotlight row */}
+      <motion.div
+        variants={stagger.item}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}
+      >
+        {[
+          { icon:'🤖', label:'AI Tutor', desc:'Get instant answers for any subject with our Egyptian curriculum AI', color:'#7C3AED', path:'/ai' },
+          { icon:'📝', label:'Exam Mode', desc:'Practice under timed conditions to simulate real exam pressure', color:'#F43F5E', path:'/exam' },
+          { icon:'📊', label:'Analytics', desc:'Track your progress in detail and identify areas to improve', color:'#06B6D4', path:'/analytics' },
+        ].map((f, i) => (
+          <motion.div
+            key={f.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0, transition: { delay: 0.3 + i * 0.08 } }}
+            whileHover={{ y: -4 }}
+            onClick={() => navigate(f.path)}
+            style={{
+              padding: '22px 20px', borderRadius: 18,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              cursor: 'pointer', transition: 'all 0.22s var(--ease)',
+              position: 'relative', overflow: 'hidden',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 0, right: 0, left: 0, height: 3,
+              background: `linear-gradient(90deg, ${f.color}, transparent)`,
+              borderRadius: '18px 18px 0 0',
+            }}/>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14, fontSize: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: `${f.color}18`, border: `1px solid ${f.color}28`,
+              marginBottom: 14,
+            }}>
+              {f.icon}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', color: 'var(--text)', marginBottom: 6, letterSpacing: '-0.02em' }}>
+              {f.label}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.55 }}>
+              {f.desc}
+            </div>
+            <div style={{ marginTop: 14, fontSize: 12, fontWeight: 700, color: f.color }}>
+              Open →
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </motion.div>
+  );
+}

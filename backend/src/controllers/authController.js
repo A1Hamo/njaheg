@@ -1,0 +1,167 @@
+// src/controllers/authController.js
+'use strict';
+const bcrypt   = require('bcryptjs');
+const { v4: uuid } = require('uuid');
+const { pool } = require('../config/postgres');
+const { cacheSet, cacheDel, cacheGet } = require('../config/redis');
+const { signAccess, signRefresh, verifyRefresh } = require('../utils/tokens');
+const { sendEmail } = require('../services/emailService');
+const { checkAchievements } = require('../services/achievementService');
+const logger   = require('../utils/logger');
+
+const ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+
+async function register(req, res) {
+  const { name, email, password, grade, school, language = 'en' } = req.body;
+  if (!name || !email || !password)
+    return res.status(400).json({ error: 'name, email and password required' });
+  if (password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const { rows: existingUsers } = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
+  if (existingUsers.length > 0)
+    return res.status(409).json({ error: 'Email already in use' });
+
+  const hash = await bcrypt.hash(password, ROUNDS);
+  const { rows } = await pool.query(`
+    INSERT INTO users (name,email,password_hash,grade,school,language,email_verified)
+    VALUES ($1,$2,$3,$4,$5,$6,true)
+    RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
+  `, [name, email, hash, grade, school, language]);
+
+  const user = rows[0];
+  const verifyToken = uuid();
+  await cacheSet(`verify:${verifyToken}`, user.id, 86400);
+  await sendEmail({ to: email, template: 'verify', data: { name, verifyToken } });
+  await checkAchievements(user.id, 'register');
+
+  logger.info(`New user: ${email}`);
+  res.status(201).json({
+    token:   signAccess(user.id),
+    refresh: signRefresh(user.id),
+    user,
+  });
+}
+
+async function guestRegister(req, res) {
+  const randomId = Math.random().toString(36).slice(2, 10);
+  const name = `Guest_${randomId}`;
+  const email = `guest_${Date.now()}_${randomId}@guest.najah.local`;
+
+  const { rows } = await pool.query(`
+    INSERT INTO users (name, email, role, email_verified, grade, school, avatar_url)
+    VALUES ($1,$2,'student',true,'Guest','Guest',NULL)
+    RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
+  `, [name, email]);
+
+  const user = rows[0];
+  await checkAchievements(user.id, 'register');
+  logger.info(`Guest user registered: ${user.email}`);
+
+  res.status(201).json({
+    token:   signAccess(user.id),
+    refresh: signRefresh(user.id),
+    user,
+    guest: true,
+  });
+}
+
+async function login(req, res) {
+  const { email, password } = req.body;
+  if (!email || !password)
+    return res.status(400).json({ error: 'Email and password required' });
+
+  const { rows } = await pool.query('SELECT * FROM users WHERE email=$1 AND is_active=true', [email]);
+  const user = rows[0];
+  if (!user || !user.password_hash)
+    return res.status(401).json({ error: 'Invalid credentials' });
+
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+  // Update streak
+  await pool.query(`
+    UPDATE users SET
+      last_active = NOW(),
+      streak_days = CASE
+        WHEN last_active::date = CURRENT_DATE - 1 THEN streak_days + 1
+        WHEN last_active::date = CURRENT_DATE     THEN streak_days
+        ELSE 1
+      END
+    WHERE id = $1
+  `, [user.id]);
+
+  const { password_hash, ...safe } = user;
+  res.json({ token: signAccess(user.id), refresh: signRefresh(user.id), user: safe });
+}
+
+async function googleCallback(req, res) {
+  const user = req.user;
+  const token   = signAccess(user.id);
+  const refresh = signRefresh(user.id);
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  res.redirect(`${clientUrl}/auth/callback?token=${token}&refresh=${refresh}`);
+}
+
+async function refreshToken(req, res) {
+  const { refresh } = req.body;
+  if (!refresh) return res.status(400).json({ error: 'Refresh token required' });
+  try {
+    const decoded = verifyRefresh(refresh);
+    res.json({ token: signAccess(decoded.id) });
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+}
+
+async function logout(req, res) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (token) await cacheSet(`blacklist:${token}`, 1, 7 * 24 * 3600);
+  res.json({ message: 'Logged out' });
+}
+
+async function verifyEmail(req, res) {
+  const userId = await cacheGet(`verify:${req.params.token}`);
+  if (!userId) return res.status(400).json({ error: 'Invalid or expired link' });
+  await pool.query('UPDATE users SET email_verified=true WHERE id=$1', [userId]);
+  await cacheDel(`verify:${req.params.token}`);
+  res.json({ message: 'Email verified' });
+}
+
+async function forgotPassword(req, res) {
+  const { email } = req.body;
+  const { rows } = await pool.query('SELECT id,name FROM users WHERE email=$1', [email]);
+  if (rows[0]) {
+    const token = uuid();
+    await cacheSet(`reset:${token}`, rows[0].id, 3600);
+    await sendEmail({ to: email, template: 'reset', data: { name: rows[0].name, resetToken: token } });
+  }
+  res.json({ message: 'If this email exists, a reset link was sent.' });
+}
+
+async function resetPassword(req, res) {
+  const { token, password } = req.body;
+  if (!password || password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const userId = await cacheGet(`reset:${token}`);
+  if (!userId) return res.status(400).json({ error: 'Invalid or expired token' });
+  const hash = await bcrypt.hash(password, ROUNDS);
+  await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, userId]);
+  await cacheDel(`reset:${token}`);
+  res.json({ message: 'Password reset successfully' });
+}
+
+async function getMe(req, res) {
+  const { rows } = await pool.query(
+    `SELECT u.*,
+      (SELECT COUNT(*) FROM study_sessions WHERE user_id=u.id AND status='completed') AS sessions_completed,
+      (SELECT COUNT(*) FROM files WHERE user_id=u.id) AS files_count,
+      (SELECT COUNT(*) FROM user_achievements WHERE user_id=u.id) AS achievements_count
+     FROM users u WHERE u.id=$1`,
+    [req.user.id]
+  );
+  const { password_hash, ...safe } = rows[0];
+  res.json({ user: safe });
+}
+
+module.exports = { register, guestRegister, login, googleCallback, refreshToken, logout, verifyEmail, forgotPassword, resetPassword, getMe };

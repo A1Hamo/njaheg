@@ -1,0 +1,20 @@
+{
+  "appId": "com.najah.app",
+  "appName": "Najah",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true,
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#030308",
+      "showSpinner": true,
+      "androidSpinnerStyle": "large",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#8B5CF6"
+    }
+  }
+}

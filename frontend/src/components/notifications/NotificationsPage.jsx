@@ -1,0 +1,158 @@
+// src/components/notifications/NotificationsPage.jsx
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
+import { notificationsAPI } from '../../api/index';
+import { useNotifStore } from '../../context/store';
+import { Card, Btn, SectionHeader, EmptyState, Spinner } from '../shared/UI';
+
+const TYPE_ICONS = {
+  reminder:       '⏰',
+  deadline:       '📋',
+  achievement:    '🏆',
+  level_up:       '⬆️',
+  chat:           '💬',
+  board:          '📌',
+  weekly_summary: '📊',
+  default:        '🔔',
+};
+
+export default function NotificationsPage() {
+  const qc = useQueryClient();
+  const { setAll } = useNotifStore();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['notifications'],
+    queryFn:  () => notificationsAPI.list({ limit: 50 }),
+    
+  });
+
+  const notifications = data?.data?.notifications || [];
+  const unreadCount   = data?.data?.unreadCount   || 0;
+
+  // Sync to global store when data loads (TanStack Query v5 removed onSuccess from useQuery)
+  useEffect(() => {
+    if (data?.data) setAll(data.data.notifications || [], data.data.unreadCount || 0);
+  }, [data]);
+
+  const { mutate: markOne }  = useMutation({
+    mutationFn: notificationsAPI.markRead,
+    onSuccess:  () => qc.invalidateQueries(['notifications']),
+  });
+  const { mutate: markAll }  = useMutation({
+    mutationFn: notificationsAPI.markAll,
+    onSuccess:  () => { qc.invalidateQueries(['notifications']); toast.success('All marked as read'); },
+  });
+  const { mutate: remove }   = useMutation({
+    mutationFn: notificationsAPI.remove,
+    onSuccess:  () => qc.invalidateQueries(['notifications']),
+  });
+
+  const grouped = notifications.reduce((acc, n) => {
+    const dateKey = format(new Date(n.created_at), 'yyyy-MM-dd');
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(n);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      <SectionHeader
+        icon="🔔"
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
+        action={
+          unreadCount > 0
+            ? <Btn size="sm" onClick={() => markAll()}>✓ Mark all read</Btn>
+            : null
+        }
+      />
+
+      {isLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}>
+          <Spinner size="lg" />
+        </div>
+      ) : notifications.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon="🔔"
+            title="All caught up!"
+            subtitle="No notifications right now. Keep studying to earn achievements and reminders!"
+          />
+        </Card>
+      ) : (
+        Object.entries(grouped).map(([dateKey, items]) => (
+          <div key={dateKey} style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)',
+              textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
+              {format(new Date(dateKey), 'EEEE, MMMM d')}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <AnimatePresence>
+                {items.map((n, i) => (
+                  <motion.div key={n.id} layout
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1,  x: 0     }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.2 } }}
+                    onClick={() => !n.is_read && markOne(n.id)}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      padding: '14px 16px',
+                      background: 'var(--surface)',
+                      borderRadius: 10,
+                      border: `1px solid ${n.is_read ? 'var(--border)' : 'var(--border2)'}`,
+                      borderLeft: n.is_read ? '1px solid var(--border)' : '3px solid var(--primary)',
+                      cursor: n.is_read ? 'default' : 'pointer',
+                      opacity: n.is_read ? 0.65 : 1,
+                      transition: 'all 0.2s',
+                    }}
+                    whileHover={{ borderColor: 'var(--border2)' }}
+                  >
+                    {/* Icon */}
+                    <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>
+                      {TYPE_ICONS[n.type] || TYPE_ICONS.default}
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontWeight: n.is_read ? 500 : 700,
+                        fontSize: 14, marginBottom: 3, lineHeight: 1.4,
+                      }}>{n.title}</div>
+                      {n.body && (
+                        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, marginBottom: 4 }}>
+                          {n.body}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                        {format(new Date(n.created_at), 'HH:mm')}
+                      </div>
+                    </div>
+
+                    {/* Unread dot */}
+                    {!n.is_read && (
+                      <div style={{ width: 8, height: 8, borderRadius: '50%',
+                        background: 'var(--primary)', flexShrink: 0, marginTop: 6 }} />
+                    )}
+
+                    {/* Delete */}
+                    <button
+                      onClick={e => { e.stopPropagation(); remove(n.id); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text3)',
+                        cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0,
+                        transition: 'color 0.2s', lineHeight: 1 }}
+                      onMouseEnter={e => e.target.style.color = 'var(--danger)'}
+                      onMouseLeave={e => e.target.style.color = 'var(--text3)'}
+                    >✕</button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
