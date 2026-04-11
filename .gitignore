@@ -45,3 +45,6 @@ coverage/
 replacements.txt
 npm_install_log.txt
 output.txt
+
+# Subfolders to ignore
+njah-clean/
