@@ -2,6 +2,9 @@
   "name": "najah",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "install": "cd backend && npm install --legacy-peer-deps && cd ../frontend && npm install --legacy-peer-deps",
     "build": "cd frontend && npm run build"
