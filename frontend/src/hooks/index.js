@@ -30,7 +30,13 @@ export function useSocket() {
       socketInstance.disconnect();
     }
 
-    socketInstance = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+    const apiBase = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
+      : 'http://localhost:5000';
+    
+    const socketURL = import.meta.env.VITE_SOCKET_URL || apiBase;
+
+    socketInstance = io(socketURL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
