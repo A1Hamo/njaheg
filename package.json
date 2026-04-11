@@ -6,7 +6,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "install": "cd backend && npm install --legacy-peer-deps && cd ../frontend && npm install --legacy-peer-deps",
+    "install": "cd backend && npm install --legacy-peer-deps && cd ../frontend && npm install --legacy-peer-deps --include=dev",
     "build": "cd frontend && npm run build"
   }
 }
