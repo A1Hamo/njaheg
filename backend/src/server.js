@@ -53,6 +53,7 @@ const io         = new Server(httpServer, {
         'http://127.0.0.1:3000',
         'http://localhost:3001',
         'http://127.0.0.1:3001',
+        'https://njaheg-theta.vercel.app',
       ].filter(Boolean);
       if (!origin || allowed.includes(origin)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'));
@@ -75,6 +76,7 @@ app.use(cors({
       process.env.CLIENT_URL,
       'http://localhost:3000',
       'http://127.0.0.1:3000',
+      'https://njaheg-theta.vercel.app',
     ].filter(Boolean);
     // Allow requests with no origin (curl, Postman, same-origin)
     if (!origin || allowed.includes(origin)) return callback(null, true);
