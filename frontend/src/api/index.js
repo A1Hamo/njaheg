@@ -131,6 +131,8 @@ export const chatAPI = {
 
 export const aiAPI = {
   chat:              d  => client.post('/ai/chat', d),
+  chatStream:        d  => client.post('/ai/chat/stream', d),
+  search:            d  => client.post('/ai/search', d),
   getConversations:  () => client.get('/ai/conversations'),
   getConversation:   id => client.get(`/ai/conversations/${id}`),
   deleteConversation:id => client.delete(`/ai/conversations/${id}`),
@@ -141,7 +143,6 @@ export const aiAPI = {
   askFile:           d  => client.post('/ai/ask-file', d),
   youtubeSummarize:  d  => client.post('/ai/youtube-summarize', d),
   analyzeImage:      d  => client.post('/ai/image-analyze', d),
-  // Provider discovery
   getProvider:       () => client.get('/ai/provider'),
   getCapabilities:   () => client.get('/ai/internal/capabilities'),
 };

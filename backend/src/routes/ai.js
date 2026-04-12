@@ -6,23 +6,25 @@ const { aiLimiter } = require('../middleware/rateLimiter');
 
 ar.use(authenticate);
 
-// Provider info (no rate limit — just metadata)
-ar.get('/provider',               c.getProvider);
-ar.get('/internal/capabilities',  c.getCapabilities);
+// Provider info (no rate limit)
+ar.get('/provider',              c.getProvider);
+ar.get('/internal/capabilities', c.getCapabilities);
 
 // Conversations
-ar.get ('/conversations',         c.getConversations);
-ar.get ('/conversations/:id',     c.getConversation);
-ar.delete('/conversations/:id',   c.deleteConversation);
+ar.get   ('/conversations',      c.getConversations);
+ar.get   ('/conversations/:id',  c.getConversation);
+ar.delete('/conversations/:id',  c.deleteConversation);
 
-// AI Features (all support ?provider=internal|external)
-ar.post('/chat',                  aiLimiter, c.chat);
-ar.post('/summarize',             aiLimiter, c.summarizePdf);
-ar.post('/quiz',                  aiLimiter, c.generateQuiz);
-ar.post('/quiz/submit',           c.submitQuizResult);
-ar.post('/study-plan',            aiLimiter, c.generateStudyPlan);
-ar.post('/ask-file',              aiLimiter, c.answerFromFile);
-ar.post('/image-analyze',         aiLimiter, c.analyzeImage);
-ar.post('/youtube-summarize',     aiLimiter, c.youtubeSummarize);
+// AI Features
+ar.post('/chat',             aiLimiter, c.chat);
+ar.post('/chat/stream',      aiLimiter, c.chatStream);   // NEW: streaming SSE
+ar.post('/search',           aiLimiter, c.webSearch);    // NEW: web search
+ar.post('/summarize',        aiLimiter, c.summarizePdf);
+ar.post('/quiz',             aiLimiter, c.generateQuiz);
+ar.post('/quiz/submit',               c.submitQuizResult);
+ar.post('/study-plan',       aiLimiter, c.generateStudyPlan);
+ar.post('/ask-file',         aiLimiter, c.answerFromFile);
+ar.post('/image-analyze',    aiLimiter, c.analyzeImage);
+ar.post('/youtube-summarize',aiLimiter, c.youtubeSummarize);
 
 module.exports = ar;
