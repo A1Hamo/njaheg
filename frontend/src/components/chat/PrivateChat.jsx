@@ -8,7 +8,7 @@ import { usersAPI, filesAPI } from '../../api/index';
 import { getSocket, useSocket } from '../../hooks/index';
 import { useVoice } from '../../hooks/useVoice';
 import { useAuthStore, useChatStore } from '../../context/store';
-import { Avatar, Spinner, Modal } from '../shared/UI';
+import { Avatar, Spinner } from '../shared/UI';
 
 // ── Helpers ──────────────────────────────────────────────
 function msgDate(ts) {
