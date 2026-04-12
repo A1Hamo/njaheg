@@ -22,7 +22,8 @@ if (process.env.GEMINI_API_KEY) {
     ];
 
     model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-latest',
+      systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
       safetySettings,
       generationConfig: {
         temperature:     0.85,
@@ -33,7 +34,8 @@ if (process.env.GEMINI_API_KEY) {
     });
 
     modelStream = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-latest',
+      systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
       safetySettings,
       generationConfig: {
         temperature:     0.85,
@@ -116,11 +118,7 @@ async function chat(message, history = [], language = 'en') {
   const hist = buildHistory(history);
 
   const chat = model.startChat({
-    history: [
-      { role: 'user',  parts: [{ text: 'System instructions: ' + SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Understood. I am Najah AI, ready to help Egyptian students with warmth and expertise.' }] },
-      ...hist,
-    ],
+    history: hist,
   });
 
   const result = await chat.sendMessage(message);
@@ -139,11 +137,7 @@ async function chatStream(message, history = [], res) {
   const hist = buildHistory(history);
 
   const chatSession = modelStream.startChat({
-    history: [
-      { role: 'user',  parts: [{ text: 'System instructions: ' + SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Understood. I am Najah AI, ready to help Egyptian students with warmth and expertise.' }] },
-      ...hist,
-    ],
+    history: hist,
   });
 
   const result = await chatSession.sendMessageStream(message);
@@ -333,7 +327,7 @@ Suggest 3 short follow-up questions the student might ask. Return ONLY JSON: {"s
 
 // ── Availability check ────────────────────────────────────────
 function isAvailable() { return !!model; }
-function getModelName() { return 'gemini-2.0-flash'; }
+function getModelName() { return 'gemini-2.0-flash-latest'; }
 
 module.exports = {
   chat,

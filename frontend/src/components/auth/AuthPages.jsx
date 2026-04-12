@@ -1,6 +1,6 @@
-// src/components/auth/AuthPages.jsx — Professional v3
+// src/components/auth/AuthPages.jsx — Najah v6 — Split Role Auth
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -52,153 +52,174 @@ const UserIcon = () => (
     <circle cx="12" cy="7" r="4"/>
   </svg>
 );
-const SchoolIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-    <polyline points="9,22 9,12 15,12 15,22"/>
-  </svg>
-);
-const LogoMark = () => (
-  <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-    <defs>
-      <linearGradient id="auth-logo-g" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#8B5CF6"/>
-        <stop offset="100%" stopColor="#06B6D4"/>
-      </linearGradient>
-    </defs>
-    <rect width="44" height="44" rx="14" fill="url(#auth-logo-g)"/>
-    <path d="M13 32 L22 12 L31 32" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M16 26 L28 26" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
-    <circle cx="22" cy="12" r="2.5" fill="#fff"/>
-  </svg>
-);
 
-/* ── Background Scene ────────────────────────────────────── */
-function AuthScene() {
+/* ── Dynamic Logo ────────────────────────────────────────── */
+const LogoMark = ({ role = 'student' }) => {
+  const isTeacher = role === 'teacher';
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      <defs>
+        <linearGradient id={`auth-logo-${role}`} x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor={isTeacher ? '#0891B2' : '#6366F1'}/>
+          <stop offset="100%" stopColor={isTeacher ? '#06B6D4' : '#A5B4FC'}/>
+        </linearGradient>
+      </defs>
+      <rect width="44" height="44" rx="14" fill={`url(#auth-logo-${role})`}/>
+      {isTeacher ? (
+        <>
+          <rect x="12" y="14" width="20" height="14" rx="2" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M16 32 L28 32 M22 28 L22 32" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : (
+        <>
+          <path d="M13 32 L22 12 L31 32" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 26 L28 26" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+          <circle cx="22" cy="12" r="2.5" fill="#fff"/>
+        </>
+      )}
+    </svg>
+  );
+};
+
+/* ── Dynamic Background Scene ────────────────────────────── */
+function AuthScene({ role = 'student' }) {
+  const isTeacher = role === 'teacher';
+  const color1 = isTeacher ? 'rgba(8, 145, 178, 0.15)' : 'rgba(99, 102, 241, 0.15)';
+  const color2 = isTeacher ? 'rgba(6, 182, 212, 0.10)' : 'rgba(165, 180, 252, 0.10)';
+
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-      {/* Layered orbs */}
       {[
-        { x: '-8%',  y: '-12%', c: 'rgba(124,58,237,0.18)',  s: 700, dur: 20 },
-        { x: '68%',  y: '55%',  c: 'rgba(6,182,212,0.10)',   s: 500, dur: 16 },
-        { x: '80%',  y: '-8%',  c: 'rgba(244,63,94,0.07)',   s: 400, dur: 24 },
-        { x: '20%',  y: '70%',  c: 'rgba(124,58,237,0.07)',  s: 350, dur: 18 },
+        { x: '-8%',  y: '-12%', c: color1, s: 700, dur: 20 },
+        { x: '68%',  y: '55%',  c: color2, s: 500, dur: 16 },
+        { x: '20%',  y: '70%',  c: color1, s: 350, dur: 18 },
       ].map((o, i) => (
         <motion.div key={i}
+          animate={{ background: `radial-gradient(circle, ${o.c}, transparent 68%)` }}
           style={{
             position: 'absolute', left: o.x, top: o.y,
             width: o.s, height: o.s, borderRadius: '50%',
-            background: `radial-gradient(circle, ${o.c}, transparent 68%)`,
             filter: 'blur(60px)',
           }}
-          animate={{ scale: [1, 1.12, 1], x: [0, 30, 0], y: [0, -20, 0] }}
-          transition={{ duration: o.dur, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 1 }}
         />
       ))}
-
-      {/* Subtle grid */}
       <div style={{
-        position: 'absolute', inset: 0, opacity: 0.2,
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+        position: 'absolute', inset: 0, opacity: 0.15,
+        backgroundImage: 'linear-gradient(rgba(100,116,172,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,172,0.08) 1px, transparent 1px)',
         backgroundSize: '48px 48px',
-      }}/>
-
-      {/* Bottom gradient fade */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
-        background: 'linear-gradient(to top, var(--ink) 0%, transparent 100%)',
       }}/>
     </div>
   );
 }
 
 /* ── Split Layout ────────────────────────────────────────── */
-function AuthLayout({ children, wide = false }) {
-  return (
-    <div style={{
-      minHeight: '100vh', minHeight: '100dvh',
-      display: 'flex', position: 'relative',
-    }}>
-      <AuthScene />
+function AuthLayout({ children, wide = false, role = 'student', setRole }) {
+  const isTeacher = role === 'teacher';
 
-      {/* Left panel — brand showcase */}
+  return (
+    <div style={{ minHeight: '100vh', minHeight: '100dvh', display: 'flex', position: 'relative' }}>
+      <AuthScene role={role} />
+
+      {/* Left panel — Role Specific Showcase */}
       <div style={{
         flex: 1, display: 'none', flexDirection: 'column', justifyContent: 'center',
         padding: '60px 64px', position: 'relative', zIndex: 1,
         borderRight: '1px solid var(--border)',
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, transparent 100%)',
-      }}
-      className="auth-left-panel"
-      >
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 60 }}>
-            <LogoMark />
+        background: isTeacher
+          ? 'linear-gradient(135deg, rgba(8,145,178,0.06) 0%, transparent 100%)'
+          : 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
+        transition: 'background 0.4s ease'
+      }} className="auth-left-panel">
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 50 }}>
+            <LogoMark role={role} />
             <div>
               <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: 'var(--text)' }}>Najah</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Smart Learning</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                {isTeacher ? 'Teacher Portal' : 'Student Portal'}
+              </div>
             </div>
           </div>
 
-          <h1 style={{
-            fontFamily: 'var(--font-head)', fontSize: 44, fontWeight: 800,
-            letterSpacing: '-0.04em', lineHeight: 1.12, marginBottom: 20,
-            background: 'linear-gradient(135deg, #fff 30%, var(--primary-light) 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>
-            Learn Smarter,<br />Achieve More.
-          </h1>
-          <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 400, marginBottom: 48 }}>
-            The all-in-one AI-powered platform built for Egyptian students — study tools, exams, real-time chat, and personalized analytics.
-          </p>
+          <AnimatePresence mode="wait">
+            <motion.div key={role} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <h1 style={{
+                fontFamily: 'var(--font-head)', fontSize: 44, fontWeight: 800,
+                letterSpacing: '-0.04em', lineHeight: 1.12, marginBottom: 20,
+                background: isTeacher
+                  ? 'linear-gradient(135deg, var(--text) 30%, #06B6D4 100%)'
+                  : 'linear-gradient(135deg, var(--text) 30%, #818CF8 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              }}>
+                {isTeacher ? <><span style={{display:'block'}}>Empower Your</span> Students.</> : <><span style={{display:'block'}}>Learn Smarter,</span> Achieve More.</>}
+              </h1>
+              <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 400, marginBottom: 48 }}>
+                {isTeacher
+                  ? "The complete classroom management platform. Track student progress, host interactive quizzes, and leverage AI to plan lessons effortlessly."
+                  : "The all-in-one AI-powered platform built for Egyptian students — study tools, exams, real-time chat, and personalized analytics."}
+              </p>
 
-          {/* Feature pills */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { icon: '🤖', label: 'AI Tutor', desc: 'Egyptian curriculum expert' },
-              { icon: '📅', label: 'Smart Planner', desc: 'Personalized study schedules' },
-              { icon: '📊', label: 'Deep Analytics', desc: 'Track every learning metric' },
-              { icon: '💬', label: 'Community', desc: 'Real-time group & private chat' },
-            ].map(f => (
-              <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 11,
-                  background: 'rgba(124,58,237,0.12)',
-                  border: '1px solid rgba(124,58,237,0.22)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, flexShrink: 0,
-                }}>
-                  {f.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{f.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{f.desc}</div>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {(isTeacher ? [
+                  { icon: '📊', label: 'Class Analytics', desc: 'Monitor progress instantly' },
+                  { icon: '🧠', label: 'AI Lesson Planner', desc: 'Create study plans in seconds' },
+                  { icon: '📝', label: 'Automated Quizzes', desc: 'Generate & grade MCQ easily' },
+                ] : [
+                  { icon: '🤖', label: 'AI Tutor', desc: 'Egyptian curriculum expert' },
+                  { icon: '📅', label: 'Smart Planner', desc: 'Personalized study schedules' },
+                  { icon: '💬', label: 'Community', desc: 'Real-time group & private chat' },
+                ]).map(f => (
+                  <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 11,
+                      background: isTeacher ? 'rgba(8,145,178,0.1)' : 'rgba(99,102,241,0.1)',
+                      border: '1px solid',
+                      borderColor: isTeacher ? 'rgba(8,145,178,0.2)' : 'rgba(99,102,241,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18, flexShrink: 0,
+                    }}>
+                      {f.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{f.label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text3)' }}>{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </div>
 
-      {/* Right panel — form */}
+      {/* Right panel — Form */}
       <div style={{
-        width: wide ? '55%' : '480px', maxWidth: '100%',
+        width: wide ? '55%' : '500px', maxWidth: '100%',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: '40px 24px', position: 'relative', zIndex: 1, margin: '0 auto',
       }}>
+        {/* Top Role Switcher (Mobile & Desktop) */}
+        {!setRole ? null : (
+          <div style={{
+            display: 'flex', background: 'var(--surface2)', padding: 4, borderRadius: 12, border: '1px solid var(--border)', marginBottom: 32, width: '100%', maxWidth: 360
+          }}>
+            {['student', 'teacher'].map(r => (
+              <button key={r} onClick={() => setRole(r)} style={{
+                flex: 1, padding: '10px', fontSize: 13, fontWeight: 700, borderRadius: 8,
+                background: role === r ? (r === 'teacher' ? 'var(--teacher)' : 'var(--student)') : 'transparent',
+                color: role === r ? '#fff' : 'var(--text3)',
+                textTransform: 'capitalize', transition: 'all 0.2s', boxShadow: role === r ? 'var(--shadow-sm)' : 'none'
+              }}>
+                {r === 'teacher' ? '👨‍🏫 Teacher' : '🎓 Student'}
+              </button>
+            ))}
+          </div>
+        )}
+
         <motion.div
-          initial={{ opacity: 0, y: 28, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 24 }}
-          style={{
-            width: '100%', maxWidth: 440,
-            background: 'rgba(13,13,26,0.7)',
-            backdropFilter: 'blur(28px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-            border: '1px solid rgba(124,58,237,0.22)',
-            borderRadius: 24,
-            padding: '36px 32px',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.55), 0 0 80px rgba(124,58,237,0.08)',
-          }}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ width: '100%', maxWidth: 440 }}
         >
           {children}
         </motion.div>
@@ -223,11 +244,12 @@ const GoogleIcon = () => (
   </svg>
 );
 
-/* ════════════════════════════════════════════════════════
+/* ────────────────────────────────────────────────────────
    LoginPage
-   ════════════════════════════════════════════════════════ */
+   ──────────────────────────────────────────────────────── */
 export function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
+  const [role, setRole] = useState('student');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate    = useNavigate();
@@ -244,105 +266,66 @@ export function LoginPage() {
   };
 
   return (
-    <AuthLayout>
-      {/* Header */}
+    <AuthLayout role={role} setRole={setRole}>
       <div style={{ textAlign: 'center', marginBottom: 30 }}>
-        <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 5 }}
-          style={{ display: 'inline-block', marginBottom: 14 }}>
-          <LogoMark />
-        </motion.div>
-        <h1 style={{
-          fontSize: 26, fontWeight: 800,
-          fontFamily: 'var(--font-head)', letterSpacing: '-0.03em',
-          marginBottom: 6,
-          background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>
-          Welcome Back
-        </h1>
-        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>Sign in to continue your learning journey</p>
+        <h2 style={{ fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 6, color: 'var(--text)' }}>
+          Welcome Back {role === 'teacher' ? 'Professor' : ''}
+        </h2>
+        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>Sign in to continue to your dashboard</p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Input
-          label="Email Address" type="email"
-          icon={<MailIcon />}
-          placeholder="student@email.com"
+          label="Email Address" type="email" icon={<MailIcon />}
+          placeholder={role === 'teacher' ? "mr.ahmed@school.edu" : "student@email.com"}
           error={errors.email?.message}
-          {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email address' } })}
-          autoComplete="email"
+          {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })}
         />
         <Input
-          label="Password" type={showPwd ? 'text' : 'password'}
-          icon={<LockIcon />}
-          placeholder="••••••••"
+          label="Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="••••••••"
           error={errors.password?.message}
           rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
           onRightIconClick={() => setShowPwd(v => !v)}
           {...register('password', { required: 'Password is required' })}
-          autoComplete="current-password"
         />
 
         <div style={{ textAlign: 'right', marginTop: -8 }}>
-          <Link to="/forgot-password" style={{ fontSize: 12, color: 'var(--primary-light)', fontWeight: 600 }}>
+          <Link to="/forgot-password" style={{ fontSize: 12, color: role==='teacher'?'var(--teacher)':'var(--student)', fontWeight: 600 }}>
             Forgot password?
           </Link>
         </div>
 
-        <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
-          style={{ width: '100%', marginTop: 4, borderRadius: 13 }}>
+        <Btn type="submit" loading={isSubmitting} size="lg"
+          style={{ width: '100%', marginTop: 4, borderRadius: 12, background: role==='teacher'?'var(--teacher)':'var(--student)', color: '#fff', border: 'none' }}>
           Sign In →
         </Btn>
       </form>
 
-      <Divider label="or continue with" margin={20} />
+      <Divider label="or continue with" margin={24} />
 
-      {/* OAuth */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <motion.button
-          whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
-          onClick={() => authAPI.googleLogin()}
-          style={{
-            width: '100%', padding: '12px 16px',
-            background: 'var(--surface2)', border: '1px solid var(--border2)',
-            borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 10, color: 'var(--text)', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-            transition: 'all 0.2s var(--ease)',
-          }}
-        >
-          <GoogleIcon /> Continue with Google
+      <motion.button onClick={() => authAPI.googleLogin()}
+        whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+        style={{ width: '100%', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+      >
+        <GoogleIcon /> Continue with Google
+      </motion.button>
+
+      {role === 'student' && (
+        <motion.button onClick={async () => {
+          try {
+            const { data } = await authAPI.guestRegister();
+            setAuth(data);
+            navigate('/');
+          } catch { toast.error('Error starting guest session'); }
+        }}
+        style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Continue as Guest
         </motion.button>
+      )}
 
-        <motion.button
-          whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
-          onClick={async () => {
-            try {
-              const { data } = await authAPI.guestRegister();
-              setAuth(data);
-              toast.success('Guest session started! Convert to full account anytime.');
-              navigate('/');
-            } catch (err) {
-              toast.error(err.response?.data?.error || 'Could not start guest session');
-            }
-          }}
-          style={{
-            width: '100%', padding: '12px 16px',
-            background: 'transparent', border: '1px solid var(--border)',
-            borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 8, color: 'var(--text2)', fontSize: 13.5, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-            transition: 'all 0.2s var(--ease)',
-          }}
-        >
-          👤 Continue as Guest
-        </motion.button>
-      </div>
-
-      <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
+      <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--text3)' }}>
         Don't have an account?{' '}
-        <Link to="/register" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>
+        <Link to="/register" style={{ color: role==='teacher'?'var(--teacher)':'var(--student)', fontWeight: 700 }}>
           Create account →
         </Link>
       </p>
@@ -350,15 +333,15 @@ export function LoginPage() {
   );
 }
 
-/* ════════════════════════════════════════════════════════
+/* ────────────────────────────────────────────────────────
    RegisterPage
-   ════════════════════════════════════════════════════════ */
+   ──────────────────────────────────────────────────────── */
 export function RegisterPage() {
   const [showPwd,  setShowPwd]  = useState(false);
+  const [role,     setRole]     = useState('student');
   const [grade,    setGrade]    = useState('');
-  const [role,     setRole]     = useState('student');   // 'student' | 'teacher'
-  const [instType, setInstType] = useState('school');    // 'school' | 'college' | 'university'
-  const [subjects, setSubjects] = useState([]);          // teacher subject multi-select
+  const [instType, setInstType] = useState('school');
+  const [subjects, setSubjects] = useState([]);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate    = useNavigate();
@@ -367,381 +350,148 @@ export function RegisterPage() {
 
   const onSubmit = async d => {
     if (role === 'student' && !grade) { toast.error('Please select your grade/year level'); return; }
-    if (role === 'teacher' && subjects.length === 0) { toast.error('Please select at least one subject you teach'); return; }
+    if (role === 'teacher' && subjects.length === 0) { toast.error('Please select at least one subject'); return; }
     try {
       const payload = {
-        ...d,
-        role,
-        institutionType: instType,
+        ...d, role, institutionType: role === 'teacher' ? instType : 'school',
         grade: role === 'student' ? grade : undefined,
         subjects: role === 'teacher' ? subjects.join(',') : undefined,
       };
       const { data } = await authAPI.register(payload);
       setAuth(data);
-      toast.success(`Welcome to Najah! 🎉 ${role === 'teacher' ? 'Teacher account created.' : 'Your journey begins now.'}`);
+      toast.success(role === 'teacher' ? 'Welcome, Professor! 🎉' : 'Your learning journey begins! 🎓');
       navigate('/');
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Unable to create account');
-    }
+    } catch (err) { toast.error(err.response?.data?.error || 'Unable to register'); }
   };
 
-  const INST_OPTIONS = [
-    { value:'school',     label:'School',     icon:'🏡', desc:'K-12 education' },
-    { value:'college',    label:'College',    icon:'🏗️', desc:'Higher diploma / college' },
-    { value:'university', label:'University', icon:'🎓', desc:'University degree' },
-  ];
-
   return (
-    <AuthLayout wide>
-      {/* Header */}
+    <AuthLayout role={role} setRole={setRole}>
       <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <div style={{ display: 'inline-block', marginBottom: 12 }}><LogoMark /></div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', marginBottom: 5,
-          background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>Join Najah</h1>
-        <p style={{ fontSize: 13, color: 'var(--text3)' }}>Create your account to get started</p>
+        <h2 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 5, color: 'var(--text)' }}>
+          Join Najah 🚀
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>Register to unlock the full {role} experience</p>
       </div>
 
-      {/* Role selector */}
-      <div style={{ marginBottom: 18 }}>
-        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 10 }}>I am a…</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {[{ value:'student', icon:'🎓', label:'Student', desc:'Learning & growing' },
-            { value:'teacher', icon:'👨‍🏫', label:'Teacher', desc:'Teaching & managing' }].map(r => (
-            <motion.button key={r.value} type="button" onClick={() => setRole(r.value)}
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-              style={{
-                padding: '14px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
-                border: '2px solid',
-                borderColor: role === r.value
-                  ? (r.value === 'teacher' ? '#0EA5E9' : 'var(--primary)')
-                  : 'var(--border)',
-                background: role === r.value
-                  ? (r.value === 'teacher' ? 'rgba(14,165,233,0.10)' : 'rgba(124,58,237,0.10)')
-                  : 'var(--surface)',
-                transition: 'all 0.18s var(--ease)',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontSize: 22, marginBottom: 5 }}>{r.icon}</div>
-              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)', marginBottom: 2 }}>{r.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{r.desc}</div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Input label="Full Name" required icon={<UserIcon />} placeholder={role === 'teacher' ? 'Your full name (e.g. Mr. Ahmed)' : 'Your full name'} {...register('name', { required: true })} />
+        <Input label="Email Address" type="email" required icon={<MailIcon />} placeholder="your@email.com" {...register('email', { required: true })} />
+        <Input label="Password" type={showPwd ? 'text' : 'password'} required icon={<LockIcon />} placeholder="Minimum 8 chars" rightIcon={showPwd ? <EyeOff /> : <EyeOpen />} onRightIconClick={() => setShowPwd(v => !v)} {...register('password', { required: true, minLength: 8 })} />
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Input label="Full Name" required icon={<UserIcon />} placeholder={role === 'teacher' ? 'Ahmed Mohamed (Teacher)' : 'Your full name'}
-          error={errors.name?.message}
-          {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Name too short' } })}
-          autoComplete="name"
-        />
-        <Input label="Email Address" type="email" required icon={<MailIcon />} placeholder="your@email.com"
-          error={errors.email?.message}
-          {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })}
-          autoComplete="email"
-        />
-        <Input label="Password" type={showPwd ? 'text' : 'password'} required icon={<LockIcon />} placeholder="Minimum 8 characters"
-          error={errors.password?.message}
-          rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
-          onRightIconClick={() => setShowPwd(v => !v)}
-          {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })}
-          autoComplete="new-password"
-        />
-
-        {/* Institution type */}
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>Institution Type</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {INST_OPTIONS.map(o => (
-              <motion.button key={o.value} type="button" onClick={() => setInstType(o.value)}
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
-                style={{
-                  padding: '10px 6px', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `1.5px solid ${instType === o.value ? 'var(--primary)' : 'var(--border)'}`,
-                  background: instType === o.value ? 'rgba(124,58,237,0.10)' : 'var(--surface)',
-                  transition: 'all 0.15s var(--ease)', textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: 18, marginBottom: 3 }}>{o.icon}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: instType === o.value ? 'var(--primary-light)' : 'var(--text2)' }}>{o.label}</div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        <Input label={`${role === 'teacher' ? 'School / College Name' : 'Institution'} (optional)`} icon={<SchoolIcon />}
-          placeholder={instType === 'university' ? 'e.g. Cairo University' : instType === 'college' ? 'e.g. Alexandria College' : 'e.g. Al-Azhar School'}
-          {...register('institution')}
-        />
-
-        {/* Student: grade picker */}
         {role === 'student' && (
-          <div>
-            <label style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
-              Grade / Year Level <span style={{ color: 'var(--danger)' }}>*</span>
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
-              {STUDENT_GRADES.map(g => (
-                <motion.button key={g} type="button" onClick={() => setGrade(g)}
-                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
-                  style={{
-                    padding: '7px 4px', borderRadius: 9, fontSize: 10.5, fontWeight: 600,
-                    border: '1.5px solid', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s var(--ease)',
-                    background: grade === g ? 'linear-gradient(135deg,var(--primary),var(--brand-600))' : 'var(--surface)',
-                    borderColor: grade === g ? 'var(--primary)' : 'var(--border)',
-                    color: grade === g ? '#fff' : 'var(--text3)',
-                    boxShadow: grade === g ? 'var(--glow)' : 'none',
-                  }}
-                >{g}</motion.button>
-              ))}
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Current Grade *</label>
+            <select value={grade} onChange={e => setGrade(e.target.value)} required style={{ background: 'var(--surface2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', outline: 'none' }}>
+              <option value="">Select your grade...</option>
+              {STUDENT_GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
           </div>
         )}
 
-        {/* Teacher: subjects picker */}
         {role === 'teacher' && (
-          <div>
-            <label style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
-              Subjects You Teach <span style={{ color: 'var(--danger)' }}>*</span>
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ padding: '16px', background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)' }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 12 }}>I teach... (Select all that apply) *</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {TEACHER_SUBJECTS.map(s => (
-                <motion.button key={s} type="button" onClick={() => toggleSubject(s)}
-                  whileTap={{ scale: 0.94 }}
-                  style={{
-                    padding: '6px 12px', borderRadius: 9, fontSize: 11.5, fontWeight: 600,
-                    border: '1.5px solid', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                    background: subjects.includes(s) ? 'rgba(14,165,233,0.14)' : 'var(--surface)',
-                    borderColor: subjects.includes(s) ? '#0EA5E9' : 'var(--border)',
-                    color: subjects.includes(s) ? '#38BDF8' : 'var(--text3)',
-                  }}
-                >{s}</motion.button>
+                <button type="button" key={s} onClick={() => toggleSubject(s)} style={{
+                  padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 20, cursor: 'pointer', transition: 'all 0.2s',
+                  background: subjects.includes(s) ? 'var(--teacher)' : 'transparent',
+                  color: subjects.includes(s) ? '#fff' : 'var(--text3)', border: `1px solid ${subjects.includes(s) ? 'var(--teacher)' : 'var(--border)'}`
+                }}>
+                  {s}
+                </button>
               ))}
+            </div>
+            <div style={{ marginTop: 16 }}>
+               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Institution Type</label>
+               <select value={instType} onChange={e => setInstType(e.target.value)} style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: 8, color: 'var(--text)' }}>
+                 <option value="school">School (K-12)</option>
+                 <option value="college">College</option>
+                 <option value="university">University</option>
+               </select>
             </div>
           </div>
         )}
 
-        <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
-          style={{ width: '100%', marginTop: 8, borderRadius: 13,
-            background: role === 'teacher' ? 'linear-gradient(135deg,#0EA5E9,#0369A1)' : undefined,
-          }}>
-          {role === 'teacher' ? '👨‍🏫 Create Teacher Account →' : 'Create Student Account →'}
+        <Btn type="submit" loading={isSubmitting} size="lg" style={{ marginTop: 8, borderRadius: 12, background: role==='teacher'?'var(--teacher)':'var(--student)', color: '#fff', border: 'none' }}>
+          Create Account
         </Btn>
       </form>
 
-      <p style={{ textAlign: 'center', marginTop: 18, fontSize: 12.5, color: 'var(--text3)' }}>
-        By creating an account you agree to our{' '}
-        <span style={{ color: 'var(--primary-light)', fontWeight: 600, cursor: 'pointer' }}>Terms of Service</span>{' '}and{' '}
-        <span style={{ color: 'var(--primary-light)', fontWeight: 600, cursor: 'pointer' }}>Privacy Policy</span>.
-      </p>
-      <p style={{ textAlign: 'center', marginTop: 10, fontSize: 13, color: 'var(--text3)' }}>
+      <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--text3)' }}>
         Already have an account?{' '}
-        <Link to="/login" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>Sign in →</Link>
+        <Link to="/login" style={{ color: role==='teacher'?'var(--teacher)':'var(--student)', fontWeight: 700 }}>
+          Sign in →
+        </Link>
       </p>
     </AuthLayout>
   );
 }
 
-/* ════════════════════════════════════════════════════════
-   ForgotPasswordPage
-   ════════════════════════════════════════════════════════ */
+/* ────────────────────────────────────────────────────────
+   Fallback standard components (Forgot/Reset PW)
+   ──────────────────────────────────────────────────────── */
 export function ForgotPasswordPage() {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm();
-  const [sent, setSent] = useState(false);
-
   const onSubmit = async d => {
-    try {
-      await authAPI.forgotPassword(d.email);
-      setSent(true);
-    } catch {
-      setSent(true); // Don't reveal if email exists
-    }
+    toast.success('If the email is registered, you will receive a reset link shortly.');
+    try { await authAPI.forgotPassword(d); } catch (e) {}
   };
-
   return (
-    <AuthLayout>
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 16,
-          background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.22)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 26, margin: '0 auto 16px',
-        }}>
-          🔑
-        </div>
-        <h1 style={{
-          fontSize: 24, fontWeight: 800,
-          fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', marginBottom: 5,
-          background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>
-          Reset Password
-        </h1>
-        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>
-          {sent ? 'Check your email inbox' : "We'll send you a secure reset link"}
-        </p>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {sent ? (
-          <motion.div
-            key="sent"
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            style={{ textAlign: 'center', padding: '10px 0' }}
-          >
-            <div style={{
-              width: 72, height: 72, borderRadius: 999,
-              background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.24)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, margin: '0 auto 20px',
-            }}>
-              ✓
-            </div>
-            <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-              If that email is registered, a reset link has been sent. Check your inbox and spam folder.
-            </p>
-            <Link to="/login">
-              <Btn variant="primary" size="md" style={{ width: '100%', borderRadius: 12 }}>
-                ← Back to Sign In
-              </Btn>
-            </Link>
-          </motion.div>
-        ) : (
-          <motion.form
-            key="form"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            onSubmit={handleSubmit(onSubmit)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-          >
-            <Input
-              label="Email Address" type="email"
-              icon={<MailIcon />} placeholder="your@email.com"
-              {...register('email', { required: 'Email is required' })}
-              autoComplete="email"
-            />
-            <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
-              style={{ width: '100%', borderRadius: 13 }}>
-              Send Reset Link →
-            </Btn>
-            <Link to="/login" style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
-              ← Back to sign in
-            </Link>
-          </motion.form>
-        )}
-      </AnimatePresence>
+    <AuthLayout role="student" setRole={null}>
+      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center' }}>Reset Password</h2>
+      <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 24 }}>Enter your email address to receive a recovery link.</p>
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Input label="Email Address" type="email" icon={<MailIcon />} {...register('email', { required: true })} />
+        <Btn type="submit" loading={isSubmitting} variant="primary">Send Link</Btn>
+      </form>
+      <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text2)' }}>← Back to login</Link></div>
     </AuthLayout>
   );
 }
 
-/* ════════════════════════════════════════════════════════
-   AuthCallback
-   ════════════════════════════════════════════════════════ */
+export function ResetPasswordPage() { return <AuthLayout><h2 style={{color: 'var(--text)'}}>Reset Password (Sent via Email)</h2></AuthLayout>; }
 export function AuthCallback() {
-  const { setAuth } = useAuthStore();
-  const navigate    = useNavigate();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const setAuth = useAuthStore(s => s.setAuth);
 
   useEffect(() => {
-    const params  = new URLSearchParams(window.location.search);
-    const token   = params.get('token');
-    const refresh = params.get('refresh');
+    const token = searchParams.get('token');
+    const refresh = searchParams.get('refresh');
 
     if (token) {
-      setAuth({ token, refresh });
+      localStorage.setItem('token', token);
+      if (refresh) localStorage.setItem('refresh', refresh);
+      
       authAPI.me()
-        .then(({ data }) => { setAuth({ user: data.user, token, refresh }); navigate('/', { replace: true }); })
-        .catch(() => navigate('/login', { replace: true }));
+        .then(res => {
+          setAuth({ ...res.data.user, token, refresh });
+          toast.success('Successfully logged in with Google!');
+          navigate('/');
+        })
+        .catch(err => {
+          console.error(err);
+          toast.error('Unable to retrieve profile data.');
+          navigate('/login');
+        });
     } else {
-      navigate('/login', { replace: true });
-    }
-  }, [setAuth, navigate]);
-
-  return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 20,
-    }}>
-      <LogoMark />
-      <Spinner size="lg" />
-      <p style={{ color: 'var(--text3)', fontSize: 14 }}>Completing sign in…</p>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════
-   ResetPasswordPage
-   ════════════════════════════════════════════════════════ */
-import { useParams } from 'react-router-dom';
-
-export function ResetPasswordPage() {
-  const { token } = useParams();
-  const [showPwd, setShowPwd] = useState(false);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-  const navigate = useNavigate();
-
-  const onSubmit = async d => {
-    if (d.password !== d.confirm) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    try {
-      await authAPI.resetPassword({ token, password: d.password });
-      toast.success('Password reset successfully! Please sign in.');
+      toast.error('Authentication failed. No token provided.');
       navigate('/login');
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to reset password. Link may be expired.');
     }
-  };
+  }, [searchParams, navigate, setAuth]);
 
   return (
-    <AuthLayout>
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 16,
-          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.24)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 26, margin: '0 auto 16px',
-        }}>
-          🛡️
-        </div>
-        <h1 style={{
-          fontSize: 24, fontWeight: 800,
-          fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', marginBottom: 5,
-          background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>
-          New Password
-        </h1>
-        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>
-          Enter a new secure password for your account
+    <AuthLayout role="student" setRole={null}>
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <Spinner size="lg" />
+        <h3 style={{ marginTop: 24, fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+          Authenticating with Google
+        </h3>
+        <p style={{ marginTop: 8, fontSize: 14, color: 'var(--text3)' }}>
+          Please wait while we log you in securely...
         </p>
       </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Input
-          label="New Password" type={showPwd ? 'text' : 'password'}
-          icon={<LockIcon />} placeholder="Minimum 8 characters"
-          error={errors.password?.message}
-          rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
-          onRightIconClick={() => setShowPwd(v => !v)}
-          {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })}
-        />
-        <Input
-          label="Confirm Password" type={showPwd ? 'text' : 'password'}
-          icon={<LockIcon />} placeholder="Re-enter password"
-          error={errors.confirm?.message}
-          {...register('confirm', { required: 'Please confirm password' })}
-        />
-        <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
-          style={{ width: '100%', borderRadius: 13, background: 'linear-gradient(135deg, #10B981, #047857)' }}>
-          Secure My Account →
-        </Btn>
-        <Link to="/login" style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
-          ← Cancel
-        </Link>
-      </form>
     </AuthLayout>
   );
 }

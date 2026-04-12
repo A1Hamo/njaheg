@@ -612,7 +612,7 @@ function AIChat() {
   );
 }
 
-// ── Quiz, Study Plan, Summarizer panels (lightweight pass-throughs) ──
+// ── Quiz, Study Plan, Summarizer, YouTube panels ──────────────────
 function QuizPanel() {
   const [subject, setSubject] = useState('mathematics');
   const [difficulty, setDifficulty] = useState('medium');
@@ -750,41 +750,246 @@ function QuizPanel() {
   );
 }
 
-// ── Tabs Container (main export) ─────────────────────────
+// ── Summarize PDF Panel ──────────────────────────────────────
+function SummarizePanel() {
+  const { language } = useUIStore();
+  const isAr = language === 'ar';
+  const [files, setFiles] = useState([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);
+  useQuery({
+    queryKey: ['files-for-ai'],
+    queryFn: async () => {
+      const { filesAPI } = await import('../../api/index');
+      const { data } = await filesAPI.list({ limit: 50 });
+      setFiles((data?.files || []).filter(f => f.mime_type === 'application/pdf'));
+      return data;
+    },
+  });
+  const doSummarize = async () => {
+    if (!selectedId) return toast.error(isAr ? 'اختر ملف PDF أولاً' : 'Please select a PDF file');
+    setLoading(true); setSummary('');
+    try { const { data } = await aiAPI.summarize({ fileId: selectedId, language }); setSummary(data.summary || ''); }
+    catch { toast.error(isAr ? 'فشل التلخيص' : 'Summarization failed'); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>📄 {isAr ? 'تلخيص ملف PDF' : 'Summarize PDF'}</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 14 }}>{isAr ? 'اختر ملف PDF من مكتبتك وسأقوم بتلخيصه بالكامل فوراً' : 'Select any PDF from your library and get an instant structured summary'}</p>
+      </div>
+      <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: 24, marginBottom: 20 }}>
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {isAr ? 'اختر ملف PDF' : 'Select PDF File'}
+        </label>
+        <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
+          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 14, marginBottom: 16 }}>
+          <option value="">{isAr ? '-- اختر ملفاً --' : '-- Choose a PDF --'}</option>
+          {files.map(f => <option key={f.id} value={f.id}>{f.original_name}</option>)}
+        </select>
+        {files.length === 0 && <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>{isAr ? 'لا توجد ملفات PDF. قم بتحميل ملفات من قسم الملفات أولاً.' : 'No PDF files yet. Upload some in the Files section first.'}</p>}
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={doSummarize} disabled={loading || !selectedId}
+          style={{ padding: '11px 28px', borderRadius: 14, background: selectedId ? 'linear-gradient(135deg,#7C3AED,#5B21B6)' : 'var(--surface3)', color: '#fff', border: 'none', cursor: selectedId ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 14, boxShadow: selectedId ? '0 4px 16px rgba(124,58,237,0.35)' : 'none' }}>
+          {loading ? <Spinner size="sm" /> : (isAr ? '✨ تلخيص الآن' : '✨ Summarize Now')}
+        </motion.button>
+      </div>
+      {summary && (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 20, padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700 }}>📋 {isAr ? 'الملخص' : 'Summary'}</h3>
+            <button onClick={() => { navigator.clipboard.writeText(summary); toast.success(isAr ? 'تم النسخ!' : 'Copied!'); }}
+              style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>
+              📋 {isAr ? 'نسخ' : 'Copy'}
+            </button>
+          </div>
+          <div className="ai-msg-content" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--text)' }}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(summary) }} />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ── Study Plan Panel ──────────────────────────────────────────
+function StudyPlanPanel() {
+  const { language } = useUIStore();
+  const isAr = language === 'ar';
+  const [form, setForm] = useState({ subject: 'mathematics', deadline: '', dailyHours: 2, currentLevel: 'beginner' });
+  const [plan, setPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const typeColors = { study:'#7C3AED', review:'#3B82F6', practice:'#10B981', rest:'#F59E0B' };
+  const generate = async () => {
+    if (!form.deadline) return toast.error(isAr ? 'حدد تاريخ الامتحان' : 'Please set your exam deadline');
+    setLoading(true); setPlan(null);
+    try { const { data } = await aiAPI.studyPlan({ ...form, language }); setPlan(data); }
+    catch { toast.error(isAr ? 'فشل إنشاء الخطة' : 'Failed to generate plan'); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>📅 {isAr ? 'خطة الدراسة الذكية' : 'AI Study Plan'}</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 14 }}>{isAr ? 'خطة دراسية مخصصة بناءً على مادتك وتاريخ امتحانك' : 'A personalized study schedule based on your subject, level, and exam date'}</p>
+      </div>
+      {!plan && (
+        <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            {[
+              { label: isAr?'المادة':'SUBJECT', key:'subject', type:'select', opts:['mathematics','science','arabic','english','physics','chemistry','biology','social_studies'].map(s=>({v:s,l:s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')})) },
+              { label: isAr?'تاريخ الامتحان':'EXAM DATE', key:'deadline', type:'date' },
+              { label: isAr?'ساعات يومياً':'HOURS / DAY', key:'dailyHours', type:'select', opts:[1,2,3,4,5,6].map(h=>({v:h,l:`${h} ${isAr?'ساعة':'hrs'}`})) },
+              { label: isAr?'مستواك':'LEVEL', key:'currentLevel', type:'select', opts:['beginner','intermediate','advanced'].map(l=>({v:l,l:l.charAt(0).toUpperCase()+l.slice(1)})) },
+            ].map(field => (
+              <div key={field.key}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>{field.label}</label>
+                {field.type==='date' ? (
+                  <input type="date" value={form.deadline} min={new Date().toISOString().split('T')[0]}
+                    onChange={e=>setForm(f=>({...f,deadline:e.target.value}))}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:12, background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', fontSize:14 }} />
+                ) : (
+                  <select value={form[field.key]} onChange={e=>setForm(v=>({...v,[field.key]:field.key==='dailyHours'?+e.target.value:e.target.value}))}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:12, background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', fontSize:14 }}>
+                    {field.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+                  </select>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ display:'flex', justifyContent:'center' }}>
+            <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
+              onClick={generate} disabled={loading}
+              style={{ padding:'13px 40px', borderRadius:16, background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', cursor:'pointer', fontWeight:700, fontSize:15, boxShadow:'0 4px 20px rgba(124,58,237,0.40)' }}>
+              {loading ? <Spinner size="sm" /> : (isAr ? '✨ أنشئ خطتي' : '✨ Generate My Plan')}
+            </motion.button>
+          </div>
+        </div>
+      )}
+      {plan && (
+        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+            <h3 style={{ fontWeight:800, fontSize:16 }}>📋 {isAr?'خطتك':'Your Plan'}</h3>
+            <button onClick={()=>setPlan(null)} style={{ padding:'8px 16px', borderRadius:10, background:'var(--surface)', border:'1px solid var(--border)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--text2)' }}>
+              {isAr?'+ خطة جديدة':'+ New Plan'}
+            </button>
+          </div>
+          {plan.tips?.length>0&&(
+            <div style={{ background:'rgba(124,58,237,0.07)', border:'1px solid rgba(124,58,237,0.20)', borderRadius:16, padding:'16px 20px', marginBottom:20 }}>
+              <div style={{ fontWeight:700, fontSize:13, color:'var(--primary-light)', marginBottom:10 }}>💡 {isAr?'نصائح':'Tips'}</div>
+              {plan.tips.map((t,i)=><div key={i} style={{ fontSize:13, color:'var(--text2)', marginBottom:6 }}>• {t}</div>)}
+            </div>
+          )}
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {(plan.plan||[]).slice(0,7).map((day,i)=>(
+              <div key={i} style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
+                <div style={{ padding:'12px 16px', background:'rgba(124,58,237,0.07)', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between' }}>
+                  <span style={{ fontWeight:700, fontSize:14 }}>{isAr?'اليوم':'Day'} {day.day}</span>
+                  {day.date&&<span style={{ fontSize:11, color:'var(--text3)' }}>{day.date}</span>}
+                </div>
+                {(day.sessions||[]).map((s,j)=>{
+                  const c=typeColors[s.type]||'#7C3AED';
+                  return(
+                    <div key={j} style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12, borderLeft:`3px solid ${c}` }}>
+                      <div style={{ padding:'3px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:`${c}18`, color:c, flexShrink:0, textTransform:'uppercase' }}>{s.type}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{s.topic}</div>
+                        {s.goal&&<div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{s.goal}</div>}
+                      </div>
+                      <div style={{ fontSize:11, color:'var(--text3)', flexShrink:0 }}>{s.time}·{s.duration}min</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ── YouTube Summary Panel ─────────────────────────────────────
+function YouTubePanel() {
+  const { language } = useUIStore();
+  const isAr = language === 'ar';
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState('');
+  const doSummarize = async () => {
+    if (!url.trim()) return toast.error(isAr?'أدخل رابط يوتيوب':'Enter a YouTube URL');
+    if (!url.includes('youtube')&&!url.includes('youtu.be')) return toast.error(isAr?'رابط غير صالح':'Invalid URL');
+    setLoading(true); setSummary('');
+    try { const { data } = await aiAPI.youtubeSummarize({ url, language }); setSummary(data.summary||''); }
+    catch { toast.error(isAr?'تعذر جلب النص. الفيديو يحتاج ترجمة.':'Could not get transcript. Video needs captions.'); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>🎥 {isAr?'تلخيص فيديو يوتيوب':'YouTube Summary'}</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 14 }}>{isAr?'الصق رابط فيديو تعليمي وسأقوم بتلخيصه فوراً':'Paste an educational YouTube link and get an instant AI summary'}</p>
+      </div>
+      <div style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:24, marginBottom:20 }}>
+        <label style={{ fontSize:12, fontWeight:700, color:'var(--text3)', display:'block', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.08em' }}>YouTube URL</label>
+        <div style={{ display:'flex', gap:10 }}>
+          <input value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSummarize()}
+            placeholder="https://www.youtube.com/watch?v=..."
+            style={{ flex:1, padding:'12px 16px', borderRadius:12, background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', fontSize:14 }} />
+          <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
+            onClick={doSummarize} disabled={loading}
+            style={{ padding:'12px 24px', borderRadius:12, background:'linear-gradient(135deg,#EF4444,#DC2626)', color:'#fff', border:'none', cursor:'pointer', fontWeight:700, fontSize:14, flexShrink:0, boxShadow:'0 4px 16px rgba(239,68,68,0.35)' }}>
+            {loading?<Spinner size="sm" />:'▶ '+(isAr?'لخص':'Go')}
+          </motion.button>
+        </div>
+        <p style={{ fontSize:11, color:'var(--text3)', marginTop:10 }}>ℹ️ {isAr?'يعمل مع الفيديوهات التي تحتوي على ترجمة':'Works with videos that have captions'}</p>
+      </div>
+      {loading&&<div style={{ textAlign:'center', padding:40 }}><Spinner size="lg" /><p style={{ color:'var(--text3)', marginTop:16, fontSize:14 }}>{isAr?'جارٍ تحليل الفيديو...':'Analyzing video…'}</p></div>}
+      {summary&&(
+        <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+          style={{ background:'var(--surface2)', border:'1px solid var(--border2)', borderRadius:20, padding:24 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <h3 style={{ fontSize:16, fontWeight:700 }}>🎬 {isAr?'ملخص الفيديو':'Video Summary'}</h3>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={()=>{navigator.clipboard.writeText(summary);toast.success(isAr?'تم النسخ!':'Copied!');}} style={{ padding:'6px 14px', borderRadius:8, background:'var(--surface)', border:'1px solid var(--border)', cursor:'pointer', fontSize:12, fontWeight:600, color:'var(--text2)' }}>📋 {isAr?'نسخ':'Copy'}</button>
+              <button onClick={()=>{setUrl('');setSummary('');}} style={{ padding:'6px 14px', borderRadius:8, background:'var(--surface)', border:'1px solid var(--border)', cursor:'pointer', fontSize:12, fontWeight:600, color:'var(--text2)' }}>+{isAr?'جديد':'New'}</button>
+            </div>
+          </div>
+          <div className="ai-msg-content" style={{ fontSize:14, lineHeight:1.75, color:'var(--text)' }}
+            dangerouslySetInnerHTML={{ __html:renderMarkdown(summary) }} />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ── Tabs Container (main export) ─────────────────────────────
 const TABS = [
-  { id: 'chat',  label: '💬 Chat',  icon: '💬' },
-  { id: 'quiz',  label: '🧠 Quiz',  icon: '🧠' },
+  { id:'chat',      label:'💬 Chat' },
+  { id:'quiz',      label:'🧠 Quiz' },
+  { id:'summarize', label:'📄 Summarize' },
+  { id:'plan',      label:'📅 Study Plan' },
+  { id:'youtube',   label:'🎥 YouTube' },
 ];
 
 export default function AIAssistant() {
   const [tab, setTab] = useState('chat');
-
   return (
-    <div style={{ height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column' }}>
-      {/* Tab bar */}
-      <div style={{
-        display: 'flex', gap: 4, padding: '10px 20px',
-        background: 'var(--surface2)', borderBottom: '1px solid var(--border)',
-      }}>
+    <div style={{ height:'calc(100vh - 90px)', display:'flex', flexDirection:'column' }}>
+      <div style={{ display:'flex', gap:4, padding:'10px 20px', background:'var(--surface2)', borderBottom:'1px solid var(--border)', overflowX:'auto', flexShrink:0, scrollbarWidth:'none' }}>
         {TABS.map(t => (
-          <motion.button key={t.id}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: '8px 20px', borderRadius: 12, fontWeight: 700, fontSize: 14,
-              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-              background: tab === t.id ? 'linear-gradient(135deg,#6366F1,#8B5CF6)' : 'var(--surface)',
-              color: tab === t.id ? '#fff' : 'var(--text2)',
-              boxShadow: tab === t.id ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
-            }}>{t.label}</motion.button>
+          <motion.button key={t.id} whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }} onClick={()=>setTab(t.id)}
+            style={{ padding:'8px 20px', borderRadius:12, fontWeight:700, fontSize:13.5, border:'none', cursor:'pointer', transition:'all 0.2s', whiteSpace:'nowrap', background:tab===t.id?'linear-gradient(135deg,#6366F1,#8B5CF6)':'var(--surface)', color:tab===t.id?'#fff':'var(--text2)', boxShadow:tab===t.id?'0 4px 14px rgba(99,102,241,0.30)':'none' }}>{t.label}</motion.button>
         ))}
       </div>
-
-      {/* Panel */}
-      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--ink2)' }}>
-        {tab === 'chat' && <AIChat />}
-        {tab === 'quiz' && <QuizPanel />}
+      <div style={{ flex:1, overflowY:'auto', background:'var(--ink2)' }}>
+        {tab==='chat'      && <AIChat />}
+        {tab==='quiz'      && <QuizPanel />}
+        {tab==='summarize' && <SummarizePanel />}
+        {tab==='plan'      && <StudyPlanPanel />}
+        {tab==='youtube'   && <YouTubePanel />}
       </div>
     </div>
   );
