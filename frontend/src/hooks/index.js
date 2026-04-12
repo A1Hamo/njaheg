@@ -24,44 +24,54 @@ export function useSocket() {
       return;
     }
 
-    if (socketInstance?.connected) return;
+    if (!socketInstance) {
+      const apiBase = import.meta.env.VITE_API_URL 
+        ? import.meta.env.VITE_API_URL.replace(/\/?api\/?$/, '') 
+        : 'http://localhost:5000';
+      
+      const socketURL = import.meta.env.VITE_SOCKET_URL || apiBase;
 
-    if (socketInstance) {
-      socketInstance.disconnect();
+      socketInstance = io(socketURL, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      socketInstance.on('connect', () => console.log('🔌 Socket connected:', socketInstance.id));
+      socketInstance.on('connect_error', (err) => console.warn('🔌 Socket error:', err.message));
     }
 
-    const apiBase = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-      : 'http://localhost:5000';
-    
-    const socketURL = import.meta.env.VITE_SOCKET_URL || apiBase;
-
-    socketInstance = io(socketURL, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    socketInstance.on('connect', () => console.log('🔌 Socket connected:', socketInstance.id));
-    socketInstance.on('connect_error', (err) => console.warn('🔌 Socket error:', err.message));
-    
-    socketInstance.on('new_message', ({ roomId, ...msg }) => {
+    // Always attach event handlers using the LATEST closures from this render
+    const handleNewMessage = ({ roomId, ...msg }) => {
       const room = roomId.replace('room:', '');
       addMessage(room, msg);
-    });
-    
-    socketInstance.on('new_private_message', (msg) => {
+    };
+
+    const handleNewPrivateMessage = (msg) => {
       const otherId = msg.senderId === user?.id ? msg.receiverId : msg.senderId;
       addPrivateMessage(otherId, msg);
-    });
+    };
 
-    socketInstance.on('notification', notif => addNotif(notif));
-    socketInstance.on('level_up',     notif => addNotif(notif));
-    socketInstance.on('achievement',  notif => addNotif(notif));
+    const handleNotification = notif => addNotif(notif);
 
-    // Do NOT disconnect on unmount to keep session alive across pages
-  }, [token, user?.id, addMessage, addPrivateMessage]);
+    socketInstance.on('new_message', handleNewMessage);
+    socketInstance.on('new_private_message', handleNewPrivateMessage);
+    socketInstance.on('notification', handleNotification);
+    socketInstance.on('level_up', handleNotification);
+    socketInstance.on('achievement', handleNotification);
+
+    return () => {
+      // Safely remove listeners on unmount/effect cleanup to prevent memory leaks/duplicates
+      if (socketInstance) {
+        socketInstance.off('new_message', handleNewMessage);
+        socketInstance.off('new_private_message', handleNewPrivateMessage);
+        socketInstance.off('notification', handleNotification);
+        socketInstance.off('level_up', handleNotification);
+        socketInstance.off('achievement', handleNotification);
+      }
+    };
+  }, [token, user?.id, addMessage, addPrivateMessage, addNotif]);
 
   return socketInstance;
 }
