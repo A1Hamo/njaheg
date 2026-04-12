@@ -377,31 +377,32 @@ export default function PrivateChat() {
                   placeholder="Search or start a new chat..."
                   style={{ width: '100%', padding: '10px 14px 10px 36px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 13 }}
                 />
+
+                {/* Search results dropdown */}
+                <AnimatePresence>
+                  {search.length > 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface3)', border: '1px solid var(--border2)', borderRadius: 14, maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
+                    >
+                      {searching ? <div style={{ padding: 20, textAlign: 'center' }}><Spinner size="sm" /></div>
+                        : searchResults.length === 0 ? <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>No users found</div>
+                        : searchResults.map(u => (
+                          <motion.div key={u.id} whileHover={{ background: 'rgba(99,102,241,0.08)' }}
+                            onClick={() => startChat(u)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer' }}
+                          >
+                            <Avatar src={u.avatar_url} name={u.name} size={36} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{u.name}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{u.grade || 'Student'}</div>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              {/* Search results dropdown */}
-              <AnimatePresence>
-                {search.length > 1 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface3)', border: '1px solid var(--border2)', borderRadius: 14, maxHeight: 260, overflowY: 'auto', boxShadow: 'var(--shadow-lg)', marginTop: 4 }}
-                  >
-                    {searching ? <div style={{ padding: 20, textAlign: 'center' }}><Spinner size="sm" /></div>
-                      : searchResults.length === 0 ? <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>No users found</div>
-                      : searchResults.map(u => (
-                        <motion.div key={u.id} whileHover={{ background: 'rgba(99,102,241,0.08)' }}
-                          onClick={() => startChat(u)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer' }}
-                        >
-                          <Avatar src={u.avatar_url} name={u.name} size={36} />
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{u.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text3)' }}>{u.grade || 'Student'}</div>
-                          </div>
-                        </motion.div>
-                      ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Contact list */}
