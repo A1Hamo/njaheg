@@ -95,15 +95,63 @@ async function chat(req, res) {
   if (!message?.trim()) return res.status(400).json({ error: 'Message is required' });
 
   // ── Internal provider ──
-  if (provider === 'internal' || !openai) {
+    try {
+      let conv = conversationId
+        ? await AIConversation.findOne({ _id: conversationId, userId: req.user.id })
+        : null;
+      if (!conv) conv = new AIConversation({ userId: req.user.id, messages: [], language, provider: 'internal' });
+
+      const history = conv.messages.slice(-12);
+      const reply   = internalAI.generateChatResponse(message, history, language);
+
+      conv.messages.push({ role: 'user', content: message });
+      conv.messages.push({ role: 'assistant', content: reply });
+      if (!conv.title || conv.title === 'New Chat') conv.title = message.slice(0, 50);
+      await conv.save();
+
+      await pool.query('UPDATE users SET xp_points = xp_points + 5 WHERE id = $1', [req.user.id]);
+      await checkAchievements(req.user.id, 'ai_chat');
+
+      return res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'internal', usage: { total_tokens: 0 } });
+    } catch (dbErr) {
+      logger.error('Internal AI Chat DB Error:', dbErr.message);
+      return res.status(503).json({ 
+        error: 'Database connection failed', 
+        message: 'The AI service is temporarily limited. Please ensure Docker services (MongoDB) are running and restart the backend.' 
+      });
+    }
+
+  // ── External provider (OpenAI) ──
+  try {
     let conv = conversationId
       ? await AIConversation.findOne({ _id: conversationId, userId: req.user.id })
       : null;
-    if (!conv) conv = new AIConversation({ userId: req.user.id, messages: [], language, provider: 'internal' });
+    if (!conv) conv = new AIConversation({ userId: req.user.id, messages: [], language, provider: 'external' });
 
-    const history = conv.messages.slice(-12);
-    const reply   = internalAI.generateChatResponse(message, history, language);
+    const history  = conv.messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
+    const sysPrompt = language === 'ar' ? SYSTEM_AR : SYSTEM_EN;
 
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: MODEL, max_tokens: MAX_TOK, temperature: 0.7,
+        messages: [{ role: 'system', content: sysPrompt }, ...history, { role: 'user', content: message }],
+      });
+    } catch (err) {
+      if (err.status === 429) {
+        // Fallback to internal
+        logger.warn('OpenAI quota exceeded — falling back to internal AI');
+        const reply = internalAI.generateChatResponse(message, conv.messages.slice(-12), language);
+        conv.messages.push({ role: 'user', content: message });
+        conv.messages.push({ role: 'assistant', content: reply });
+        if (!conv.title || conv.title === 'New Chat') conv.title = message.slice(0, 50);
+        await conv.save();
+        return res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'internal_fallback', usage: { total_tokens: 0 } });
+      }
+      throw err;
+    }
+
+    const reply = completion.choices[0].message.content;
     conv.messages.push({ role: 'user', content: message });
     conv.messages.push({ role: 'assistant', content: reply });
     if (!conv.title || conv.title === 'New Chat') conv.title = message.slice(0, 50);
@@ -111,48 +159,14 @@ async function chat(req, res) {
 
     await pool.query('UPDATE users SET xp_points = xp_points + 5 WHERE id = $1', [req.user.id]);
     await checkAchievements(req.user.id, 'ai_chat');
-
-    return res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'internal', usage: { total_tokens: 0 } });
-  }
-
-  // ── External provider (OpenAI) ──
-  let conv = conversationId
-    ? await AIConversation.findOne({ _id: conversationId, userId: req.user.id })
-    : null;
-  if (!conv) conv = new AIConversation({ userId: req.user.id, messages: [], language, provider: 'external' });
-
-  const history  = conv.messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
-  const sysPrompt = language === 'ar' ? SYSTEM_AR : SYSTEM_EN;
-
-  let completion;
-  try {
-    completion = await openai.chat.completions.create({
-      model: MODEL, max_tokens: MAX_TOK, temperature: 0.7,
-      messages: [{ role: 'system', content: sysPrompt }, ...history, { role: 'user', content: message }],
+    res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'external', usage: completion.usage });
+  } catch (dbErr) {
+    logger.error('External AI Chat DB Error:', dbErr.message);
+    return res.status(503).json({ 
+      error: 'Database connection failed', 
+      message: 'The AI service is temporarily limited. Please ensure Docker services (MongoDB) are running and restart the backend.' 
     });
-  } catch (err) {
-    if (err.status === 429) {
-      // Fallback to internal
-      logger.warn('OpenAI quota exceeded — falling back to internal AI');
-      const reply = internalAI.generateChatResponse(message, conv.messages.slice(-12), language);
-      conv.messages.push({ role: 'user', content: message });
-      conv.messages.push({ role: 'assistant', content: reply });
-      if (!conv.title || conv.title === 'New Chat') conv.title = message.slice(0, 50);
-      await conv.save();
-      return res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'internal_fallback', usage: { total_tokens: 0 } });
-    }
-    throw err;
   }
-
-  const reply = completion.choices[0].message.content;
-  conv.messages.push({ role: 'user', content: message });
-  conv.messages.push({ role: 'assistant', content: reply });
-  if (!conv.title || conv.title === 'New Chat') conv.title = message.slice(0, 50);
-  await conv.save();
-
-  await pool.query('UPDATE users SET xp_points = xp_points + 5 WHERE id = $1', [req.user.id]);
-  await checkAchievements(req.user.id, 'ai_chat');
-  res.json({ reply, conversationId: conv._id, title: conv.title, provider: 'external', usage: completion.usage });
 }
 
 // ── Conversations ───────────────────────────────────────

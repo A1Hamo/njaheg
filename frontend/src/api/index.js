@@ -193,3 +193,10 @@ export const groupsAPI = {
   // Insights
   getInsights: id => client.get(`/groups/${id}/insights`),
 };
+
+export const toolsAPI = {
+  dictionary: (word, lang = 'en') => client.get('/tools/dictionary', { params: { word, lang } }),
+  trivia:     (subject, count, difficulty) => client.get('/tools/trivia', { params: { subject, count, difficulty } }),
+  wikipedia:  (query, lang = 'en') => client.get('/tools/wikipedia', { params: { query, lang } }),
+  quote:      () => client.get('/tools/quote'),
+};

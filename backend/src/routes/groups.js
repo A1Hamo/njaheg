@@ -34,7 +34,7 @@ async function ownerOnly(req, res, next) {
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
     const uid = req.user.id || req.user.userId;
-    if (group.teacherId !== uid) return res.status(403).json({ error: 'Forbidden. Owner only.' });
+    if (group.teacherId !== uid) return res.status(403).json({ error: 'Forbidden. Only the group teacher can perform this action.' });
     req.group = group; // Pass it along to save a DB call if needed
     next();
   } catch (err) {
@@ -100,7 +100,7 @@ router.get('/:id', auth, async (req, res) => {
 
   const uid = req.user.id || req.user.userId;
   const isMember = group.teacherId === uid || group.students.some(s => s.userId === uid);
-  if (!isMember) return res.status(403).json({ error: 'Not a member of this group' });
+  if (!isMember) return res.status(403).json({ error: 'Forbidden. You must be a member or teacher of this group to view its details.' });
 
   res.json({ group });
 });

@@ -36,6 +36,7 @@ const PrivateChat        = lazy(() => import('./components/chat/PrivateChat'));
 const QuizHistoryPage    = lazy(() => import('./components/quiz/QuizHistoryPage'));
 const GroupsPage         = lazy(() => import('./components/groups/GroupsPage'));
 const GroupDetailPage    = lazy(() => import('./components/groups/GroupDetailPage'));
+const StudyTools         = lazy(() => import('./components/tools/StudyTools'));
 
 
 // ── QueryClient ─────────────────────────────────────────
@@ -181,6 +182,7 @@ export default function App() {
             <Route path="/quiz-history"    element={<Protected><QuizHistoryPage /></Protected>} />
             <Route path="/groups"          element={<Protected><GroupsPage /></Protected>} />
             <Route path="/groups/:id"      element={<Protected><GroupDetailPage /></Protected>} />
+            <Route path="/tools"           element={<Protected><StudyTools /></Protected>} />
 
 
             {/* ── 404 ── */}

@@ -5,8 +5,9 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../context/store';
-import { plannerAPI, usersAPI, groupsAPI } from '../../api/index';
+import { plannerAPI, usersAPI, groupsAPI, toolsAPI } from '../../api/index';
 import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 
 const TeacherDashboard = lazy(() => import('../teacher/TeacherDashboard'));
 
@@ -27,17 +28,49 @@ const QUICK_ACTIONS = [
   { icon:'✉️', label:'Messages',     sub:'Chat with peers', path:'/chat/private', grad:'linear-gradient(135deg,#10B981,#059669)' },
   { icon:'📁', label:'Files',        sub:'Study materials',  path:'/files',        grad:'linear-gradient(135deg,#F59E0B,#D97706)' },
   { icon:'⏱',  label:'Focus',        sub:'Pomodoro timer',  path:'/focus',        grad:'linear-gradient(135deg,#EF4444,#DC2626)' },
-  { icon:'🏆', label:'Achievements', sub:'View progress',   path:'/achievements', grad:'linear-gradient(135deg,#EC4899,#BE185D)' },
+  { icon:'🛠️', label:'Study Tools',  sub:'Dict · Wiki · Quiz', path:'/tools',     grad:'linear-gradient(135deg,#EC4899,#BE185D)' },
 ];
 
-const MOTIVATIONAL = [
-  '"The more that you read, the more things you will know." — Dr. Seuss',
-  '"Success is the sum of small efforts, repeated day-in and day-out." — Collier',
-  '"Education is the most powerful weapon you can use to change the world." — Mandela',
-  '"The beautiful thing about learning is nobody can take it away from you." — B.B. King',
-  '"An investment in knowledge pays the best interest." — Benjamin Franklin',
-];
-// motivational quote index is computed inline below
+/* ── Daily Quote Widget (live from Quotable API) ────────────────
+   Falls back gracefully if the API is unavailable.
+   ================================================================ */
+function DailyQuoteWidget() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['daily-quote'],
+    queryFn:  () => toolsAPI.quote(),
+    staleTime: 12 * 60 * 60 * 1000, // 12 hours
+    retry: 1,
+  });
+  const { isSpeaking, isPaused, isSupported, toggle } = useTextToSpeech();
+  const q = data?.data;
+
+  return (
+    <div style={{ padding:'28px 36px', borderRadius:20, background:'linear-gradient(135deg,#7C3AED 0%,#5B21B6 50%,#1e1b4b 100%)', color:'#fff', position:'relative', overflow:'hidden', boxShadow:'0 8px 36px rgba(124,58,237,0.35)', display:'flex', flexDirection:'column', justifyContent:'space-between', gap:16 }}>
+      <div style={{ position:'absolute', right:-20, top:-20, fontSize:120, opacity:0.06, transform:'rotate(-10deg)', userSelect:'none', lineHeight:1 }}>"</div>
+      <div style={{ position:'relative' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+          <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.15em', opacity:0.7 }}>Daily Inspiration</p>
+          {isSupported && q && (
+            <motion.button
+              whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+              onClick={() => toggle(`${q.quote} — ${q.author}`, 'en')}
+              style={{ width:30, height:30, borderRadius:8, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', cursor:'pointer', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center' }}
+              title="Read aloud"
+            >{isSpeaking && !isPaused ? '⏸' : '🔊'}</motion.button>
+          )}
+        </div>
+        {isLoading ? (
+          <div style={{ height:60, display:'flex', alignItems:'center' }}><div style={{ width:24, height:24, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', animation:'spin 0.8s linear infinite' }}/></div>
+        ) : (
+          <>
+            <p style={{ fontSize:16, fontWeight:600, lineHeight:1.65, maxWidth:560, fontStyle:'italic' }}>&#x201C;{q?.quote}&#x201D;</p>
+            <p style={{ fontSize:12, fontWeight:700, opacity:0.7, marginTop:8 }}>— {q?.author}</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ── Stagger animation ─────────────────────────────────── */
 const stagger = {
@@ -356,8 +389,6 @@ function StudentDashboard() {
   const stats        = statsData?.data?.stats    || {};
   const studentCount = publicStats?.data?.count  || 0;
 
-  const motivational = MOTIVATIONAL[new Date().getDay() % MOTIVATIONAL.length];
-
   return (
     <motion.div variants={stagger.container} initial="hidden" animate="visible">
       <motion.div variants={stagger.item}><WelcomeBanner user={user} /></motion.div>
@@ -378,13 +409,7 @@ function StudentDashboard() {
       </motion.div>
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:20, marginBottom:28, alignItems:'stretch' }}>
-        <div style={{ padding:'28px 36px', borderRadius:20, background:'linear-gradient(135deg,#7C3AED 0%,#5B21B6 50%,#1e1b4b 100%)', color:'#fff', position:'relative', overflow:'hidden', boxShadow:'0 8px 36px rgba(124,58,237,0.35)' }}>
-          <div style={{ position:'absolute', right:-20, top:-20, fontSize:120, opacity:0.06, transform:'rotate(-10deg)', userSelect:'none', lineHeight:1 }}>"</div>
-          <div style={{ position:'relative' }}>
-            <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.15em', opacity:0.7, marginBottom:10 }}>Daily Inspiration</p>
-            <p style={{ fontSize:16, fontWeight:600, lineHeight:1.65, maxWidth:560, fontStyle:'italic' }}>{motivational}</p>
-          </div>
-        </div>
+        <DailyQuoteWidget />
         <div style={{ minWidth:180, padding:'24px 20px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
           <div style={{ fontSize:44, lineHeight:1 }}>🔥</div>
           <div style={{ fontSize:38, fontWeight:900, fontFamily:'var(--font-head)', color:'#FBBF24', lineHeight:1, letterSpacing:'-0.04em' }}>{user?.streak_days || 0}</div>
@@ -395,9 +420,9 @@ function StudentDashboard() {
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
         {[
-          { icon:'🤖', label:'AI Tutor',  desc:'Get instant answers for any subject with our AI', color:'#7C3AED', path:'/ai' },
-          { icon:'📝', label:'Exam Mode', desc:'Practice under timed conditions to simulate real exams', color:'#F43F5E', path:'/exam' },
-          { icon:'📊', label:'Analytics', desc:'Track your progress and identify areas to improve', color:'#06B6D4', path:'/analytics' },
+          { icon:'🤖', label:'AI Tutor',    desc:'Get instant answers for any subject with our AI', color:'#7C3AED', path:'/ai' },
+          { icon:'🛠️', label:'Study Tools', desc:'Dictionary, Wikipedia snap, and Trivia quizzes', color:'#F59E0B', path:'/tools' },
+          { icon:'📊', label:'Analytics',   desc:'Track your progress and identify areas to improve', color:'#06B6D4', path:'/analytics' },
         ].map((f,i) => (
           <motion.div key={f.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0, transition:{ delay:0.3+i*0.08 } }} whileHover={{ y:-4 }} onClick={() => navigate(f.path)}
             style={{ padding:'22px 20px', borderRadius:18, border:'1px solid var(--border)', background:'var(--surface)', cursor:'pointer', transition:'all 0.22s var(--ease)', position:'relative', overflow:'hidden' }}>
