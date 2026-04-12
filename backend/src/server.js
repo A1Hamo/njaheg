@@ -1,9 +1,9 @@
-'use strict';
-const dotenv = require('dotenv');
-const envFile = process.env.ENV_FILE || '.env.development';
-dotenv.config({ path: envFile, override: true });
-console.log(`Loaded environment from: ${envFile}`);
-console.log('NODE_ENV:', process.env.NODE_ENV);
+if (process.env.NODE_ENV !== 'production') {
+  const envFile = process.env.ENV_FILE || '.env.development';
+  dotenv.config({ path: envFile });
+  console.log(`Loaded environment from: ${envFile}`);
+}
+console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('GOOGLE_CLIENT_ID loaded:', !!process.env.GOOGLE_CLIENT_ID);
 require('express-async-errors');
 
@@ -52,10 +52,10 @@ const io         = new Server(httpServer, {
       const allowed = [
         process.env.CLIENT_URL,
         'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
         'http://127.0.0.1:3001',
         'https://njaheg-theta.vercel.app',
+        'http://localhost',
+        'https://localhost',
       ].filter(Boolean);
       if (!origin || allowed.includes(origin)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'));
@@ -68,6 +68,11 @@ const io         = new Server(httpServer, {
 
 const path = require('path');
 
+// ── Health check (Pre-middleware) ──
+app.get('/health', (_req, res) =>
+  res.json({ status: 'ok', ts: new Date().toISOString(), env: process.env.NODE_ENV })
+);
+
 // ── Global Middleware ──
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false })); // Allow cross-origin images
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
@@ -79,6 +84,8 @@ app.use(cors({
       'http://localhost:3000',
       'http://127.0.0.1:3000',
       'https://njaheg-theta.vercel.app',
+      'http://localhost',
+      'https://localhost',
     ].filter(Boolean);
     // Allow requests with no origin (curl, Postman, same-origin)
     if (!origin || allowed.includes(origin)) return callback(null, true);
@@ -96,10 +103,7 @@ app.use(passport.initialize());
 // ── Rate limiter on all /api routes ──
 app.use('/api/', rateLimiter);
 
-// ── Health check ──
-app.get('/health', (_req, res) =>
-  res.json({ status: 'ok', ts: new Date().toISOString(), env: process.env.NODE_ENV })
-);
+
 
 // ── API Routes ──
 app.use('/api/auth',          authRoutes);
@@ -138,8 +142,10 @@ async function start() {
     try { startCronJobs(); } catch(e) { logger.warn('⚠️  Cron jobs unavailable:', e.message); }
 
     const PORT = process.env.PORT || 5000;
-    httpServer.listen(PORT, () => {
-      logger.info(`🚀 Najah API running on :${PORT} [${process.env.NODE_ENV || 'dev'}]`);
+    const HOST = '0.0.0.0'; // Explicitly bind to all interfaces for production/containers
+    
+    httpServer.listen(PORT, HOST, () => {
+      logger.info(`🚀 Najah API running on ${HOST}:${PORT} [${process.env.NODE_ENV || 'dev'}]`);
     });
   } catch (err) {
     logger.error('Fatal startup error:', err);
