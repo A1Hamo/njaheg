@@ -134,22 +134,30 @@ app.use(errorHandler);
 // ── Boot sequence ──
 async function start() {
   try {
-    // Databases - warn but continue if unavailable
-    try { await connectPostgres(); } catch(e) { logger.warn('⚠️  Postgres unavailable:', e.message); }
-    try { await connectMongo(); } catch(e) { logger.warn('⚠️  MongoDB unavailable:', e.message); }
-    try { await connectRedis(); } catch(e) { logger.warn('⚠️  Redis unavailable:', e.message); }
-    
-    try { initFirebase(); } catch(e) { logger.warn('⚠️  Firebase unavailable:', e.message); }
-    try { setupPassport(); } catch(e) { logger.warn('⚠️  Passport unavailable:', e.message); }
-    try { setupSocketIO(io); } catch(e) { logger.warn('⚠️  Socket.IO unavailable:', e.message); }
-    try { startCronJobs(); } catch(e) { logger.warn('⚠️  Cron jobs unavailable:', e.message); }
-
     const PORT = process.env.PORT || 5000;
-    const HOST = '0.0.0.0'; // Explicitly bind to all interfaces for production/containers
+    const HOST = '0.0.0.0'; 
     
+    // Start listening immediately so healthchecks pass
     httpServer.listen(PORT, HOST, () => {
       logger.info(`🚀 Najah API running on ${HOST}:${PORT} [${process.env.NODE_ENV || 'dev'}]`);
+      logger.info('⏳ Connecting to databases in background...');
     });
+
+    // Databases - parallel connecting
+    Promise.allSettled([
+      connectPostgres().catch(e => logger.warn('⚠️  Postgres unavailable:', e.message)),
+      connectMongo().catch(e => logger.warn('⚠️  MongoDB unavailable:', e.message)),
+      connectRedis().catch(e => logger.warn('⚠️  Redis unavailable:', e.message))
+    ]).then(() => {
+      logger.info('📢 Database initialization sequence complete');
+      
+      // Start non-critical services
+      try { initFirebase(); } catch(e) { logger.warn('⚠️  Firebase unavailable:', e.message); }
+      try { setupPassport(); } catch(e) { logger.warn('⚠️  Passport unavailable:', e.message); }
+      try { setupSocketIO(io); } catch(e) { logger.warn('⚠️  Socket.IO unavailable:', e.message); }
+      try { startCronJobs(); } catch(e) { logger.warn('⚠️  Cron jobs unavailable:', e.message); }
+    });
+
   } catch (err) {
     logger.error('Fatal startup error:', err);
     process.exit(1);
