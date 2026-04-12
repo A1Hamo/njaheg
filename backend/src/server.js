@@ -57,6 +57,7 @@ const io         = new Server(httpServer, {
         'http://localhost:3000',
         'http://127.0.0.1:3001',
         'https://njaheg-theta.vercel.app',
+        'https://njaheg-production.up.railway.app',
         'http://localhost',
         'https://localhost',
       ].filter(Boolean);
@@ -87,6 +88,7 @@ app.use(cors({
       'http://localhost:3000',
       'http://127.0.0.1:3000',
       'https://njaheg-theta.vercel.app',
+      'https://njaheg-production.up.railway.app',
       'http://localhost',
       'https://localhost',
     ].filter(Boolean);
