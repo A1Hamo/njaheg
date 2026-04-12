@@ -58,6 +58,8 @@ export default function ProfilePage() {
 
   const { register, handleSubmit, formState:{isSubmitting}, reset } = useForm();
 
+  const onSubmit = data => updateProfile(data);
+
   useEffect(() => {
     if (profile) {
       reset({

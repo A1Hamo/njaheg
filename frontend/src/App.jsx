@@ -16,6 +16,7 @@ import './styles/global.css';
 const LoginPage          = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.LoginPage })));
 const RegisterPage       = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage  = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.ResetPasswordPage })));
 const AuthCallback       = lazy(() => import('./components/auth/AuthPages').then(m => ({ default: m.AuthCallback })));
 const Dashboard          = lazy(() => import('./components/dashboard/Dashboard'));
 const PlannerPage        = lazy(() => import('./components/planner/PlannerPage'));
@@ -33,6 +34,8 @@ const SettingsPage       = lazy(() => import('./components/settings/SettingsPage
 const ExamPage           = lazy(() => import('./components/exam/ExamPage'));
 const PrivateChat        = lazy(() => import('./components/chat/PrivateChat'));
 const QuizHistoryPage    = lazy(() => import('./components/quiz/QuizHistoryPage'));
+const GroupsPage         = lazy(() => import('./components/groups/GroupsPage'));
+const GroupDetailPage    = lazy(() => import('./components/groups/GroupDetailPage'));
 
 
 // ── QueryClient ─────────────────────────────────────────
@@ -154,8 +157,9 @@ export default function App() {
             {/* ── Public ── */}
             <Route path="/login"            element={<Public><LoginPage /></Public>} />
             <Route path="/register"         element={<Public><RegisterPage /></Public>} />
-            <Route path="/forgot-password"  element={<Public><ForgotPasswordPage /></Public>} />
-            <Route path="/auth/callback"    element={<Suspense fallback={<PageLoader />}><AuthCallback /></Suspense>} />
+            <Route path="/forgot-password"        element={<Public><ForgotPasswordPage /></Public>} />
+            <Route path="/reset-password/:token"  element={<Public><ResetPasswordPage /></Public>} />
+            <Route path="/auth/callback"          element={<Suspense fallback={<PageLoader />}><AuthCallback /></Suspense>} />
 
             {/* ── Protected ── */}
             <Route path="/"                 element={<Protected><Dashboard /></Protected>} />
@@ -175,6 +179,8 @@ export default function App() {
 
             <Route path="/exam"            element={<Protected><ExamPage /></Protected>} />
             <Route path="/quiz-history"    element={<Protected><QuizHistoryPage /></Protected>} />
+            <Route path="/groups"          element={<Protected><GroupsPage /></Protected>} />
+            <Route path="/groups/:id"      element={<Protected><GroupDetailPage /></Protected>} />
 
 
             {/* ── 404 ── */}

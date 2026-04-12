@@ -103,6 +103,7 @@ const TEMPLATES = {
 async function sendEmail({ to, template, data = {}, subject: subj, html: customHtml }) {
   try {
     const content = template ? TEMPLATES[template](data) : { subject: subj, html: customHtml };
+
     await getTransport().sendMail({ from: process.env.EMAIL_FROM, to, ...content });
     logger.info(`Email → ${to}: ${content.subject}`);
   } catch (err) {

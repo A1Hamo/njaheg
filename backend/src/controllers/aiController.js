@@ -373,8 +373,108 @@ async function answerFromFile(req, res) {
   res.json({ question, answer: completion.choices[0].message.content, fileId, fileName: rows[0].original_name, provider: 'external' });
 }
 
+// ── Summarize YouTube ───────────────────────────────────
+async function youtubeSummarize(req, res) {
+  const { url, language = 'en', provider = 'external' } = req.body;
+  if (!url) return res.status(400).json({ error: 'YouTube URL is required' });
+
+  let transcriptItems;
+  try {
+    const mod = await import('youtube-transcript');
+    const YoutubeTranscript = mod.YoutubeTranscript || mod.default?.YoutubeTranscript;
+    transcriptItems = await YoutubeTranscript.fetchTranscript(url);
+  } catch (err) {
+    logger.error('YouTube transcript fetch failed: ' + err.message);
+    return res.status(400).json({ error: 'Could not fetch transcript for this video. It might not have captions.' });
+  }
+
+  // Combine transcript text (limit to ~20000 chars to avoid massive token limits)
+  const fullText = transcriptItems.map(t => t.text).join(' ').slice(0, 20000);
+
+  // Use internal provider if requested or OpenAI is unavailable
+  if (provider === 'internal' || !openai) {
+    const summary = internalAI.summarizeText(fullText, language, 1);
+    return res.json({ summary, url, language, provider: 'internal' });
+  }
+
+  // Use OpenAI
+  const prompt = language === 'ar'
+    ? `لخص محتوى فيديو اليوتيوب هذا للطلاب. استخرج النقاط الرئيسية ورتبها في نقاط:\n\n${fullText}`
+    : `Summarize this YouTube video transcript for a student. Extract the key learnings, format them with bullet points:\n\n${fullText}`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: MODEL, max_tokens: 1500, temperature: 0.5,
+      messages: [{ role: 'system', content: language === 'ar' ? SYSTEM_AR : SYSTEM_EN }, { role: 'user', content: prompt }],
+    });
+    res.json({ summary: completion.choices[0].message.content, url, language, provider: 'external' });
+  } catch (err) {
+    if (err.status === 429 || err.status === 401 || err.status === 403) {
+      logger.warn('OpenAI quota — falling back to internal YouTube summarizer');
+      const summary = internalAI.summarizeText(fullText, language, 1);
+      return res.json({ summary, url, language, provider: 'internal_fallback' });
+    }
+    throw err;
+  }
+}
+
+// ── Analyze Image (Visual OCR / Vision AI) ────────────────
+async function analyzeImage(req, res) {
+  const { fileId, language = 'en', provider = 'external' } = req.body;
+  if (!fileId) return res.status(400).json({ error: 'fileId is required' });
+
+  // Internal AI doesn't support Vision capabilities right now.
+  if (!openai || provider === 'internal') {
+    return res.status(400).json({ error: 'Image analysis requires OpenAI. Please switch provider or add an API key.' });
+  }
+
+  const { rows } = await pool.query(
+    `SELECT * FROM files WHERE id = $1 AND (user_id = $2 OR is_public = true) AND mime_type LIKE 'image/%'`,
+    [fileId, req.user.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Image file not found or unsupported format' });
+
+  const imageUrl = rows[0].file_url;
+  const prompt = language === 'ar'
+    ? 'أنت مساعد تعليمي ذكي (Visual Scholar). قم بتحليل وتحويل النص في هذه الصورة. إذا كان هناك أسئلة، قم بحلها. إذا كان هناك مخططات، اشرحها بوضوح.'
+    : 'You are an intelligent educational assistant (Visual Scholar). Read, analyze, and extract the text from this image. If it contains questions, solve them. If it contains diagrams, explain them clearly.';
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: MODEL, // gpt-4o-mini natively supports vision
+      max_tokens: 1500,
+      temperature: 0.4,
+      messages: [
+        { role: 'system', content: language === 'ar' ? SYSTEM_AR : SYSTEM_EN },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: imageUrl } },
+          ],
+        },
+      ],
+    });
+    res.json({
+      summary: completion.choices[0].message.content,
+      fileId,
+      fileName: rows[0].original_name,
+      language,
+      provider: 'external'
+    });
+  } catch (err) {
+    if (err.status === 429 || err.status === 401 || err.status === 403) {
+      logger.warn('OpenAI quota hit for Image Analysis.');
+      return res.status(429).json({ error: 'OpenAI quota exceeded. Cannot perform image analysis.' });
+    }
+    logger.error('analyzeImage Error:', err);
+    res.status(500).json({ error: 'Failed to analyze image' });
+  }
+}
+
 module.exports = {
   chat, getConversations, getConversation, deleteConversation,
   summarizePdf, generateQuiz, submitQuizResult, generateStudyPlan,
-  answerFromFile, getProvider, getCapabilities,
+  answerFromFile, getProvider, getCapabilities, youtubeSummarize,
+  analyzeImage
 };

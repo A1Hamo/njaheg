@@ -856,6 +856,183 @@ function AISettings() {
 }
 
 // ════════════════════════════════════════════════════════
+// YOUTUBE VIDEO SCHOLAR
+// ════════════════════════════════════════════════════════
+function YouTubeSummarizer() {
+  const [url, setUrl]           = useState('');
+  const [summary, setSummary]   = useState(null);
+  const { language }            = useUIStore();
+  const { provider }            = useAIProvider();
+
+  const { mutate: summarize, isPending } = useMutation({
+    mutationFn: () => aiAPI.youtubeSummarize({ url, language, provider }),
+    onSuccess: ({ data }) => { setSummary(data); toast.success('Video analysis complete!'); },
+    onError: (err) => {
+      const msg = err.response?.data?.error || 'Failed to summarize video';
+      toast.error(msg);
+    },
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <Card style={{ padding: 24, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <Input 
+            placeholder="Paste YouTube Video URL here (e.g. https://www.youtube.com/watch?v=...)" 
+            value={url} 
+            onChange={(e) => setUrl(e.target.value)} 
+          />
+        </div>
+        <Btn 
+          variant="primary" 
+          disabled={!url || isPending} 
+          loading={isPending} 
+          onClick={() => summarize()}
+          style={{ height: 50, padding: '0 24px', borderRadius: 12, marginTop: 4 }}
+        >
+          📺 Analyze Video
+        </Btn>
+      </Card>
+
+      <AnimatePresence mode="wait">
+        {summary ? (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <Card style={{ padding: 28 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>📋 Video Summary</h3>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>
+                    Extracted via {summary.provider === 'external' ? 'GPT-4o' : '⚡ Internal AI'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn size="sm" variant="ghost" onClick={() => setSummary(null)}>↩ Reset</Btn>
+                  <Btn size="sm" variant="default" onClick={() => navigator.clipboard.writeText(summary.summary).then(() => toast.success('Copied!'))}>
+                    📋 Copy
+                  </Btn>
+                </div>
+              </div>
+              <div className="scroll-y" style={{
+                background: 'var(--surface2)', borderRadius: 14, padding: 20,
+                fontSize: 14, lineHeight: 1.8, color: 'var(--text)', whiteSpace: 'pre-wrap',
+                border: '1px solid var(--border)', maxHeight: 500,
+              }}>
+                {summary.summary}
+              </div>
+            </Card>
+          </motion.div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border)', borderRadius: 20, minHeight: 300 }}>
+            <EmptyState icon="🎥" title="Video Scholar" subtitle="Paste any educational YouTube URL above to fetch an instant AI breakdown of its transcript." />
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════
+// VISUAL SCHOLAR (IMAGE OCR & ANALYSIS)
+// ════════════════════════════════════════════════════════
+function ImageSummarizer() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [summary, setSummary]           = useState(null);
+  const { language }                    = useUIStore();
+  const { provider }                    = useAIProvider();
+
+  // Load just images from user's vault
+  const { data: filesData, isLoading } = useQuery({
+    queryKey: ['files', 'images'],
+    queryFn: () => filesAPI.list({ limit: 50 }),
+  });
+  const images = (filesData?.data?.files || []).filter(f => f.mime_type?.startsWith('image/'));
+
+  const { mutate: analyze, isPending } = useMutation({
+    mutationFn: () => aiAPI.analyzeImage({ fileId: selectedFile, language, provider }),
+    onSuccess: ({ data }) => { setSummary(data); toast.success('Image Analysis complete!'); },
+    onError: (err) => {
+      const msg = err.response?.data?.error || 'Failed to analyze image';
+      toast.error(msg);
+    },
+  });
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 24 }}>
+      {/* File List */}
+      <Card style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 20 }}>
+        <h3 style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text3)' }}>Select Image</h3>
+        <div className="scroll-y" style={{ flex: 1, maxHeight: 380, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isLoading ? <Spinner /> : images.length === 0 ? (
+            <EmptyState icon="🖼️" title="No Images" subtitle="Upload pictures to your Vault first." />
+          ) : images.map(f => (
+            <motion.div key={f.id} onClick={() => setSelectedFile(f.id)} whileHover={{ x: 4 }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                background: selectedFile === f.id ? 'rgba(99,102,241,0.12)' : 'var(--surface2)',
+                border: '1px solid', borderColor: selectedFile === f.id ? 'var(--primary)' : 'var(--border)',
+                borderRadius: 14, cursor: 'pointer', transition: 'all 0.25s',
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, background: 'rgba(56,189,248,0.12)',
+                border: '1px solid rgba(56,189,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, overflow: 'hidden'
+              }}>
+                <img src={f.file_url} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }} className="truncate">{f.original_name}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, marginTop: 2 }}>{f.subject?.toUpperCase() || 'GENERAL'}</div>
+              </div>
+              {selectedFile === f.id && <span style={{ color: 'var(--primary)', fontSize: 16 }}>✓</span>}
+            </motion.div>
+          ))}
+        </div>
+        <Btn variant="primary" style={{ width: '100%', height: 46, borderRadius: 12 }}
+          disabled={!selectedFile} loading={isPending} onClick={() => analyze()}
+        >
+          🔍 Inspect Image
+        </Btn>
+      </Card>
+
+      {/* Summary Panel */}
+      <AnimatePresence mode="wait">
+        {summary ? (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+            <Card style={{ padding: 28, height: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>🧠 Visual Intelligence</h3>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>
+                    {summary.fileName} · Analyzed natively by {summary.provider === 'external' ? 'GPT-4o Vision' : 'Internal Engine'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn size="sm" variant="ghost" onClick={() => setSummary(null)}>↩ Reset</Btn>
+                  <Btn size="sm" variant="default" onClick={() => navigator.clipboard.writeText(summary.summary).then(() => toast.success('Copied!'))}>
+                    📋 Copy
+                  </Btn>
+                </div>
+              </div>
+              <div className="scroll-y" style={{
+                background: 'var(--surface2)', borderRadius: 14, padding: 20,
+                fontSize: 14, lineHeight: 1.8, color: 'var(--text)', whiteSpace: 'pre-wrap',
+                border: '1px solid var(--border)', maxHeight: 500,
+              }}>
+                {summary.summary}
+              </div>
+            </Card>
+          </motion.div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border)', borderRadius: 20, minHeight: 300 }}>
+            <EmptyState icon="🖼️" title="Ready to see!" subtitle="Select an image from the left. I can read textbook pages, explain diagrams, or solve handwritten equations." />
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════
 // ROOT COMPONENT
 // ════════════════════════════════════════════════════════
 export default function AIAssistant() {
@@ -863,6 +1040,8 @@ export default function AIAssistant() {
   const TABS = [
     { key: 'chat',     label: 'Neural Chat',   icon: '💬' },
     { key: 'summary',  label: 'Doc Analysis',  icon: '📄' },
+    { key: 'image',    label: 'Visual Scholar',icon: '🖼️' },
+    { key: 'youtube',  label: 'Video Scholar', icon: '📺' },
     { key: 'quiz',     label: 'Assessments',   icon: '📝' },
     { key: 'plan',     label: 'Study Plan',    icon: '📅' },
     { key: 'settings', label: 'Settings',      icon: '⚙️' },
@@ -895,6 +1074,8 @@ export default function AIAssistant() {
         >
           {activeTab === 'chat'     && <AIChat />}
           {activeTab === 'summary'  && <PDFSummarizer />}
+          {activeTab === 'image'    && <ImageSummarizer />}
+          {activeTab === 'youtube'  && <YouTubeSummarizer />}
           {activeTab === 'quiz'     && <QuizGenerator />}
           {activeTab === 'plan'     && <StudyPlanGenerator />}
           {activeTab === 'settings' && <AISettings />}

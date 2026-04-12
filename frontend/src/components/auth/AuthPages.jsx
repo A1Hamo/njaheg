@@ -8,9 +8,17 @@ import { authAPI } from '../../api/index';
 import { useAuthStore } from '../../context/store';
 import { Btn, Input, Spinner, Divider } from '../shared/UI';
 
-const GRADES = [
+const STUDENT_GRADES = [
   'Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6',
   'Prep 1','Prep 2','Prep 3','Sec 1','Sec 2','Sec 3',
+  'Year 1','Year 2','Year 3','Year 4','Year 5','Year 6',
+  'Postgrad',
+];
+
+const TEACHER_SUBJECTS = [
+  'Mathematics','Science','Arabic','English','Physics',
+  'Chemistry','Biology','History','Geography','Computer Science',
+  'Art','Physical Education','Philosophy','Economics',
 ];
 
 /* ── SVG Icons ───────────────────────────────────────────── */
@@ -346,114 +354,190 @@ export function LoginPage() {
    RegisterPage
    ════════════════════════════════════════════════════════ */
 export function RegisterPage() {
-  const [showPwd, setShowPwd] = useState(false);
-  const [grade, setGrade]     = useState('');
+  const [showPwd,  setShowPwd]  = useState(false);
+  const [grade,    setGrade]    = useState('');
+  const [role,     setRole]     = useState('student');   // 'student' | 'teacher'
+  const [instType, setInstType] = useState('school');    // 'school' | 'college' | 'university'
+  const [subjects, setSubjects] = useState([]);          // teacher subject multi-select
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate    = useNavigate();
 
+  const toggleSubject = s => setSubjects(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+
   const onSubmit = async d => {
-    if (!grade) { toast.error('Please select your grade level'); return; }
+    if (role === 'student' && !grade) { toast.error('Please select your grade/year level'); return; }
+    if (role === 'teacher' && subjects.length === 0) { toast.error('Please select at least one subject you teach'); return; }
     try {
-      const { data } = await authAPI.register({ ...d, grade });
+      const payload = {
+        ...d,
+        role,
+        institutionType: instType,
+        grade: role === 'student' ? grade : undefined,
+        subjects: role === 'teacher' ? subjects.join(',') : undefined,
+      };
+      const { data } = await authAPI.register(payload);
       setAuth(data);
-      toast.success('Welcome to Najah! 🎉 Your journey begins now.');
+      toast.success(`Welcome to Najah! 🎉 ${role === 'teacher' ? 'Teacher account created.' : 'Your journey begins now.'}`);
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Unable to create account');
     }
   };
 
+  const INST_OPTIONS = [
+    { value:'school',     label:'School',     icon:'🏡', desc:'K-12 education' },
+    { value:'college',    label:'College',    icon:'🏗️', desc:'Higher diploma / college' },
+    { value:'university', label:'University', icon:'🎓', desc:'University degree' },
+  ];
+
   return (
     <AuthLayout wide>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 26 }}>
-        <div style={{ display: 'inline-block', marginBottom: 12 }}>
-          <LogoMark />
-        </div>
-        <h1 style={{
-          fontSize: 24, fontWeight: 800,
-          fontFamily: 'var(--font-head)', letterSpacing: '-0.03em',
-          marginBottom: 5,
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <div style={{ display: 'inline-block', marginBottom: 12 }}><LogoMark /></div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', marginBottom: 5,
           background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>
-          Join Najah
-        </h1>
-        <p style={{ fontSize: 13, color: 'var(--text3)' }}>Start your personalized learning journey</p>
+        }}>Join Najah</h1>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>Create your account to get started</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Input
-          label="Full Name" required
-          icon={<UserIcon />} placeholder="Ahmed Mohamed"
+      {/* Role selector */}
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 10 }}>I am a…</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[{ value:'student', icon:'🎓', label:'Student', desc:'Learning & growing' },
+            { value:'teacher', icon:'👨‍🏫', label:'Teacher', desc:'Teaching & managing' }].map(r => (
+            <motion.button key={r.value} type="button" onClick={() => setRole(r.value)}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              style={{
+                padding: '14px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+                border: '2px solid',
+                borderColor: role === r.value
+                  ? (r.value === 'teacher' ? '#0EA5E9' : 'var(--primary)')
+                  : 'var(--border)',
+                background: role === r.value
+                  ? (r.value === 'teacher' ? 'rgba(14,165,233,0.10)' : 'rgba(124,58,237,0.10)')
+                  : 'var(--surface)',
+                transition: 'all 0.18s var(--ease)',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: 22, marginBottom: 5 }}>{r.icon}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)', marginBottom: 2 }}>{r.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{r.desc}</div>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Input label="Full Name" required icon={<UserIcon />} placeholder={role === 'teacher' ? 'Ahmed Mohamed (Teacher)' : 'Your full name'}
           error={errors.name?.message}
           {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Name too short' } })}
           autoComplete="name"
         />
-        <Input
-          label="Email Address" type="email" required
-          icon={<MailIcon />} placeholder="ahmed@email.com"
+        <Input label="Email Address" type="email" required icon={<MailIcon />} placeholder="your@email.com"
           error={errors.email?.message}
           {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })}
           autoComplete="email"
         />
-        <Input
-          label="Password" type={showPwd ? 'text' : 'password'} required
-          icon={<LockIcon />} placeholder="Minimum 8 characters"
+        <Input label="Password" type={showPwd ? 'text' : 'password'} required icon={<LockIcon />} placeholder="Minimum 8 characters"
           error={errors.password?.message}
           rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
           onRightIconClick={() => setShowPwd(v => !v)}
           {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })}
           autoComplete="new-password"
         />
-        <Input
-          label="School (optional)"
-          icon={<SchoolIcon />} placeholder="e.g. Al-Azhar School, Cairo"
-          {...register('school')}
-        />
 
-        {/* Grade picker */}
+        {/* Institution type */}
         <div>
-          <label style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
-            Grade Level <span style={{ color: 'var(--danger)' }}>*</span>
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-            {GRADES.map(g => (
-              <motion.button
-                key={g} type="button" onClick={() => setGrade(g)}
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>Institution Type</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {INST_OPTIONS.map(o => (
+              <motion.button key={o.value} type="button" onClick={() => setInstType(o.value)}
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
                 style={{
-                  padding: '8px 4px', borderRadius: 9, fontSize: 11, fontWeight: 600,
-                  border: '1.5px solid', cursor: 'pointer', fontFamily: 'inherit',
-                  transition: 'all 0.15s var(--ease)',
-                  background: grade === g
-                    ? 'linear-gradient(135deg, var(--primary), var(--brand-600))'
-                    : 'var(--surface)',
-                  borderColor: grade === g ? 'var(--primary)' : 'var(--border)',
-                  color: grade === g ? '#fff' : 'var(--text3)',
-                  boxShadow: grade === g ? 'var(--glow)' : 'none',
+                  padding: '10px 6px', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${instType === o.value ? 'var(--primary)' : 'var(--border)'}`,
+                  background: instType === o.value ? 'rgba(124,58,237,0.10)' : 'var(--surface)',
+                  transition: 'all 0.15s var(--ease)', textAlign: 'center',
                 }}
               >
-                {g}
+                <div style={{ fontSize: 18, marginBottom: 3 }}>{o.icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: instType === o.value ? 'var(--primary-light)' : 'var(--text2)' }}>{o.label}</div>
               </motion.button>
             ))}
           </div>
         </div>
 
+        <Input label={`${role === 'teacher' ? 'School / College Name' : 'Institution'} (optional)`} icon={<SchoolIcon />}
+          placeholder={instType === 'university' ? 'e.g. Cairo University' : instType === 'college' ? 'e.g. Alexandria College' : 'e.g. Al-Azhar School'}
+          {...register('institution')}
+        />
+
+        {/* Student: grade picker */}
+        {role === 'student' && (
+          <div>
+            <label style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
+              Grade / Year Level <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+              {STUDENT_GRADES.map(g => (
+                <motion.button key={g} type="button" onClick={() => setGrade(g)}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
+                  style={{
+                    padding: '7px 4px', borderRadius: 9, fontSize: 10.5, fontWeight: 600,
+                    border: '1.5px solid', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s var(--ease)',
+                    background: grade === g ? 'linear-gradient(135deg,var(--primary),var(--brand-600))' : 'var(--surface)',
+                    borderColor: grade === g ? 'var(--primary)' : 'var(--border)',
+                    color: grade === g ? '#fff' : 'var(--text3)',
+                    boxShadow: grade === g ? 'var(--glow)' : 'none',
+                  }}
+                >{g}</motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Teacher: subjects picker */}
+        {role === 'teacher' && (
+          <div>
+            <label style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 600, display: 'block', marginBottom: 8 }}>
+              Subjects You Teach <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {TEACHER_SUBJECTS.map(s => (
+                <motion.button key={s} type="button" onClick={() => toggleSubject(s)}
+                  whileTap={{ scale: 0.94 }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 9, fontSize: 11.5, fontWeight: 600,
+                    border: '1.5px solid', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                    background: subjects.includes(s) ? 'rgba(14,165,233,0.14)' : 'var(--surface)',
+                    borderColor: subjects.includes(s) ? '#0EA5E9' : 'var(--border)',
+                    color: subjects.includes(s) ? '#38BDF8' : 'var(--text3)',
+                  }}
+                >{s}</motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
-          style={{ width: '100%', marginTop: 6, borderRadius: 13 }}>
-          Create Account →
+          style={{ width: '100%', marginTop: 8, borderRadius: 13,
+            background: role === 'teacher' ? 'linear-gradient(135deg,#0EA5E9,#0369A1)' : undefined,
+          }}>
+          {role === 'teacher' ? '👨‍🏫 Create Teacher Account →' : 'Create Student Account →'}
         </Btn>
       </form>
 
-      <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12.5, color: 'var(--text3)' }}>
+      <p style={{ textAlign: 'center', marginTop: 18, fontSize: 12.5, color: 'var(--text3)' }}>
         By creating an account you agree to our{' '}
-        <span style={{ color: 'var(--primary-light)', fontWeight: 600, cursor: 'pointer' }}>Terms of Service</span>{' '}
-        and{' '}
+        <span style={{ color: 'var(--primary-light)', fontWeight: 600, cursor: 'pointer' }}>Terms of Service</span>{' '}and{' '}
         <span style={{ color: 'var(--primary-light)', fontWeight: 600, cursor: 'pointer' }}>Privacy Policy</span>.
       </p>
-      <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: 'var(--text3)' }}>
+      <p style={{ textAlign: 'center', marginTop: 10, fontSize: 13, color: 'var(--text3)' }}>
         Already have an account?{' '}
         <Link to="/login" style={{ color: 'var(--primary-light)', fontWeight: 700 }}>Sign in →</Link>
       </p>
@@ -583,5 +667,81 @@ export function AuthCallback() {
       <Spinner size="lg" />
       <p style={{ color: 'var(--text3)', fontSize: 14 }}>Completing sign in…</p>
     </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   ResetPasswordPage
+   ════════════════════════════════════════════════════════ */
+import { useParams } from 'react-router-dom';
+
+export function ResetPasswordPage() {
+  const { token } = useParams();
+  const [showPwd, setShowPwd] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const navigate = useNavigate();
+
+  const onSubmit = async d => {
+    if (d.password !== d.confirm) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    try {
+      await authAPI.resetPassword({ token, password: d.password });
+      toast.success('Password reset successfully! Please sign in.');
+      navigate('/login');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to reset password. Link may be expired.');
+    }
+  };
+
+  return (
+    <AuthLayout>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 16,
+          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.24)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 26, margin: '0 auto 16px',
+        }}>
+          🛡️
+        </div>
+        <h1 style={{
+          fontSize: 24, fontWeight: 800,
+          fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', marginBottom: 5,
+          background: 'linear-gradient(135deg, #fff 40%, var(--primary-light) 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+        }}>
+          New Password
+        </h1>
+        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>
+          Enter a new secure password for your account
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Input
+          label="New Password" type={showPwd ? 'text' : 'password'}
+          icon={<LockIcon />} placeholder="Minimum 8 characters"
+          error={errors.password?.message}
+          rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
+          onRightIconClick={() => setShowPwd(v => !v)}
+          {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })}
+        />
+        <Input
+          label="Confirm Password" type={showPwd ? 'text' : 'password'}
+          icon={<LockIcon />} placeholder="Re-enter password"
+          error={errors.confirm?.message}
+          {...register('confirm', { required: 'Please confirm password' })}
+        />
+        <Btn type="submit" variant="primary" size="lg" loading={isSubmitting}
+          style={{ width: '100%', borderRadius: 13, background: 'linear-gradient(135deg, #10B981, #047857)' }}>
+          Secure My Account →
+        </Btn>
+        <Link to="/login" style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
+          ← Cancel
+        </Link>
+      </form>
+    </AuthLayout>
   );
 }

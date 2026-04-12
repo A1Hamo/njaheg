@@ -1,11 +1,14 @@
-// src/components/dashboard/Dashboard.jsx — Professional v3
+// src/components/dashboard/Dashboard.jsx — Professional v4 (role-aware)
 import { useQuery } from '@tanstack/react-query';
+import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../context/store';
-import { plannerAPI, usersAPI } from '../../api/index';
-import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState, Alert } from '../shared/UI';
+import { plannerAPI, usersAPI, groupsAPI } from '../../api/index';
+import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
+
+const TeacherDashboard = lazy(() => import('../teacher/TeacherDashboard'));
 
 /* ── Data mappings ─────────────────────────────────────── */
 const SUBJ_COLOR = {
@@ -300,21 +303,54 @@ function TodaySchedule({ sessions, isLoading, navigate }) {
 }
 
 /* ════════════════════════════════════════════════════════
-   Main Dashboard
+   GroupsWidget — shown on student dashboard
    ════════════════════════════════════════════════════════ */
-export default function Dashboard() {
+function GroupsWidget({ navigate }) {
+  const { data } = useQuery({ queryKey:['groups'], queryFn:() => groupsAPI.list() });
+  const groups = data?.data?.groups || [];
+  if (groups.length === 0) return null;
+  return (
+    <Card style={{ padding:24, marginBottom:28 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+        <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', letterSpacing:'-0.02em' }}>📚 My Groups</h3>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/groups')}>View all →</Button>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {groups.slice(0,3).map(g => {
+          const color = g.color || '#7C3AED';
+          return (
+            <motion.div key={g._id} whileHover={{ x:4 }} onClick={() => navigate(`/groups/${g._id}`)}
+              style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:12, cursor:'pointer', borderLeft:`3px solid ${color}` }}>
+              <span style={{ fontSize:20 }}>{g.emoji || '📚'}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13.5, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.name}</div>
+                <div style={{ fontSize:11, color:'var(--text3)', textTransform:'capitalize' }}>{g.subject} · {g.teacherName || 'Teacher'}</div>
+              </div>
+              <span style={{ fontSize:11, fontWeight:700, color:'var(--text3)' }}>👥 {g.students?.length || 0}</span>
+            </motion.div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   StudentDashboard
+   ════════════════════════════════════════════════════════ */
+function StudentDashboard() {
   const { user }    = useAuthStore();
   const navigate    = useNavigate();
 
-  const { data: sessData,   isLoading: loadSess }  = useQuery({
+  const { data: sessData, isLoading: loadSess } = useQuery({
     queryKey: ['sessions', 'today'],
     queryFn:  () => plannerAPI.list({
       start: new Date().toISOString().split('T')[0] + 'T00:00:00',
       end:   new Date().toISOString().split('T')[0] + 'T23:59:59',
     }),
   });
-  const { data: statsData  } = useQuery({ queryKey: ['stats'],        queryFn: () => usersAPI.getStats() });
-  const { data: publicStats } = useQuery({ queryKey: ['public-stats'], queryFn: () => usersAPI.getPublicStats() });
+  const { data: statsData  } = useQuery({ queryKey:['stats'],        queryFn:() => usersAPI.getStats() });
+  const { data: publicStats } = useQuery({ queryKey:['public-stats'], queryFn:() => usersAPI.getPublicStats() });
 
   const sessions     = sessData?.data?.sessions  || [];
   const stats        = statsData?.data?.stats    || {};
@@ -323,152 +359,72 @@ export default function Dashboard() {
   const motivational = MOTIVATIONAL[new Date().getDay() % MOTIVATIONAL.length];
 
   return (
-    <motion.div
-      variants={stagger.container}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Welcome Banner */}
-      <motion.div variants={stagger.item}>
-        <WelcomeBanner user={user} />
+    <motion.div variants={stagger.container} initial="hidden" animate="visible">
+      <motion.div variants={stagger.item}><WelcomeBanner user={user} /></motion.div>
+
+      {/* Groups widget */}
+      <GroupsWidget navigate={navigate} />
+
+      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:16, marginBottom:28 }}>
+        <StatCard icon="👥" value={studentCount.toLocaleString()} label="Students Online" color="#10B981" sub="Active right now" />
+        <StatCard icon="📅" value={stats.sessions_done || 0} label="Sessions Done" color="#7C3AED" change={stats.sessions_done > 5 ? '+Great pace' : undefined} />
+        <StatCard icon="🎯" value={stats.quizzes_taken || 0} label="Quizzes Taken" color="#06B6D4" sub={`${stats.avg_score || 0}% avg score`} />
+        <StatCard icon="⭐" value={(user?.xp_points || 0).toLocaleString()} label="Total XP" color="#F59E0B" onClick={() => navigate('/achievements')} sub="Tap for achievements" />
       </motion.div>
 
-      {/* KPI Stats Row */}
-      <motion.div
-        variants={stagger.item}
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16, marginBottom: 28 }}
-      >
-        <StatCard
-          icon="👥" value={studentCount.toLocaleString()}
-          label="Students Online" color="#10B981"
-          sub="Active right now"
-        />
-        <StatCard
-          icon="📅" value={stats.sessions_done || 0}
-          label="Sessions Done" color="#7C3AED"
-          change={stats.sessions_done > 5 ? '+Great pace' : undefined}
-        />
-        <StatCard
-          icon="🎯" value={stats.quizzes_taken || 0}
-          label="Quizzes Taken" color="#06B6D4"
-          sub={`${stats.avg_score || 0}% avg score`}
-        />
-        <StatCard
-          icon="⭐" value={(user?.xp_points || 0).toLocaleString()}
-          label="Total XP" color="#F59E0B"
-          onClick={() => navigate('/achievements')}
-          sub="Tap for achievements"
-        />
-      </motion.div>
-
-      {/* Main Grid */}
-      <motion.div
-        variants={stagger.item}
-        style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, marginBottom: 28 }}
-      >
+      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:24, marginBottom:28 }}>
         <TodaySchedule sessions={sessions} isLoading={loadSess} navigate={navigate} />
         <QuickActions navigate={navigate} />
       </motion.div>
 
-      {/* Motivational card + mini analytics strip */}
-      <motion.div
-        variants={stagger.item}
-        style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, marginBottom: 28, alignItems: 'stretch' }}
-      >
-        {/* Quote */}
-        <div style={{
-          padding: '28px 36px', borderRadius: 20,
-          background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 50%, #1e1b4b 100%)',
-          color: '#fff', position: 'relative', overflow: 'hidden',
-          boxShadow: '0 8px 36px rgba(124,58,237,0.35)',
-        }}>
-          <div style={{
-            position: 'absolute', right: -20, top: -20,
-            fontSize: 120, opacity: 0.06,
-            transform: 'rotate(-10deg)', userSelect: 'none', lineHeight: 1,
-          }}>
-            "
-          </div>
-          <div style={{ position: 'relative' }}>
-            <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7, marginBottom: 10 }}>
-              Daily Inspiration
-            </p>
-            <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.65, maxWidth: 560, fontStyle: 'italic' }}>
-              {motivational}
-            </p>
+      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:20, marginBottom:28, alignItems:'stretch' }}>
+        <div style={{ padding:'28px 36px', borderRadius:20, background:'linear-gradient(135deg,#7C3AED 0%,#5B21B6 50%,#1e1b4b 100%)', color:'#fff', position:'relative', overflow:'hidden', boxShadow:'0 8px 36px rgba(124,58,237,0.35)' }}>
+          <div style={{ position:'absolute', right:-20, top:-20, fontSize:120, opacity:0.06, transform:'rotate(-10deg)', userSelect:'none', lineHeight:1 }}>"</div>
+          <div style={{ position:'relative' }}>
+            <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.15em', opacity:0.7, marginBottom:10 }}>Daily Inspiration</p>
+            <p style={{ fontSize:16, fontWeight:600, lineHeight:1.65, maxWidth:560, fontStyle:'italic' }}>{motivational}</p>
           </div>
         </div>
-
-        {/* Study streak card */}
-        <div style={{
-          minWidth: 180, padding: '24px 20px',
-          background: 'var(--surface2)',
-          border: '1px solid var(--border)',
-          borderRadius: 20, textAlign: 'center',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-        }}>
-          <div style={{ fontSize: 44, lineHeight: 1. }}>🔥</div>
-          <div style={{ fontSize: 38, fontWeight: 900, fontFamily: 'var(--font-head)', color: '#FBBF24', lineHeight: 1, letterSpacing: '-0.04em' }}>
-            {user?.streak_days || 0}
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Day Streak
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
-            {user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}
-          </div>
+        <div style={{ minWidth:180, padding:'24px 20px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
+          <div style={{ fontSize:44, lineHeight:1 }}>🔥</div>
+          <div style={{ fontSize:38, fontWeight:900, fontFamily:'var(--font-head)', color:'#FBBF24', lineHeight:1, letterSpacing:'-0.04em' }}>{user?.streak_days || 0}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Day Streak</div>
+          <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}</div>
         </div>
       </motion.div>
 
-      {/* Feature spotlight row */}
-      <motion.div
-        variants={stagger.item}
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}
-      >
+      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
         {[
-          { icon:'🤖', label:'AI Tutor', desc:'Get instant answers for any subject with our Egyptian curriculum AI', color:'#7C3AED', path:'/ai' },
-          { icon:'📝', label:'Exam Mode', desc:'Practice under timed conditions to simulate real exam pressure', color:'#F43F5E', path:'/exam' },
-          { icon:'📊', label:'Analytics', desc:'Track your progress in detail and identify areas to improve', color:'#06B6D4', path:'/analytics' },
-        ].map((f, i) => (
-          <motion.div
-            key={f.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: 0.3 + i * 0.08 } }}
-            whileHover={{ y: -4 }}
-            onClick={() => navigate(f.path)}
-            style={{
-              padding: '22px 20px', borderRadius: 18,
-              border: '1px solid var(--border)',
-              background: 'var(--surface)',
-              cursor: 'pointer', transition: 'all 0.22s var(--ease)',
-              position: 'relative', overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: 0, right: 0, left: 0, height: 3,
-              background: `linear-gradient(90deg, ${f.color}, transparent)`,
-              borderRadius: '18px 18px 0 0',
-            }}/>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14, fontSize: 22,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `${f.color}18`, border: `1px solid ${f.color}28`,
-              marginBottom: 14,
-            }}>
-              {f.icon}
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', color: 'var(--text)', marginBottom: 6, letterSpacing: '-0.02em' }}>
-              {f.label}
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.55 }}>
-              {f.desc}
-            </div>
-            <div style={{ marginTop: 14, fontSize: 12, fontWeight: 700, color: f.color }}>
-              Open →
-            </div>
+          { icon:'🤖', label:'AI Tutor',  desc:'Get instant answers for any subject with our AI', color:'#7C3AED', path:'/ai' },
+          { icon:'📝', label:'Exam Mode', desc:'Practice under timed conditions to simulate real exams', color:'#F43F5E', path:'/exam' },
+          { icon:'📊', label:'Analytics', desc:'Track your progress and identify areas to improve', color:'#06B6D4', path:'/analytics' },
+        ].map((f,i) => (
+          <motion.div key={f.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0, transition:{ delay:0.3+i*0.08 } }} whileHover={{ y:-4 }} onClick={() => navigate(f.path)}
+            style={{ padding:'22px 20px', borderRadius:18, border:'1px solid var(--border)', background:'var(--surface)', cursor:'pointer', transition:'all 0.22s var(--ease)', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', top:0, right:0, left:0, height:3, background:`linear-gradient(90deg,${f.color},transparent)`, borderRadius:'18px 18px 0 0' }} />
+            <div style={{ width:48, height:48, borderRadius:14, fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', background:`${f.color}18`, border:`1px solid ${f.color}28`, marginBottom:14 }}>{f.icon}</div>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', color:'var(--text)', marginBottom:6, letterSpacing:'-0.02em' }}>{f.label}</div>
+            <div style={{ fontSize:12.5, color:'var(--text3)', lineHeight:1.55 }}>{f.desc}</div>
+            <div style={{ marginTop:14, fontSize:12, fontWeight:700, color:f.color }}>Open →</div>
           </motion.div>
         ))}
       </motion.div>
     </motion.div>
   );
 }
+
+/* ════════════════════════════════════════════════════════
+   Main Dashboard export — role router
+   ════════════════════════════════════════════════════════ */
+export default function Dashboard() {
+  const { user } = useAuthStore();
+  if (user?.role === 'teacher') {
+    return (
+      <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:60 }}><Spinner /></div>}>
+        <TeacherDashboard />
+      </Suspense>
+    );
+  }
+  return <StudentDashboard />;
+}
+

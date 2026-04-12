@@ -36,7 +36,7 @@ export const useUIStore = create(
   persist(
     (set) => ({
       language:    'en',
-      darkMode:    true,
+      darkMode:    false,
       sidebarOpen: false,
 
       setLanguage: lang => {
@@ -118,5 +118,25 @@ export const useChatStore = create(set => ({
   setRecentChats: chats => set({ recentChats: chats }),
   updateRecentChat: (targetId, update) => set(s => ({
     recentChats: s.recentChats.map(c => c.id === targetId ? { ...c, ...update } : c)
+  })),
+}));
+
+// ── Groups ────────────────────────────────────────────────
+export const useGroupStore = create(set => ({
+  groups:       [],
+  activeGroup:  null,
+  loading:      false,
+
+  setGroups:      groups      => set({ groups }),
+  setActiveGroup: group       => set({ activeGroup: group }),
+  setLoading:     v           => set({ loading: v }),
+
+  addGroup: group => set(s => ({ groups: [group, ...s.groups] })),
+
+  removeGroup: id => set(s => ({ groups: s.groups.filter(g => g._id !== id) })),
+
+  updateGroup: (id, data) => set(s => ({
+    groups: s.groups.map(g => g._id === id ? { ...g, ...data } : g),
+    activeGroup: s.activeGroup?._id === id ? { ...s.activeGroup, ...data } : s.activeGroup,
   })),
 }));

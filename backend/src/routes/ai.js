@@ -22,5 +22,7 @@ ar.post('/quiz',                  aiLimiter, c.generateQuiz);
 ar.post('/quiz/submit',           c.submitQuizResult);
 ar.post('/study-plan',            aiLimiter, c.generateStudyPlan);
 ar.post('/ask-file',              aiLimiter, c.answerFromFile);
+ar.post('/image-analyze',         aiLimiter, c.analyzeImage);
+ar.post('/youtube-summarize',     aiLimiter, c.youtubeSummarize);
 
 module.exports = ar;

@@ -12,32 +12,56 @@ const logger   = require('../utils/logger');
 const ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
 
 async function register(req, res) {
-  const { name, email, password, grade, school, language = 'en' } = req.body;
+  const {
+    name, email, password, grade, school, language = 'en',
+    role = 'student', institutionType = 'school', institution,
+    subjects,  // for teachers: comma-separated subjects they teach
+  } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ error: 'name, email and password required' });
   if (password.length < 8)
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (!['student', 'teacher'].includes(role))
+    return res.status(400).json({ error: 'role must be student or teacher' });
 
   const { rows: existingUsers } = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
   if (existingUsers.length > 0)
     return res.status(409).json({ error: 'Email already in use' });
 
+  // Use the institution field as the "school" column (backwards-compatible)
+  const institutionName = institution || school || null;
   const hash = await bcrypt.hash(password, ROUNDS);
-  const { rows } = await pool.query(`
-    INSERT INTO users (name,email,password_hash,grade,school,language,email_verified)
-    VALUES ($1,$2,$3,$4,$5,$6,true)
-    RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
-  `, [name, email, hash, grade, school, language]);
+
+  // Try to set role / institutionType columns if they exist (graceful fallback)
+  let rows;
+  try {
+    const result = await pool.query(`
+      INSERT INTO users (name,email,password_hash,grade,school,language,email_verified,role,institution_type)
+      VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8)
+      RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
+    `, [name, email, hash, grade || null, institutionName, language, role, institutionType]);
+    rows = result.rows;
+  } catch {
+    // Fallback: columns may not exist yet
+    const result = await pool.query(`
+      INSERT INTO users (name,email,password_hash,grade,school,language,email_verified)
+      VALUES ($1,$2,$3,$4,$5,$6,true)
+      RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
+    `, [name, email, hash, grade || null, institutionName, language]);
+    rows = result.rows;
+  }
 
   const user = rows[0];
+  // Attach role from request (may not be in DB yet if column missing)
+  if (!user.role) user.role = role;
   const verifyToken = uuid();
   await cacheSet(`verify:${verifyToken}`, user.id, 86400);
-  await sendEmail({ to: email, template: 'verify', data: { name, verifyToken } });
+  await sendEmail({ to: email, template: 'verify', data: { name, verifyToken } }).catch(() => {});
   await checkAchievements(user.id, 'register');
 
-  logger.info(`New user: ${email}`);
+  logger.info(`New user: ${email} [${user.role}]`);
   res.status(201).json({
-    token:   signAccess(user.id),
+    token:   signAccess(user),
     refresh: signRefresh(user.id),
     user,
   });
@@ -92,7 +116,7 @@ async function login(req, res) {
   `, [user.id]);
 
   const { password_hash, ...safe } = user;
-  res.json({ token: signAccess(user.id), refresh: signRefresh(user.id), user: safe });
+  res.json({ token: signAccess(safe), refresh: signRefresh(user.id), user: safe });
 }
 
 async function googleCallback(req, res) {

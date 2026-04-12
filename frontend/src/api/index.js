@@ -139,6 +139,8 @@ export const aiAPI = {
   submitQuiz:        d  => client.post('/ai/quiz/submit', d),
   studyPlan:         d  => client.post('/ai/study-plan', d),
   askFile:           d  => client.post('/ai/ask-file', d),
+  youtubeSummarize:  d  => client.post('/ai/youtube-summarize', d),
+  analyzeImage:      d  => client.post('/ai/image-analyze', d),
   // Provider discovery
   getProvider:       () => client.get('/ai/provider'),
   getCapabilities:   () => client.get('/ai/internal/capabilities'),
@@ -164,4 +166,30 @@ export const analyticsAPI = {
 export const quizAPI = {
   history: p => client.get('/quiz/history', { params: p }),
   stats:   () => client.get('/quiz/stats'),
+};
+
+export const groupsAPI = {
+  // Groups
+  list:        ()        => client.get('/groups'),
+  create:      d         => client.post('/groups', d),
+  get:         id        => client.get(`/groups/${id}`),
+  update:      (id, d)   => client.patch(`/groups/${id}`, d),
+  remove:      id        => client.delete(`/groups/${id}`),
+  join:        code      => client.post('/groups/join', { code }),
+  removeMember:(id, uid) => client.delete(`/groups/${id}/members/${uid}`),
+
+  // Announcements
+  getAnnouncements:    id              => client.get(`/groups/${id}/announcements`),
+  createAnnouncement:  (id, d)         => client.post(`/groups/${id}/announcements`, d),
+  pinAnnouncement:     (gId, aId)      => client.patch(`/groups/${gId}/announcements/${aId}/pin`),
+  deleteAnnouncement:  (gId, aId)      => client.delete(`/groups/${gId}/announcements/${aId}`),
+
+  // Assignments
+  getAssignments:     id               => client.get(`/groups/${id}/assignments`),
+  createAssignment:   (id, d)          => client.post(`/groups/${id}/assignments`, d),
+  submitAssignment:   (gId, aId, d)    => client.post(`/groups/${gId}/assignments/${aId}/submit`, d),
+  gradeSubmission:    (gId, aId, sId, d) => client.patch(`/groups/${gId}/assignments/${aId}/submissions/${sId}`, d),
+
+  // Insights
+  getInsights: id => client.get(`/groups/${id}/insights`),
 };

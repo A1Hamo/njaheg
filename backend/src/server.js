@@ -41,6 +41,7 @@ const achievementRoutes   = require('./routes/achievements');
 const quizRoutes          = require('./routes/quiz');
 const subjectRoutes       = require('./routes/subjects');
 const analyticsRoutes     = require('./routes/analytics');
+const groupRoutes         = require('./routes/groups');
 
 const app        = express();
 const httpServer = createServer(app);
@@ -113,6 +114,7 @@ app.use('/api/achievements',   achievementRoutes);
 app.use('/api/quiz',          quizRoutes);
 app.use('/api/subjects',      subjectRoutes);
 app.use('/api/analytics',     analyticsRoutes);
+app.use('/api/groups',        groupRoutes);
 
 // ── 404 ──
 app.use('*', (_req, res) => res.status(404).json({ error: 'Not found' }));

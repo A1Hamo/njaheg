@@ -26,6 +26,7 @@ const Icons = {
   notifications:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   profile:    () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   settings:   () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  groups:     () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   logout:     () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   sun:        () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
   moon:       () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
@@ -59,10 +60,37 @@ const NAV_SECTIONS = [
   {
     label: 'Community',
     items: [
+      { key:'groups',        path:'/groups',       Icon: Icons.groups,       label:'Groups' },
       { key:'chat',          path:'/chat',         Icon: Icons.chat,         label:'Group Chat' },
       { key:'private_chat',  path:'/chat/private', Icon: Icons.messages,     label:'Messages', badge: true },
       { key:'board',         path:'/board',        Icon: Icons.board,        label:'Board' },
       { key:'achievements',  path:'/achievements', Icon: Icons.achievements, label:'Achievements' },
+      { key:'notifications', path:'/notifications',Icon: Icons.notifications,label:'Notifications', badge: true },
+    ],
+  },
+];
+
+const TEACHER_SECTIONS = [
+  {
+    label: 'Overview',
+    items: [
+      { key:'dashboard',     path:'/',             Icon: Icons.dashboard,    label:'Dashboard' },
+      { key:'analytics',     path:'/analytics',    Icon: Icons.analytics,    label:'Analytics' },
+    ],
+  },
+  {
+    label: 'Class Tools',
+    items: [
+      { key:'groups',        path:'/groups',       Icon: Icons.groups,       label:'My Classes' },
+      { key:'files',         path:'/files',        Icon: Icons.files,        label:'Resources' },
+      { key:'notes',         path:'/notes',        Icon: Icons.notes,        label:'Notes' },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { key:'chat',          path:'/chat',         Icon: Icons.chat,         label:'Group Chat' },
+      { key:'private_chat',  path:'/chat/private', Icon: Icons.messages,     label:'Messages', badge: true },
       { key:'notifications', path:'/notifications',Icon: Icons.notifications,label:'Notifications', badge: true },
     ],
   },
@@ -93,6 +121,9 @@ export function Sidebar({ open, onToggle }) {
   const location        = useLocation();
   const navigate        = useNavigate();
   const { unreadCount } = useNotifStore();
+  const { user }        = useAuthStore();
+  const isTeacher       = user?.role === 'teacher';
+  const sections        = isTeacher ? TEACHER_SECTIONS : NAV_SECTIONS;
 
   return (
     <>
@@ -183,7 +214,7 @@ export function Sidebar({ open, onToggle }) {
 
         {/* ── Navigation ──────────────────────────────────── */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 8px 8px' }}>
-          {NAV_SECTIONS.map((section, sIdx) => (
+          {sections.map((section, sIdx) => (
             <div key={section.label} style={{ marginBottom: 6 }}>
               <AnimatePresence>
                 {open && (
@@ -317,6 +348,7 @@ export function Sidebar({ open, onToggle }) {
 function SidebarUserStrip({ open }) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const isTeacher = user?.role === 'teacher';
   return (
     <div style={{
       borderTop: '1px solid var(--border)',
@@ -326,7 +358,6 @@ function SidebarUserStrip({ open }) {
       gap: 10,
       cursor: 'pointer',
       transition: 'background 0.18s',
-      borderRadius: '0 0 0 0',
     }}
     onClick={() => navigate('/profile')}
     onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
@@ -343,10 +374,21 @@ function SidebarUserStrip({ open }) {
               fontSize: 13, fontWeight: 700, color: 'var(--text)',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
-              {user?.name || 'Student'}
+              {user?.name || 'User'}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text3)' }}>
-              Lvl {user?.level || 1}  · {(user?.xp_points || 0).toLocaleString()} XP
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
+              <span style={{
+                fontSize: 9.5, fontWeight: 800, padding:'1px 7px', borderRadius:6,
+                background: isTeacher ? 'rgba(14,165,233,0.14)' : 'rgba(124,58,237,0.12)',
+                color: isTeacher ? '#38BDF8' : 'var(--primary-light)',
+                border: `1px solid ${isTeacher ? 'rgba(14,165,233,0.28)' : 'rgba(124,58,237,0.22)'}`,
+                textTransform:'uppercase', letterSpacing:'0.08em',
+              }}>
+                {isTeacher ? '👨‍🏫 Teacher' : '🎓 Student'}
+              </span>
+              {!isTeacher && (
+                <span style={{ fontSize: 10, color: 'var(--text3)' }}>Lvl {user?.level || 1}</span>
+              )}
             </div>
           </motion.div>
         )}
