@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usersAPI } from '../../api/index';
 import { useUIStore } from '../../context/store';
 import { Card, Btn, Input, SectionHeader, Divider } from '../shared/UI';
+import { useTranslation } from '../../i18n/index';
 
 /* ── SVG Icons ───────────────────────────────────────────── */
 const PaintBrushIcon = () => (
@@ -50,6 +51,8 @@ const itemAnim = {
 
 export default function SettingsPage() {
   const { darkMode, toggleDark, language, setLanguage } = useUIStore();
+  const { t, lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm();
   
   const [showCur, setShowCur] = useState(false);
@@ -74,8 +77,8 @@ export default function SettingsPage() {
       
       <SectionHeader 
         icon={<PaintBrushIcon />} 
-        title="Settings" 
-        subtitle="Manage your platform preferences and security"
+        title={isAr ? 'الإعدادات' : 'Settings'} 
+        subtitle={isAr ? 'إدارة تفضيلات المنصة والأمان' : 'Manage your platform preferences and security'}
         gradient 
       />
 
@@ -83,119 +86,121 @@ export default function SettingsPage() {
         
         {/* Appearance & Language */}
         <motion.div variants={itemAnim}>
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(124,58,237,0.15)', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="floating-panel" style={{ padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(124,58,237,0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                 <PaintBrushIcon />
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--text)' }}>
-                Appearance & Locale
+              <h3 style={{ fontSize: 20, fontWeight: 950, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--text)', textTransform: 'uppercase' }}>
+                {isAr ? 'المظهر واللغة' : 'Appearance & Language'}
               </h3>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Dark Theme</div>
-                  <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>Use the dark interface across the platform</div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{isAr ? 'الوضع الليلي' : 'Dark Mode'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text4)', marginTop: 4, fontWeight: 500 }}>{isAr ? 'تفعيل الواجهة الداكنة المريحة للعين' : 'Switch to the eye-friendly dark interface'}</div>
                 </div>
                 <Toggle checked={darkMode} onChange={toggleDark} />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Arabic Layout (RTL)</div>
-                  <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>Switch interface alignment to right-to-left</div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{isAr ? 'اللغة العربية (RTL)' : 'Arabic Language (RTL)'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text4)', marginTop: 4, fontWeight: 500 }}>{isAr ? 'تحويل الواجهة إلى اتجاه من اليمين لليسار' : 'Switch the interface to right-to-left layout'}</div>
                 </div>
                 <Toggle checked={language === 'ar'} onChange={() => setLanguage(language === 'ar' ? 'en' : 'ar')} />
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Security & Password */}
         <motion.div variants={itemAnim}>
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="floating-panel" style={{ padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(6,182,212,0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                 <LockIcon />
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--text)' }}>
-                Security & Password
+              <h3 style={{ fontSize: 20, fontWeight: 950, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--text)', textTransform: 'uppercase' }}>
+                {isAr ? 'الأمان وكلمة المرور' : 'Security & Password'}
               </h3>
             </div>
 
-            <form onSubmit={handleSubmit(onPwdSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handleSubmit(onPwdSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <Input 
-                label="Current Password" type={showCur ? 'text' : 'password'} 
-                icon={<LockIcon />} placeholder="Enter your current password"
+                label={isAr ? 'كلمة المرور الحالية' : 'Current Password'} type={showCur ? 'text' : 'password'} 
+                icon={<LockIcon />} placeholder={isAr ? 'أدخل كلمة المرور الحالية' : 'Enter current password'}
                 rightIcon={showCur ? <EyeOffIcon /> : <EyeIcon />}
                 onRightIconClick={() => setShowCur(v => !v)}
                 {...register('currentPassword', { required: 'Required' })} 
                 error={errors.currentPassword?.message} 
               />
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
                 <Input 
-                  label="New Password" type={showNew ? 'text' : 'password'} 
-                  icon={<ShieldAlertIcon />} placeholder="Min. 8 characters"
+                  label={isAr ? 'كلمة المرور الجديدة' : 'New Password'} type={showNew ? 'text' : 'password'} 
+                  icon={<ShieldAlertIcon />} placeholder={isAr ? 'حد أدنى 8 حروف' : 'Minimum 8 characters'}
                   rightIcon={showNew ? <EyeOffIcon /> : <EyeIcon />}
                   onRightIconClick={() => setShowNew(v => !v)}
                   error={errors.newPassword?.message}
                   {...register('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} 
                 />
                 <Input 
-                  label="Confirm Password" type={showCfm ? 'text' : 'password'} 
-                  icon={<ShieldAlertIcon />} placeholder="Repeat new password"
+                  label={isAr ? 'تأكيد كلمة المرور' : 'Confirm Password'} type={showCfm ? 'text' : 'password'} 
+                  icon={<ShieldAlertIcon />} placeholder={isAr ? 'أعد إدخال كلمة المرور' : 'Re-enter password'}
                   rightIcon={showCfm ? <EyeOffIcon /> : <EyeIcon />}
                   onRightIconClick={() => setShowCfm(v => !v)}
                   error={errors.confirmPassword?.message}
                   {...register('confirmPassword', {
                     required: 'Required',
-                    validate: v => v === newPwd || 'Passwords do not match'
+                    validate: v => v === newPwd || 'Keys mismatch'
                   })} 
                 />
               </div>
 
-              <Divider margin={12}/>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Btn type="submit" variant="primary" loading={isSubmitting}>
-                  {saved ? 'Password Updated ✓' : 'Save New Password'}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                <Btn type="submit" variant="primary" loading={isSubmitting} style={{ height: 52, padding: '0 32px', borderRadius: 14, fontWeight: 900, letterSpacing: '0.02em' }}>
+                  {saved ? (isAr ? 'تم التحديث ✓' : 'Updated ✓') : (isAr ? 'تحديث كلمة المرور' : 'Update Password')}
                 </Btn>
               </div>
             </form>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Danger Zone */}
         <motion.div variants={itemAnim}>
-          <Card style={{ 
-            borderColor: 'rgba(239,68,68,0.22)', 
-            background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, transparent 100%)' 
+          <div className="floating-panel" style={{ 
+            padding: 32,
+            border: '1px solid rgba(239,68,68,0.3)', 
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 100%)' 
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                 <ShieldAlertIcon />
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--danger)' }}>
-                Danger Zone
+              <h3 style={{ fontSize: 20, fontWeight: 950, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--danger)', textTransform: 'uppercase' }}>
+                {isAr ? 'منطقة الخطر' : 'Danger Zone'}
               </h3>
             </div>
             
-            <p style={{ fontSize: 13.5, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>
-              Deleting your account is permanent and cannot be undone. All your study sessions, XP, notes, and messages will be permanently erased.
+            <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 28, lineHeight: 1.7, fontWeight: 500 }}>
+              {isAr 
+                ? <>حذف الحساب هو <strong style={{ color: 'var(--danger)' }}>إجراء لا يمكن التراجع عنه</strong>. سيتم حذف جميع بياناتك ورسائلك وملفاتك نهائياً.</>
+                : <>Deleting your account is an <strong style={{ color: 'var(--danger)' }}>irreversible action</strong>. All your data, messages, and files will be permanently removed.</>
+              }
             </p>
             
-            <Btn variant="danger"
+            <Btn variant="danger" style={{ height: 52, padding: '0 32px', fontWeight: 900, letterSpacing: '0.02em' }}
               onClick={() => { 
-                if (window.confirm('Are you strictly sure? This will wipe your account completely.')) {
-                  toast.error('Deletion requested — contact support@najah.edu.eg to confirm.'); 
+                if (window.confirm(isAr ? 'هل أنت متأكد من حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete your account? This cannot be undone.')) {
+                  toast.error(isAr ? 'يرجى التواصل مع الدعم: support@najah.edu.eg' : 'Please contact support: support@najah.edu.eg'); 
                 }
               }}>
-              Delete My Account
+              {isAr ? 'حذف الحساب نهائياً' : 'Delete Account Permanently'}
             </Btn>
-          </Card>
+          </div>
         </motion.div>
 
       </div>

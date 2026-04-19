@@ -15,6 +15,12 @@ export const useAuthStore = create(
         if (token)   localStorage.setItem('token',   token);
         if (refresh) localStorage.setItem('refresh', refresh);
         set({ user, token, refresh, isAuthenticated: true });
+        // Lock institution mode from user profile (set during registration)
+        if (user?.institutionType) {
+          useUIStore.getState().setInstitutionMode(
+            user.institutionType === 'university' ? 'university' : 'school'
+          );
+        }
       },
       setUser:  u  => set({ user: u }),
       updateXP: (xp, level) => set(s => ({ user: { ...s.user, xp_points: xp, level } })),
@@ -38,6 +44,7 @@ export const useUIStore = create(
       language:    'en',
       darkMode:    false,
       sidebarOpen: false,
+      institutionMode: 'school', // 'school' | 'university'
 
       setLanguage: lang => {
         document.documentElement.setAttribute('dir',  lang === 'ar' ? 'rtl' : 'ltr');
@@ -46,17 +53,29 @@ export const useUIStore = create(
       },
       toggleDark:      ()    => set(s => ({ darkMode: !s.darkMode })),
       setSidebarOpen:  v     => set({ sidebarOpen: v }),
+      setInstitutionMode: m => set({ institutionMode: m }),
     }),
-    { name: 'najah-ui', partialize: s => ({ language: s.language, darkMode: s.darkMode }) }
+    { name: 'najah-ui', partialize: s => ({ language: s.language, darkMode: s.darkMode, institutionMode: s.institutionMode }) }
   )
 );
+
+export const playPing = () => {
+  try {
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
+  } catch {}
+};
 
 // ── Notifications ────────────────────────────────────────
 export const useNotifStore = create(set => ({
   notifications: [],
   unreadCount:   0,
   setAll: (notifications, unreadCount) => set({ notifications, unreadCount }),
-  add:    notif  => set(s => ({ notifications: [notif, ...s.notifications], unreadCount: s.unreadCount + 1 })),
+  add:    notif  => {
+    playPing();
+    set(s => ({ notifications: [notif, ...s.notifications], unreadCount: s.unreadCount + 1 }));
+  },
   markOne: id    => set(s => ({
     notifications: s.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
     unreadCount:   Math.max(0, s.unreadCount - 1),
@@ -99,19 +118,49 @@ export const useChatStore = create(set => ({
   setPrivateMessages: (targetId, msgs) => set(s => ({
     privateMessages: { 
       ...s.privateMessages, 
-      [targetId]: msgs.map(m => ({ ...m, id: m.id || m._id?.toString() })) 
+      [targetId]: msgs.map(m => ({ ...m, id: m.id || m._id?.toString(), status: m.status || 'sent' })) 
     }
   })),
 
   addPrivateMessage: (targetId, msg) => set(s => {
     const old = s.privateMessages[targetId] || [];
-    // Robust duplicate check (both id and _id)
     const msgId = msg.id || msg._id?.toString();
     if (old.some(m => (m.id || m._id?.toString()) === msgId)) return s;
     return {
-      privateMessages: { ...s.privateMessages, [targetId]: [...old, { ...msg, id: msgId }] }
+      privateMessages: { ...s.privateMessages, [targetId]: [...old, { ...msg, id: msgId, status: msg.status || 'sent' }] }
     };
   }),
+
+  markMessagesRead: (targetId, messageIds = null) => set(s => {
+    const msgs = s.privateMessages[targetId] || [];
+    return {
+      privateMessages: {
+        ...s.privateMessages,
+        [targetId]: msgs.map(m => {
+          if (!messageIds || messageIds.includes(m.id)) return { ...m, status: 'read' };
+          return m;
+        })
+      }
+    };
+  }),
+
+  editPrivateMessage: (targetId, messageId, content) => set(s => ({
+    privateMessages: {
+      ...s.privateMessages,
+      [targetId]: (s.privateMessages[targetId] || []).map(m =>
+        m.id === messageId ? { ...m, content, edited: true } : m
+      ),
+    },
+  })),
+
+  deletePrivateMessage: (targetId, messageId) => set(s => ({
+    privateMessages: {
+      ...s.privateMessages,
+      [targetId]: (s.privateMessages[targetId] || []).map(m =>
+        m.id === messageId ? { ...m, _deleted: true, content: '' } : m
+      ),
+    },
+  })),
 
   setActivePrivateChat: targetId => set({ activePrivateChat: targetId }),
   

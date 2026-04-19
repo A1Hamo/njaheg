@@ -45,9 +45,9 @@ function UploadDropzone({ onUploaded }) {
   });
 
   return (
-    <Card>
-      <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 18, fontFamily: 'var(--font-head)' }}>📥 Secure Vault Upload</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+    <div className="floating-panel" style={{ padding: 28 }}>
+      <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 18, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>📥 Secure Vault Upload</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
         <Select value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))}>
           {SUBJECTS.map(s => <option key={s} value={s}>{SUBJECT_ICONS[s]} {s.replace('_',' ').toUpperCase()}</option>)}
         </Select>
@@ -61,11 +61,11 @@ function UploadDropzone({ onUploaded }) {
       <motion.div {...getRootProps()}
         animate={{ 
           borderColor: isDragActive ? 'var(--primary)' : 'var(--border)',
-          background: isDragActive ? 'rgba(99, 102, 241, 0.05)' : 'var(--surface2)' 
+          background: isDragActive ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.02)' 
         }}
         whileHover={{ scale: 1.01, borderColor: 'var(--primary)' }}
         style={{
-          border: '2px dashed', borderRadius: 16, padding: '40px 24px',
+          border: '2px dashed', borderRadius: 20, padding: '48px 24px',
           textAlign: 'center', cursor: uploading ? 'not-allowed' : 'pointer', transition: 'all 0.3s ease',
         }}
       >
@@ -73,25 +73,28 @@ function UploadDropzone({ onUploaded }) {
         {uploading ? (
           <div>
             <Spinner size="lg" />
-            <div style={{ marginTop: 16, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Uploading Excellence... {progress}%</div>
-            <div style={{ marginTop: 12, height: 6, background: 'var(--surface3)', borderRadius: 3, overflow: 'hidden', maxWidth: 300, margin: '12px auto 0' }}>
-              <motion.div style={{ height: '100%', background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)' }}
+            <div style={{ marginTop: 16, fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Uploading Excellence... {progress}%</div>
+            <div style={{ marginTop: 12, height: 8, background: 'var(--surface3)', borderRadius: 4, overflow: 'hidden', maxWidth: 300, margin: '12px auto 0' }}>
+              <motion.div style={{ height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--brand-400))', boxShadow: '0 0 15px var(--primary)' }}
                 animate={{ width: `${progress}%` }} transition={{ ease: 'linear' }} />
             </div>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 44, marginBottom: 12, filter: 'drop-shadow(0 0 10px rgba(99,102,241,0.2))' }}>
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              style={{ fontSize: 48, marginBottom: 14, filter: 'drop-shadow(0 0 12px rgba(99,102,241,0.3))' }}>
               {isDragActive ? '📂' : '✨'}
-            </div>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: 'var(--text)' }}>
+            </motion.div>
+            <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>
               {isDragActive ? 'Release to Upload' : 'Drag & drop academic assets here'}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>OR CLICK TO BROWSE LOCAL FILES</div>
+            <div style={{ fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>OR CLICK TO BROWSE LOCAL FILES</div>
           </>
         )}
       </motion.div>
-    </Card>
+    </div>
   );
 }
 
@@ -99,36 +102,36 @@ function FileCard({ file, onDelete, onAnalyze }) {
   return (
     <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ scale: 1.01, borderColor: 'var(--border2)' }}
-      className="glass-panel"
+      whileHover={{ scale: 1.015, x: 4 }}
+      className="floating-card"
       style={{
-        padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16,
-        background: 'var(--surface)', border: '1px solid var(--border)',
-        transition: 'all 0.3s ease'
+        padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 16,
+        transition: 'all 0.22s var(--ease)',
+        borderRadius: 18
       }}
     >
       <div style={{ 
         width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center',
         justifyContent: 'center', fontSize: 24,
-        background: file.mime_type === 'application/pdf' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(56, 189, 248, 0.1)',
-        border: '1px solid transparent',
-        borderColor: file.mime_type === 'application/pdf' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.2)'
+        background: file.mime_type === 'application/pdf' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+        border: '1px solid',
+        borderColor: file.mime_type === 'application/pdf' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(56, 189, 248, 0.25)'
       }}>
         {MIME_ICONS[file.mime_type] || '📎'}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }} className="truncate">{file.original_name}</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)', marginBottom: 4, fontFamily: 'var(--font-head)' }} className="truncate">{file.original_name}</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>{Math.round(file.size_bytes / 1024)} KB</span>
-          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border2)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>{file.subject?.replace('_',' ')}</span>
-          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border2)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>{format(new Date(file.created_at), 'MMM d, yyyy')}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text4)' }}>{Math.round(file.size_bytes / 1024)} KB</span>
+          <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border2)' }} />
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{file.subject?.replace('_',' ')}</span>
+          <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border2)' }} />
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text4)' }}>{format(new Date(file.created_at), 'MMM d, yyyy')}</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         {file.mime_type === 'application/pdf' && (
           <Btn size="sm" variant="glass" onClick={() => onAnalyze(file)}>🤖 AI ANALYZE</Btn>
         )}
@@ -203,36 +206,36 @@ export default function FilesPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <Card>
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 20, fontFamily: 'var(--font-head)' }}>Vault Analytics</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-              <div style={{ padding: 16, borderRadius: 12, background: 'var(--surface2)', textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 800 }}>{files.length}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>TOTAL ASSETS</div>
-              </div>
-              <div style={{ padding: 16, borderRadius: 12, background: 'var(--surface2)', textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 800 }}>{files.filter(f => f.mime_type === 'application/pdf').length}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>PDF GUIDES</div>
-              </div>
+        <div className="floating-panel" style={{ padding: 28 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 20, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>Vault Analytics</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
+            <div className="floating-card" style={{ padding: 16, borderRadius: 14, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--font-head)', color: 'var(--primary)' }}>{files.length}</div>
+              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL ASSETS</div>
             </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <h4 style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 4, textTransform: 'uppercase' }}>Subject Distribution</h4>
-              {SUBJECTS.map(s => {
-                const count = files.filter(f => f.subject === s).length;
-                const pct = (count / (files.length || 1)) * 100;
-                return (
-                  <div key={s}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                      <span style={{ fontWeight: 700 }}>{SUBJECT_ICONS[s]} {s.replace('_',' ')}</span>
-                      <span style={{ color: 'var(--text3)', fontWeight: 800 }}>{count}</span>
-                    </div>
-                    <ProgressBar value={pct} height={6} color="var(--primary)" />
+            <div className="floating-card" style={{ padding: 16, borderRadius: 14, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--font-head)', color: 'var(--warning)' }}>{files.filter(f => f.mime_type === 'application/pdf').length}</div>
+              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>PDF GUIDES</div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <h4 style={{ fontSize: 12, fontWeight: 900, color: 'var(--text2)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Subject Distribution</h4>
+            {SUBJECTS.map(s => {
+              const count = files.filter(f => f.subject === s).length;
+              const pct = (count / (files.length || 1)) * 100;
+              return (
+                <div key={s}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                    <span style={{ fontWeight: 800, color: 'var(--text)' }}>{SUBJECT_ICONS[s]} {s.replace('_',' ')}</span>
+                    <span style={{ color: 'var(--text4)', fontWeight: 900 }}>{count}</span>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
+                  <ProgressBar value={pct} height={7} color="var(--primary)" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
           
           <Card style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)', border: 'none', color: '#fff' }}>
             <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8, color: '#fff' }}>AI Vault Analysis</h3>

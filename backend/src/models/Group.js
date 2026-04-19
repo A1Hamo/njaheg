@@ -16,6 +16,7 @@ const groupSchema = new mongoose.Schema({
   teacherId:       { type: String, required: true, index: true },
   teacherName:     { type: String },
   subject:         { type: String, required: true },
+  grade:           { type: String },
   institutionType: { type: String, enum: ['school', 'college', 'university'], default: 'school' },
   institution:     { type: String },
   students:        [memberSchema],

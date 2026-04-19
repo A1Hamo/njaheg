@@ -1,12 +1,15 @@
-// src/components/shared/Layout.jsx — Najah v5 — Mobile nav + Notif drawer + Progress bar
+// src/components/shared/Layout.jsx — Najah v6 — i18n + Mobile nav + Notif drawer
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore, useUIStore, useNotifStore } from '../../context/store';
-import { useTranslation, useSocket } from '../../hooks/index';
+import { useSocket } from '../../hooks/index';
+import { useTranslation } from '../../i18n/index';
 import { authAPI, notificationsAPI } from '../../api/index';
 import { Avatar } from './UI';
+// InstitutionSwitcher removed — institution mode is now locked at registration
 import toast from 'react-hot-toast';
+import CreateGroupWizard from '../groups/CreateGroupWizard';
 
 /* ── SVG Icon set ──────────────────────────────────────────── */
 const Icons = {
@@ -36,71 +39,80 @@ const Icons = {
   menu:         () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   close:        () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   check:        () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  payment:      () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+  help:         () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
-/* ── Nav config ──────────────────────────────────────────── */
-const NAV_SECTIONS = [
+// Nav sections use translation keys — labels resolved at render time
+const NAV_SECTIONS_DEF = [
   {
-    label: 'Overview',
+    labelKey: 'Overview',
     items: [
-      { key:'dashboard',    path:'/',             Icon: Icons.dashboard,     label:'Dashboard' },
-      { key:'ai',           path:'/ai',           Icon: Icons.ai,            label:'AI Assistant' },
-      { key:'analytics',    path:'/analytics',    Icon: Icons.analytics,     label:'Analytics' },
+      { key:'dashboard',    path:'/',             Icon: Icons.dashboard,     tKey:'nav.dashboard' },
+      { key:'ai',           path:'/ai',           Icon: Icons.ai,            tKey:'nav.ai' },
+      { key:'analytics',    path:'/analytics',    Icon: Icons.analytics,     tKey:'nav.analytics' },
     ],
   },
   {
-    label: 'Study',
+    labelKey: 'Study',
     items: [
-      { key:'planner',      path:'/planner',      Icon: Icons.planner,       label:'Planner' },
-      { key:'notes',        path:'/notes',        Icon: Icons.notes,         label:'Notes' },
-      { key:'files',        path:'/files',        Icon: Icons.files,         label:'Files' },
-      { key:'focus',        path:'/focus',        Icon: Icons.focus,         label:'Focus Timer' },
-      { key:'exam',         path:'/exam',         Icon: Icons.exam,          label:'Exam Mode' },
-      { key:'quiz-history', path:'/quiz-history', Icon: Icons.quizHistory,   label:'Quiz History' },
-      { key:'tools',        path:'/tools',        Icon: Icons.tools,         label:'Study Tools' },
+      { key:'planner',      path:'/planner',      Icon: Icons.planner,       tKey:'nav.planner' },
+      { key:'notes',        path:'/notes',        Icon: Icons.notes,         tKey:'nav.notes' },
+      { key:'files',        path:'/files',        Icon: Icons.files,         tKey:'nav.files' },
+      { key:'focus',        path:'/focus',        Icon: Icons.focus,         tKey:'nav.focus' },
+      { key:'exam',         path:'/exam',         Icon: Icons.exam,          tKey:'nav.exam' },
+      { key:'quiz-history', path:'/quiz-history', Icon: Icons.quizHistory,   tKey:'nav.quizHistory' },
+      { key:'tools',        path:'/tools',        Icon: Icons.tools,         tKey:'nav.tools' },
     ],
   },
   {
-    label: 'Community',
+    labelKey: 'Community',
     items: [
-      { key:'groups',       path:'/groups',       Icon: Icons.groups,        label:'Groups' },
-      { key:'chat',         path:'/chat',         Icon: Icons.chat,          label:'Group Chat' },
-      { key:'private_chat', path:'/chat/private', Icon: Icons.messages,      label:'Messages', badge: true },
-      { key:'board',        path:'/board',        Icon: Icons.board,         label:'Board' },
-      { key:'achievements', path:'/achievements', Icon: Icons.achievements,  label:'Achievements' },
-      { key:'notifications',path:'/notifications',Icon: Icons.notifications, label:'Notifications', badge: true },
-    ],
-  },
-];
-
-const TEACHER_SECTIONS = [
-  {
-    label: 'Overview',
-    items: [
-      { key:'dashboard',    path:'/',             Icon: Icons.dashboard,    label:'Dashboard' },
-      { key:'analytics',    path:'/analytics',    Icon: Icons.analytics,    label:'Analytics' },
-    ],
-  },
-  {
-    label: 'Class Tools',
-    items: [
-      { key:'groups',       path:'/groups',       Icon: Icons.groups,       label:'My Classes' },
-      { key:'files',        path:'/files',        Icon: Icons.files,        label:'Resources' },
-      { key:'notes',        path:'/notes',        Icon: Icons.notes,        label:'Notes' },
-      { key:'tools',        path:'/tools',        Icon: Icons.tools,        label:'Study Tools' },
-    ],
-  },
-  {
-    label: 'Communication',
-    items: [
-      { key:'chat',         path:'/chat',         Icon: Icons.chat,         label:'Group Chat' },
-      { key:'private_chat', path:'/chat/private', Icon: Icons.messages,     label:'Messages', badge: true },
-      { key:'notifications',path:'/notifications',Icon: Icons.notifications,label:'Notifications', badge: true },
+      { key:'groups',       path:'/groups',       Icon: Icons.groups,        tKey:'nav.groups' },
+      { key:'messages',     path:'/chat',         Icon: Icons.messages,      tKey:'nav.messages', badge: true },
+      { key:'board',        path:'/board',        Icon: Icons.board,         tKey:'nav.board' },
+      { key:'achievements', path:'/achievements', Icon: Icons.achievements,  tKey:'nav.achievements' },
+      { key:'notifications',path:'/notifications',Icon: Icons.notifications, tKey:'nav.notifications', badge: true },
+      { key:'payment',      path:'/payment',      Icon: Icons.payment,       tKey:'nav.payment' },
+      { key:'help',         path:'/help',         Icon: Icons.help,          tKey:'nav.help' },
     ],
   },
 ];
 
-const ALL_NAV = NAV_SECTIONS.flatMap(s => s.items);
+const TEACHER_SECTIONS_DEF = [
+  {
+    labelKey: 'Overview',
+    items: [
+      { key:'dashboard',    path:'/',             Icon: Icons.dashboard,    tKey:'nav.dashboard' },
+      { key:'students',     path:'/students',     Icon: Icons.profile,      tKey:'nav.allStudents' },
+      { key:'analytics',    path:'/analytics',    Icon: Icons.analytics,    tKey:'nav.analytics' },
+    ],
+  },
+  {
+    labelKey: 'Class Tools',
+    items: [
+      { key:'groups',       path:'/groups',       Icon: Icons.groups,       tKey:'nav.myClasses' },
+      { key:'calendar',     path:'/calendar',     Icon: Icons.planner,      tKey:'nav.calendar' },
+      { key:'curriculum',   path:'/curriculum',   Icon: Icons.notes,        tKey:'nav.curriculum' },
+      { key:'files',        path:'/files',        Icon: Icons.files,        tKey:'nav.resources' },
+      { key:'tools',        path:'/tools',        Icon: Icons.tools,        tKey:'nav.tools' },
+    ],
+  },
+  {
+    labelKey: 'Communication',
+    items: [
+      { key:'messages',     path:'/chat',         Icon: Icons.messages,     tKey:'nav.messages', badge: true },
+      { key:'notifications',path:'/notifications',Icon: Icons.notifications,tKey:'nav.notifications', badge: true },
+      { key:'payment',      path:'/payment',      Icon: Icons.payment,      tKey:'nav.payment' },
+      { key:'help',         path:'/help',         Icon: Icons.help,         tKey:'nav.help' },
+    ],
+  },
+];
+
+const ALL_NAV_KEYS = [
+  ...NAV_SECTIONS_DEF.flatMap(s => s.items),
+  ...TEACHER_SECTIONS_DEF.flatMap(s => s.items),
+];
 
 /* ── Logo Mark ──────────────────────────────────────────────── */
 function LogoMark({ size = 36 }) {
@@ -108,8 +120,8 @@ function LogoMark({ size = 36 }) {
     <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
       <defs>
         <linearGradient id="logo-g" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#8B5CF6"/>
-          <stop offset="100%" stopColor="#06B6D4"/>
+          <stop offset="0%" stopColor="#6366f1"/>
+          <stop offset="100%" stopColor="#0284c7"/>
         </linearGradient>
       </defs>
       <rect width="36" height="36" rx="10" fill="url(#logo-g)"/>
@@ -142,6 +154,7 @@ function NotifDrawer({ open, onClose }) {
   const { notifications, markOne } = useNotifStore();
   const isRtl = useUIStore(s => s.language) === 'ar';
   const slideX = isRtl ? '-100%' : '100%';
+  const navigate = useNavigate();
 
   return (
     <AnimatePresence>
@@ -190,12 +203,18 @@ function NotifDrawer({ open, onClose }) {
                 notifications.map(n => (
                   <motion.div key={n.id || n._id}
                     initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-                    onClick={() => markOne(n.id || n._id)}
+                    onClick={() => {
+                      markOne(n.id || n._id);
+                      if (n.type === 'private_message' || n.action_url?.includes('/chat')) {
+                       onClose();
+                       navigate('/chat');
+                      }
+                    }}
                     style={{
                       padding: '14px 20px', borderBottom: '1px solid var(--border)',
                       cursor: 'pointer', transition: 'background 0.15s',
-                      background: n.is_read ? 'transparent' : 'rgba(124,58,237,0.06)',
-                      borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
+                      background: n.is_read ? 'transparent' : 'rgba(14, 165, 233, 0.06)',
+                      borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary-500)',
                     }}
                     whileHover={{ background: 'var(--surface2)' }}
                   >
@@ -224,7 +243,7 @@ function NotifDrawer({ open, onClose }) {
                         </div>
                       </div>
                       {!n.is_read && (
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 4 }} />
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary-500)', flexShrink: 0, marginTop: 4 }} />
                       )}
                     </div>
                   </motion.div>
@@ -238,17 +257,55 @@ function NotifDrawer({ open, onClose }) {
   );
 }
 
+function StaticAppBackground() {
+  const { institutionMode } = useUIStore();
+  const bgImage = institutionMode === 'school' 
+    ? '/images/showcase-22.jpeg' 
+    : '/images/showcase-5.jpeg';
+  
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {/* Single static background image — no animations */}
+      <img 
+        src={bgImage}
+        alt=""
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100vw', height: '100vh',
+          objectFit: 'cover',
+          filter: 'blur(25px) brightness(0.45) saturate(1.2)',
+          opacity: 0.18,
+        }}
+      />
+      {/* Gradient overlay for readability */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: 'radial-gradient(ellipse at 30% 20%, transparent 20%, var(--page-bg) 80%)',
+      }} />
+      {/* Subtle grid pattern */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 2, opacity: 0.03,
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
+      }} />
+    </div>
+  );
+}
+
 /* ── Sidebar ─────────────────────────────────────────────── */
 export function Sidebar({ open, onToggle }) {
   const location        = useLocation();
   const navigate        = useNavigate();
   const { unreadCount } = useNotifStore();
   const { user }        = useAuthStore();
+  const { t }           = useTranslation();
+  const { institutionMode } = useUIStore();
   const isTeacher       = user?.role === 'teacher';
-  const sections        = isTeacher ? TEACHER_SECTIONS : NAV_SECTIONS;
+  const sections        = isTeacher ? TEACHER_SECTIONS_DEF : NAV_SECTIONS_DEF;
 
   return (
     <>
+      <StaticAppBackground />
       {/* Mobile overlay */}
       <AnimatePresence>
         {open && window.innerWidth < 1100 && (
@@ -268,16 +325,16 @@ export function Sidebar({ open, onToggle }) {
       <motion.nav
         animate={{ width: open ? 272 : 72 }}
         transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-        className="main-sidebar"
+        className="main-sidebar floating-panel"
         style={{
-          height: '100vh',
+          height: 'calc(100vh - 24px)',
+          margin: '12px',
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'auto',
           overflowX: 'hidden',
-          flexShrink: 0,
           position: 'relative',
-          zIndex: 50,
+          zIndex: 150,
         }}
       >
         {/* ── Logo / Toggle ───────────────────────────── */}
@@ -337,21 +394,24 @@ export function Sidebar({ open, onToggle }) {
         {/* ── Navigation ──────────────────────────────── */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 8px 8px' }}>
           {sections.map((section, sIdx) => (
-            <div key={section.label} style={{ marginBottom: 8 }}>
+            <div key={section.labelKey || sIdx} style={{ marginBottom: 8 }}>
               <AnimatePresence>
-                {open && (
-                  <motion.div
-                    initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: sIdx * 0.04 } }} exit={{ opacity: 0 }}
-                    style={{
-                      fontSize: 9.5, fontWeight: 800,
-                      textTransform: 'uppercase', letterSpacing: '0.14em',
-                      color: 'var(--text3)',
-                      padding: '10px 12px 6px',
-                    }}
-                  >
-                    {section.label}
-                  </motion.div>
-                )}
+                    {open && (
+                      <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: sIdx * 0.04 } }} exit={{ opacity: 0 }}
+                        style={{
+                          fontSize: 10, fontWeight: 900, color: 'var(--text4)',
+                          textTransform: 'uppercase', letterSpacing: '0.15em',
+                          marginBottom: 12, padding: open ? '0 14px' : '0',
+                          textAlign: open ? 'left' : 'center',
+                          opacity: 0.7
+                        }}
+                      >
+                        {section.labelKey === 'Study' && institutionMode === 'university' ? 'Academic' : 
+                         section.labelKey === 'Community' && institutionMode === 'university' ? 'Campus' :
+                         t(section.labelKey) || section.labelKey}
+                      </motion.div>
+                    )}
               </AnimatePresence>
 
               {section.items.map(item => {
@@ -363,26 +423,25 @@ export function Sidebar({ open, onToggle }) {
                   <motion.div
                     key={item.key}
                     onClick={() => { navigate(item.path); if (open && window.innerWidth < 1100) onToggle(); }}
-                    whileHover={{ x: active ? 0 : 2 }}
-                    whileTap={{ scale: 0.97 }}
+                    whileHover={{ x: active ? 0 : 4, scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
                     data-tip={!open ? item.label : undefined}
                     style={{
-                      height: 42,
-                      borderRadius: 11,
+                      height: 44,
+                      borderRadius: 12,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 11,
-                      padding: open ? '0 12px' : '0',
+                      gap: 12,
+                      padding: open ? '0 14px' : '0',
                       justifyContent: open ? 'flex-start' : 'center',
                       cursor: 'pointer',
                       position: 'relative',
-                      marginBottom: 2,
                       background: active
-                        ? 'linear-gradient(135deg, rgba(124,58,237,0.20), rgba(124,58,237,0.08))'
+                        ? 'rgba(14, 165, 233, 0.12)'
                         : 'transparent',
-                      color: active ? 'var(--primary-light)' : 'var(--text3)',
-                      borderLeft: active ? '3px solid var(--primary)' : '3px solid transparent',
-                      transition: 'all 0.18s var(--ease)',
+                      color: active ? 'var(--primary-600)' : 'var(--text3)',
+                      boxShadow: active ? '0 4px 12px rgba(14, 165, 233, 0.1)' : 'none',
+                      transition: 'color 0.2s, background 0.2s',
                     }}
                     onMouseEnter={e => {
                       if (!active) {
@@ -403,7 +462,7 @@ export function Sidebar({ open, onToggle }) {
                         layoutId="nav-active-dot"
                         style={{
                           position: 'absolute',
-                          left: -1,
+                          insetInlineStart: -1,
                           width: 3,
                           height: 22,
                           borderRadius: 4,
@@ -431,7 +490,7 @@ export function Sidebar({ open, onToggle }) {
                             whiteSpace: 'nowrap', flex: 1, color: 'inherit',
                           }}
                         >
-                          {item.label}
+                          {t(item.tKey)}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -471,6 +530,7 @@ function SidebarUserStrip({ open }) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const isTeacher = user?.role === 'teacher';
+  const { institutionMode } = useUIStore();
   return (
     <div style={{
       borderTop: '1px solid var(--border)',
@@ -498,7 +558,7 @@ function SidebarUserStrip({ open }) {
             }}>
               {user?.name || 'User'}
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2, flexWrap:'wrap' }}>
               <span style={{
                 fontSize: 9.5, fontWeight: 800, padding:'1px 7px', borderRadius:6,
                 background: isTeacher ? 'rgba(14,165,233,0.14)' : 'rgba(124,58,237,0.12)',
@@ -507,6 +567,15 @@ function SidebarUserStrip({ open }) {
                 textTransform:'uppercase', letterSpacing:'0.08em',
               }}>
                 {isTeacher ? '👨‍🏫 Teacher' : '🎓 Student'}
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding:'1px 6px', borderRadius:5,
+                background: institutionMode === 'university' ? 'rgba(14,165,233,0.1)' : 'rgba(16,185,129,0.1)',
+                color: institutionMode === 'university' ? '#38BDF8' : '#10b981',
+                border: `1px solid ${institutionMode === 'university' ? 'rgba(14,165,233,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                textTransform:'uppercase', letterSpacing:'0.06em',
+              }}>
+                {institutionMode === 'university' ? '🎓 University' : '🏫 School'}
               </span>
               {!isTeacher && (
                 <span style={{ fontSize: 10, color: 'var(--text3)' }}>Lvl {user?.level || 1}</span>
@@ -520,20 +589,22 @@ function SidebarUserStrip({ open }) {
 }
 
 /* ── Header ───────────────────────────────────────────────── */
-export function Header({ sidebarOpen, onToggle }) {
+export function Header({ sidebarOpen, onToggle, onOpenNotifs, onOpenWizard }) {
   const { user, logout }                            = useAuthStore();
+  const userName                                    = user?.name || 'Explorer';
+  const userEmail                                   = user?.email || 'Najah User';
   const { language, setLanguage, toggleDark, darkMode } = useUIStore();
   const { unreadCount }                             = useNotifStore();
+  const { lang, toggleLang, t }                     = useTranslation();
   const navigate                                    = useNavigate();
   const location                                    = useLocation();
   const [profileOpen, setProfileOpen]               = useState(false);
-  const [notifOpen, setNotifOpen]                   = useState(false);
   const profileRef                                  = useRef(null);
 
-  const currentNav = ALL_NAV.find(n =>
+  const currentNav = ALL_NAV_KEYS.find(n =>
     n.path !== '/' ? location.pathname.startsWith(n.path) : location.pathname === n.path
   );
-  const pageLabel = currentNav?.label || 'Dashboard';
+  const pageLabel = currentNav ? t(currentNav.tKey) : t('nav.dashboard');
 
   const handleLogout = async () => {
     try { await authAPI.logout(); } catch {}
@@ -551,38 +622,52 @@ export function Header({ sidebarOpen, onToggle }) {
 
   return (
     <>
-      <ReadingProgress />
-      <NotifDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
 
-      <header style={{
-        height: 68,
-        background: 'var(--glass)',
-        backdropFilter: 'var(--glass-blur)',
-        WebkitBackdropFilter: 'var(--glass-blur)',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 20px 0 16px',
-        gap: 12,
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        flexShrink: 0,
-      }}>
+      {user && user.email_verified === false && (
+        <div style={{
+          background: 'linear-gradient(90deg, #f59e0b, #d97706)',
+          color: '#fff', padding: '8px 16px', textAlign: 'center',
+          fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          borderBottom: '1px solid rgba(255,255,255,0.2)',
+        }}>
+          <span>⚠️ Your email is not verified. Please check your inbox or spam folder.</span>
+          <button
+            onClick={() => {
+               toast.promise(authAPI.forgotPassword(user.email), {
+                 loading: 'Sending...',
+                 success: 'Verification email sent!',
+                 error: 'Failed to send'
+               });
+            }}
+            style={{
+              padding: '4px 10px', background: 'rgba(255,255,255,0.2)',
+              border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer',
+              fontWeight: 800, fontSize: 12,
+            }}
+          >Resend</button>
+        </div>
+      )}
+
+      <header 
+        className="floating-panel sc-glass"
+        style={{
+          height: 68,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 20px 0 16px',
+          gap: 12,
+          position: 'sticky',
+          top: 12,
+          zIndex: 500, 
+          flexShrink: 0,
+          margin: '12px 12px 0 0'
+        }}
+      >
         {/* Menu toggle */}
         <motion.button
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={onToggle}
-          style={{
-            width: 38, height: 38,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 10,
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            color: 'var(--text2)',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className="header-btn"
         >
           <Icons.menu />
         </motion.button>
@@ -605,35 +690,50 @@ export function Header({ sidebarOpen, onToggle }) {
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* System Status Indicators (Subtle touches of Green, Red, Yellow) */}
+          <div className="hide-mobile" style={{ display: 'flex', gap: 10, marginRight: 15, padding: '0 5px' }}>
+            <div title="Network: Stable" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px rgba(16,185,129,0.5)' }} />
+            <div title="AI: Ready" style={{ width: 7, height: 7, borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.5)' }} />
+            <div title="System: Active" style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.5)' }} />
+          </div>
+
+          {/* New Group Quick Action */}
+          <motion.button
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={onOpenWizard}
+            style={{
+              height: 38, padding: '0 16px', borderRadius: 10,
+              background: 'linear-gradient(135deg, var(--primary), var(--blue-600))',
+              color: '#fff', border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700,
+              display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(14,165,233,0.3)',
+              marginRight: 6
+            }}
+          >
+            <span style={{ fontSize: 16 }}>✨</span> {lang === 'ar' ? 'مجموعة جديدة' : 'New Group'}
+          </motion.button>
+
           {/* Search */}
-          <HeaderBtn title="Search (⌘K)" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
+          <HeaderBtn title="Search (⌘K)" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
             <Icons.search />
           </HeaderBtn>
 
-          {/* Dark / Light */}
-          <HeaderBtn title={darkMode ? 'Light mode' : 'Dark mode'} onClick={toggleDark}>
-            {darkMode ? <Icons.sun /> : <Icons.moon />}
+          {/* Institution mode is now locked at registration — no runtime switcher */}
+
+          {/* Theme Toggle */}
+          <HeaderBtn onClick={toggleDark} title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            {darkMode ? '☀️' : '🌙'}
           </HeaderBtn>
 
           {/* Language */}
-          <motion.button
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-            title="Switch language"
-            style={{
-              padding: '0 10px', height: 38, borderRadius: 10,
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              cursor: 'pointer', fontSize: 11, fontWeight: 700,
-              color: 'var(--text2)',
-              display: 'flex', alignItems: 'center', gap: 5,
-            }}
-          >
-            {language === 'ar' ? '🇬🇧 EN' : '🇪🇬 AR'}
-          </motion.button>
+          <HeaderBtn onClick={() => { toggleLang(); setLanguage(lang === 'ar' ? 'en' : 'ar'); }} title="Switch language">
+            {lang === 'ar' ? '🇬🇧 EN' : '🇪🇬 AR'}
+          </HeaderBtn>
 
           {/* Notifications — opens drawer */}
           <div style={{ position: 'relative' }}>
-            <HeaderBtn onClick={() => setNotifOpen(v => !v)} title="Notifications">
+            <HeaderBtn onClick={onOpenNotifs} title="Notifications">
               <Icons.notifications />
             </HeaderBtn>
             {unreadCount > 0 && (
@@ -675,16 +775,16 @@ export function Header({ sidebarOpen, onToggle }) {
                   initial={{ opacity: 0, scale: 0.94, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.94, y: 8 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   style={{
-                    position: 'absolute', top: 50, right: 0, width: 264,
+                    position: 'absolute', top: 50, right: 0, width: 280,
                     background: 'var(--surface3)',
                     border: '1px solid var(--border2)',
                     backdropFilter: 'var(--glass-blur)',
                     WebkitBackdropFilter: 'var(--glass-blur)',
                     borderRadius: 20, padding: 8,
-                    zIndex: 300,
-                    boxShadow: 'var(--shadow-lg), var(--glow)',
+                    zIndex: 1000,
+                    boxShadow: 'var(--shadow-2xl), var(--glow)',
                   }}
                 >
                   {/* User header */}
@@ -746,24 +846,13 @@ export function Header({ sidebarOpen, onToggle }) {
 }
 
 /* ── Micro components ─────────────────────────────────────── */
-function HeaderBtn({ children, onClick, title }) {
+function HeaderBtn({ children, onClick, active, title }) {
   return (
     <motion.button
       whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-      onClick={onClick} title={title}
-      style={{
-        width: 38, height: 38,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 10,
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        color: 'var(--text2)',
-        cursor: 'pointer',
-        flexShrink: 0,
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}
+      onClick={onClick}
+      title={title}
+      className={`header-btn ${active ? 'active' : ''}`}
     >
       {children}
     </motion.button>
@@ -834,7 +923,11 @@ function MobileBottomNav() {
 
 /* ── AppShell ─────────────────────────────────────────────── */
 export function AppShell({ children }) {
-  const [open, setOpen] = useState(window.innerWidth >= 1100);
+  const [open, setOpen]               = useState(window.innerWidth >= 1100);
+  const [notifOpen, setNotifOpen]     = useState(false);
+  const [showWizard, setShowWizard]   = useState(false);
+  const { institutionMode }           = useUIStore();
+  
   useSocket();
 
   useEffect(() => {
@@ -847,10 +940,29 @@ export function AppShell({ children }) {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-institution={institutionMode}>
+      <ReadingProgress />
+      
+      <NotifDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
+      
+      <AnimatePresence>
+        {showWizard && (
+          <CreateGroupWizard 
+            onClose={() => setShowWizard(false)} 
+            onCreated={() => { setShowWizard(false); }} 
+          />
+        )}
+      </AnimatePresence>
+
       <Sidebar open={open} onToggle={() => setOpen(v => !v)} />
+      
       <div className="main-content">
-        <Header sidebarOpen={open} onToggle={() => setOpen(v => !v)} />
+        <Header 
+          sidebarOpen={open} 
+          onToggle={() => setOpen(v => !v)} 
+          onOpenNotifs={() => setNotifOpen(v => !v)}
+          onOpenWizard={() => setShowWizard(true)}
+        />
         <div className="page-container">{children}</div>
       </div>
       <MobileBottomNav />

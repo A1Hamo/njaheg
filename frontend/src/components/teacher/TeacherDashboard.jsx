@@ -135,13 +135,13 @@ export default function TeacherDashboard() {
       {/* ── Welcome Banner ── */}
       <motion.div variants={stagger.item} style={{
         marginBottom:28, borderRadius:24,
-        background:'linear-gradient(135deg, rgba(14,165,233,0.16) 0%, rgba(124,58,237,0.08) 60%, rgba(14,165,233,0.04) 100%)',
-        border:'1px solid rgba(14,165,233,0.25)',
-        boxShadow:'0 8px 40px rgba(14,165,233,0.10)',
+        background:'linear-gradient(135deg, rgba(99,102,241,0.16) 0%, rgba(124,58,237,0.08) 60%, rgba(99,102,241,0.04) 100%)',
+        border:'1px solid rgba(99,102,241,0.25)',
+        boxShadow:'0 8px 40px rgba(99,102,241,0.10)',
         overflow:'hidden', position:'relative',
       }}>
         {/* Deco */}
-        <div style={{ position:'absolute', right:-50, top:-50, width:280, height:280, borderRadius:'50%', background:'radial-gradient(circle,rgba(14,165,233,0.10) 0%,transparent 70%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', right:-50, top:-50, width:280, height:280, borderRadius:'50%', background:'radial-gradient(circle,rgba(99,102,241,0.10) 0%,transparent 70%)', pointerEvents:'none' }} />
 
         <div style={{ padding:'30px 36px', position:'relative', zIndex:1 }}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
               </p>
               {/* Role badge */}
               <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                <span style={{ padding:'5px 14px', borderRadius:99, fontSize:12, fontWeight:700, color:'#38BDF8', background:'rgba(14,165,233,0.12)', border:'1px solid rgba(14,165,233,0.28)', display:'inline-flex', alignItems:'center', gap:5 }}>
+                <span style={{ padding:'5px 14px', borderRadius:99, fontSize:12, fontWeight:700, color:'#38BDF8', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.28)', display:'inline-flex', alignItems:'center', gap:5 }}>
                   👨‍🏫 Teacher
                 </span>
                 {user?.school && (
@@ -239,8 +239,8 @@ export default function TeacherDashboard() {
       <motion.div variants={stagger.item}>
         <div style={{
           padding:'22px 28px', borderRadius:18,
-          background:'linear-gradient(135deg,rgba(14,165,233,0.12) 0%,rgba(124,58,237,0.06) 100%)',
-          border:'1px solid rgba(14,165,233,0.2)',
+          background:'linear-gradient(135deg,rgba(99,102,241,0.12) 0%,rgba(124,58,237,0.06) 100%)',
+          border:'1px solid rgba(99,102,241,0.2)',
         }}>
           <p style={{ fontSize:11, fontWeight:800, color:'#38BDF8', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8 }}>Teacher Tip</p>
           <p style={{ fontSize:14, color:'var(--text2)', lineHeight:1.7, fontStyle:'italic' }}>{todayTip}</p>

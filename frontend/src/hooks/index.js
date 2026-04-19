@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuthStore, useUIStore, useNotifStore, useChatStore } from '../context/store';
 import { authAPI } from '../api/index';
+import { I18nContext } from '../i18n/index';
 
 // src/hooks/index.js
 
@@ -12,7 +13,7 @@ let socketInstance = null;
 export function useSocket() {
   const { token } = useAuthStore();
   const { add: addNotif } = useNotifStore();
-  const { addMessage, addPrivateMessage } = useChatStore();
+  const { addMessage } = useChatStore(); // Only group messages here — private handled in ChatPage
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -25,10 +26,10 @@ export function useSocket() {
     }
 
     if (!socketInstance) {
-      const apiBase = import.meta.env.VITE_API_URL 
-        ? import.meta.env.VITE_API_URL.replace(/\/?api\/?$/, '') 
+      const apiBase = import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/\/?api\/?$/, '')
         : 'http://localhost:5000';
-      
+
       const socketURL = import.meta.env.VITE_SOCKET_URL || apiBase;
 
       socketInstance = io(socketURL, {
@@ -42,36 +43,29 @@ export function useSocket() {
       socketInstance.on('connect_error', (err) => console.warn('🔌 Socket error:', err.message));
     }
 
-    // Always attach event handlers using the LATEST closures from this render
+    // Group room messages handler (only)
     const handleNewMessage = ({ roomId, ...msg }) => {
       const room = roomId.replace('room:', '');
       addMessage(room, msg);
     };
 
-    const handleNewPrivateMessage = (msg) => {
-      const otherId = msg.senderId === user?.id ? msg.receiverId : msg.senderId;
-      addPrivateMessage(otherId, msg);
-    };
-
+    // Notifications (achievements, level up, etc.)
     const handleNotification = notif => addNotif(notif);
 
     socketInstance.on('new_message', handleNewMessage);
-    socketInstance.on('new_private_message', handleNewPrivateMessage);
     socketInstance.on('notification', handleNotification);
     socketInstance.on('level_up', handleNotification);
     socketInstance.on('achievement', handleNotification);
 
     return () => {
-      // Safely remove listeners on unmount/effect cleanup to prevent memory leaks/duplicates
       if (socketInstance) {
         socketInstance.off('new_message', handleNewMessage);
-        socketInstance.off('new_private_message', handleNewPrivateMessage);
         socketInstance.off('notification', handleNotification);
         socketInstance.off('level_up', handleNotification);
         socketInstance.off('achievement', handleNotification);
       }
     };
-  }, [token, user?.id, addMessage, addPrivateMessage, addNotif]);
+  }, [token, user?.id, addMessage, addNotif]);
 
   return socketInstance;
 }
@@ -94,49 +88,66 @@ export function useRequireAuth() {
 }
 
 // ── Translation ──────────────────────────────────────────
-const STRINGS = {
-  en: {
-    dashboard:'Dashboard', planner:'Study Planner', files:'Files',
-    notes:'Notes', board:'Shared Board', chat:'Chat', ai:'AI Assistant',
-    focus:'Focus Mode', achievements:'Achievements', notifications:'Notifications',
-    profile:'Profile', settings:'Settings', analytics:'Analytics',
-    login:'Sign In', register:'Create Account', logout:'Sign Out',
-    email:'Email', password:'Password', name:'Full Name', grade:'Grade',
-    save:'Save', cancel:'Cancel', delete:'Delete', upload:'Upload',
-    search:'Search', send:'Send', submit:'Submit', back:'Back',
-    loading:'Loading...', noData:'No data yet', required:'Required',
-    subject:'Subject', topic:'Topic', duration:'Duration',
-    planned:'Planned', completed:'Completed', skipped:'Skipped',
-    goodMorning:'Good morning', goodAfternoon:'Good afternoon', goodEvening:'Good evening',
-    confirm:'Are you sure?',
-  },
-  ar: {
-    dashboard:'لوحة التحكم', planner:'المخطط الدراسي', files:'الملفات',
-    notes:'الملاحظات', board:'اللوحة المشتركة', chat:'الدردشة', ai:'المساعد الذكي',
-    focus:'وضع التركيز', achievements:'الإنجازات', notifications:'الإشعارات',
-    profile:'الملف الشخصي', settings:'الإعدادات', analytics:'التحليلات',
-    login:'تسجيل الدخول', register:'إنشاء حساب', logout:'تسجيل الخروج',
-    email:'البريد الإلكتروني', password:'كلمة المرور', name:'الاسم الكامل', grade:'الصف',
-    save:'حفظ', cancel:'إلغاء', delete:'حذف', upload:'رفع',
-    search:'بحث', send:'إرسال', submit:'تأكيد', back:'رجوع',
-    loading:'جاري التحميل...', noData:'لا توجد بيانات', required:'مطلوب',
-    subject:'المادة', topic:'الموضوع', duration:'المدة',
-    planned:'مخطط', completed:'مكتمل', skipped:'تخطى',
-    goodMorning:'صباح الخير', goodAfternoon:'مساء الخير', goodEvening:'مساء النور',
-    confirm:'هل أنت متأكد؟',
-  },
-};
-
 export function useTranslation() {
+  const i18nCtx = useContext(I18nContext);
   const { language } = useUIStore();
-  return {
-    t: (key) => {
-      if (typeof key !== 'string' && typeof key !== 'number') return '';
-      const sKey = String(key);
-      return STRINGS[language]?.[sKey] ?? STRINGS.en[sKey] ?? sKey;
+
+  if (i18nCtx) return i18nCtx;
+
+  const STRINGS = {
+    en: {
+      dashboard:'Dashboard', planner:'Study Planner', files:'Files',
+      notes:'Notes', board:'Shared Board', chat:'Chat', ai:'AI Assistant',
+      focus:'Focus Mode', achievements:'Achievements', notifications:'Notifications',
+      profile:'Profile', settings:'Settings', analytics:'Analytics',
+      login:'Sign In', register:'Create Account', logout:'Sign Out',
+      email:'Email', password:'Password', name:'Full Name', grade:'Grade',
+      save:'Save', cancel:'Cancel', delete:'Delete', upload:'Upload',
+      search:'Search', send:'Send', submit:'Submit', back:'Back',
+      loading:'Loading...', noData:'No data yet', required:'Required',
+      subject:'Subject', topic:'Topic', duration:'Duration',
+      planned:'Planned', completed:'Completed', skipped:'Skipped',
+      goodMorning:'Good morning', goodAfternoon:'Good afternoon', goodEvening:'Good evening',
+      confirm:'Are you sure?',
+      'nav.dashboard':'Dashboard','nav.ai':'AI Assistant','nav.analytics':'Analytics',
+      'nav.planner':'Study Planner','nav.notes':'Notes','nav.files':'Files',
+      'nav.focus':'Focus Mode','nav.exam':'Exam Prep','nav.quizHistory':'Quiz History',
+      'nav.tools':'Study Tools','nav.groups':'Groups','nav.messages':'Messages',
+      'nav.board':'Shared Board','nav.achievements':'Achievements','nav.notifications':'Notifications',
+      'nav.allStudents':'All Students','nav.myClasses':'My Classes','nav.calendar':'Calendar',
+      'nav.curriculum':'Curriculum','nav.resources':'Resources',
     },
-    lang:    language,
-    isAR:    language === 'ar',
+    ar: {
+      dashboard:'لوحة التحكم', planner:'المخطط الدراسي', files:'الملفات',
+      notes:'الملاحظات', board:'اللوحة المشتركة', chat:'الدردشة', ai:'المساعد الذكي',
+      focus:'وضع التركيز', achievements:'الإنجازات', notifications:'الإشعارات',
+      profile:'الملف الشخصي', settings:'الإعدادات', analytics:'التحليلات',
+      login:'تسجيل الدخول', register:'إنشاء حساب', logout:'تسجيل الخروج',
+      email:'البريد الإلكتروني', password:'كلمة المرور', name:'الاسم الكامل', grade:'الصف',
+      save:'حفظ', cancel:'إلغاء', delete:'حذف', upload:'رفع',
+      search:'بحث', send:'إرسال', submit:'تأكيد', back:'رجوع',
+      loading:'جاري التحميل...', noData:'لا توجد بيانات', required:'مطلوب',
+      subject:'المادة', topic:'الموضوع', duration:'المدة',
+      planned:'مخطط', completed:'مكتمل', skipped:'تخطى',
+      goodMorning:'صباح الخير', goodAfternoon:'مساء الخير', goodEvening:'مساء النور',
+      confirm:'هل أنت متأكد؟',
+      'nav.dashboard':'لوحة التحكم','nav.ai':'المساعد الذكي','nav.analytics':'التحليلات',
+      'nav.planner':'المخطط','nav.notes':'الملاحظات','nav.files':'الملفات',
+      'nav.focus':'التركيز','nav.exam':'الامتحان','nav.quizHistory':'سجل الاختبارات',
+      'nav.tools':'أدوات','nav.groups':'المجموعات','nav.messages':'الرسائل',
+      'nav.board':'اللوحة','nav.achievements':'الإنجازات','nav.notifications':'الإشعارات',
+      'nav.allStudents':'جميع الطلاب','nav.myClasses':'فصولي','nav.calendar':'التقويم',
+      'nav.curriculum':'المنهج','nav.resources':'الموارد',
+    },
+  };
+  const lang = language || 'ar';
+  return {
+    t:      (key) => STRINGS[lang]?.[key] ?? STRINGS.en?.[key] ?? key,
+    lang,
+    isAR:   lang === 'ar',
+    isRTL:  lang === 'ar',
+    dir:    lang === 'ar' ? 'rtl' : 'ltr',
+    toggleLang: () => {},
   };
 }
 
@@ -146,7 +157,6 @@ export function usePageTitle(title) {
     document.title = title ? `${title} — Najah 🎓` : 'Najah Platform 🎓';
   }, [title]);
 }
-
 
 // ── Online/Offline status ────────────────────────────────
 export function useOnlineStatus() {

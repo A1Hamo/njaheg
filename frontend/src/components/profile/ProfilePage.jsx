@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { usersAPI, achievementsAPI } from '../../api/index';
 import { useAuthStore } from '../../context/store';
 import { Card, Button, Input, Select, Avatar, ProgressBar, Spinner, SectionHeader } from '../shared/UI';
+import { useTranslation } from '../../i18n/index';
 
 const GRADES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Prep 1','Prep 2','Prep 3','Sec 1','Sec 2','Sec 3'];
 const LANGUAGES = [{ value:'en', label:'English' },{ value:'ar', label:'العربية' }];
@@ -46,6 +47,8 @@ const itemAnim = {
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
+  const { t, lang } = useTranslation();
+  const isAr = lang === 'ar';
   const qc = useQueryClient();
 
   const { data: profileData, isLoading: loadingProfile } = useQuery({ queryKey:['profile'], queryFn:usersAPI.getProfile });
@@ -106,163 +109,170 @@ export default function ProfilePage() {
     <motion.div variants={stagger} initial="hidden" animate="visible" style={{ maxWidth: 1080, margin: '0 auto' }}>
       <SectionHeader 
         icon={<UserIcon />} 
-        title="Identity Protocol" 
-        subtitle="Manage your academic credentials and personal details" 
+        title={isAr ? 'الملف الشخصي' : 'My Profile'} 
+        subtitle={isAr ? 'إدارة بياناتك الشخصية والأكاديمية' : 'Manage your personal and academic details'} 
         gradient
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 360px) 1fr', gap: 32, alignItems: 'start' }}>
         {/* Left: Identity Card */}
         <motion.div variants={itemAnim} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <Card style={{ padding: 40, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+          <div className="floating-panel" style={{ padding: 48, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -100, left: -100, width: 300, height: 300, background: 'var(--primary)', filter: 'blur(150px)', opacity: 0.1, pointerEvents: 'none' }} />
             
-            <div {...getRootProps()} style={{ cursor:'pointer', display:'inline-block', marginBottom:24 }}>
+            <div {...getRootProps()} style={{ cursor:'pointer', display:'inline-block', marginBottom:32 }}>
               <input {...getInputProps()} />
               <div style={{ position:'relative', display:'inline-block' }}>
-                <Avatar src={profile?.avatar_url} name={profile?.name} size={120} ring />
+                <Avatar src={profile?.avatar_url} name={profile?.name} size={140} ring />
                 <motion.div 
-                  whileHover={{ scale: 1.1, backgroundColor: 'var(--brand-600)' }}
-                  style={{ position:'absolute', bottom:2, right:2, width:38, height:38, borderRadius:'50%',
-                    background:'var(--primary)', border:'3px solid var(--surface)', color: '#fff',
-                    display:'flex', alignItems:'center', justifyContent:'center', boxShadow: 'var(--glow-sm)', transition: 'background-color 0.2s' }}>
+                  whileHover={{ scale: 1.1, backgroundColor: 'var(--primary)' }}
+                  style={{ position:'absolute', bottom:4, right:4, width:44, height:44, borderRadius:'50%',
+                    background:'var(--surface3)', border:'3px solid var(--surface)', color: 'var(--text)',
+                    display:'flex', alignItems:'center', justifyContent:'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
                   <CameraIcon />
                 </motion.div>
               </div>
             </div>
 
-            <h2 style={{ fontSize:22, fontWeight:800, fontFamily:'var(--font-head)', color:'var(--text)', marginBottom:4, letterSpacing: '-0.02em' }}>
+            <h2 style={{ fontSize:28, fontWeight:950, fontFamily:'var(--font-head)', color:'var(--text)', marginBottom:6, letterSpacing: '-0.04em' }}>
               {profile?.name}
             </h2>
-            <div style={{ fontSize:13, color:'var(--text3)', fontWeight:600, marginBottom:20 }}>
+            <div style={{ fontSize:14, color:'var(--text4)', fontWeight:800, marginBottom:28, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {profile?.email}
             </div>
 
-            <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap', marginBottom:26 }}>
+            <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap', marginBottom:32 }}>
               {[
-                { label: profile?.grade, color: 'var(--primary-light)', bg: 'rgba(124,58,237,0.12)' },
-                { label: `Level ${profile?.level}`, color: '#34D399', bg: 'rgba(16,185,129,0.12)' },
-                { label: `🔥 ${profile?.streak_days}d Streak`, color: '#FBBF24', bg: 'rgba(245,158,11,0.12)' }
+                { label: profile?.grade, color: 'var(--primary)', bg: 'rgba(124,58,237,0.1)' },
+                { label: `RANK ${profile?.level}`, color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                { label: `🔥 ${profile?.streak_days} DAY STREAK`, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' }
               ].map(badge => (
-                <div key={badge.label} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, color: badge.color, background: badge.bg, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div key={badge.label} style={{ padding: '6px 16px', borderRadius: 24, fontSize: 11, fontWeight: 900, color: badge.color, background: badge.bg, border: `1px solid ${badge.color}20`, letterSpacing: '0.04em' }}>
                   {badge.label}
                 </div>
               ))}
             </div>
 
-            <div style={{ marginBottom:32, textAlign: 'left' }}>
-              <div style={{ marginBottom:8, fontSize:11.5, fontWeight:700, color:'var(--text2)', display:'flex', justifyContent:'space-between', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <span>Sync Progress</span>
-                <span style={{ color: 'var(--primary-light)' }}>{Math.round(xpPct)}%</span>
+            <div style={{ marginBottom:40, textAlign: 'left' }}>
+              <div style={{ marginBottom:10, fontSize:12, fontWeight:900, color:'var(--text4)', display:'flex', justifyContent:'space-between', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                <span>{isAr ? 'تقدم المستوى' : 'Level Progress'}</span>
+                <span style={{ color: 'var(--primary)' }}>{Math.round(xpPct)}%</span>
               </div>
-              <ProgressBar value={xpPct} max={100} color="primary" height={10} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>
-                <span>LVL {profile?.level}</span>
-                <span>{xpNext - (profile?.xp_points || 0)} XP TO NEXT SYNC</span>
+              <ProgressBar value={xpPct} max={100} color="var(--primary)" height={12} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10, color: 'var(--text4)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                <span>{isAr ? `المستوى ${profile?.level}` : `LVL ${profile?.level}`}</span>
+                <span>{xpNext - (profile?.xp_points || 0)} {isAr ? 'XP للمستوى التالي' : 'XP TO NEXT LEVEL'}</span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               {[
-                { label:'Sessions', val: profile?.sessions_done, key: 'Sessions' },
-                { label:'Knowledge', val: profile?.files_count, key: 'Knowledge' },
-                { label:'Archives', val: profile?.notes_count, key: 'Archives' },
-                { label:'Medals', val: profile?.ach_count, key: 'Medals' },
+                { label:'Sessions', val: profile?.sessions_done, key: 'Sessions', color: 'var(--primary)' },
+                { label:'Knowledge', val: profile?.files_count, key: 'Knowledge', color: '#10b981' },
+                { label:'Archives', val: profile?.notes_count, key: 'Archives', color: '#f59e0b' },
+                { label:'Medals', val: profile?.ach_count, key: 'Medals', color: '#ec4899' },
               ].map(s=>(
-                <div key={s.label} className="glass-panel" style={{ padding: '14px 12px', borderRadius: 16 }}>
-                  <div style={{ color: 'var(--text2)', marginBottom: 6, display: 'flex', justifyContent: 'center' }}>{StatIcons[s.key]}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{s.val||0}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</div>
+                <div key={s.label} className="floating-card" style={{ padding: '20px 14px', borderRadius: 20 }}>
+                  <div style={{ color: s.color, marginBottom: 10, display: 'flex', justifyContent: 'center' }}>{StatIcons[s.key]}</div>
+                  <div style={{ fontSize: 24, fontWeight: 950, color: 'var(--text)', fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>{s.val||0}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
 
           {/* Achievements Ribbon */}
           {earned.length > 0 && (
-            <Card style={{ padding: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Tactical Merits</span>
-                <span style={{ color: 'var(--primary-light)', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>VIEW ALL</span>
+            <div className="floating-panel" style={{ padding: 28, borderRadius: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                <span>Neural Merits</span>
+                <motion.span 
+                  whileHover={{ x: 4 }}
+                  style={{ color: 'var(--primary)', fontSize: 11, cursor: 'pointer', fontWeight: 900 }}>ALL MARKERS →</motion.span>
               </div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
                 {earned.map(a => (
                   <motion.div 
-                    key={a.id} whileHover={{ y: -4, scale: 1.05 }}
+                    key={a.id} whileHover={{ y: -6, scale: 1.1, rotate: 5 }}
                     title={a.name}
+                    className="floating-card"
                     style={{ 
-                      minWidth: 48, height: 48, borderRadius: 12, background: 'rgba(245,158,11,0.1)',
-                      border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 22, boxShadow: 'inset 0 0 12px rgba(245,158,11,0.08)', cursor: 'help'
+                      minWidth: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 28, cursor: 'help'
                     }}>
                     {a.icon}
                   </motion.div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
         </motion.div>
 
         {/* Right: Configuration Form */}
         <motion.div variants={itemAnim} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <Card style={{ padding: 36 }}>
-            <h3 style={{ fontWeight:800, fontSize:19, color:'var(--text)', marginBottom:28, borderLeft: '3px solid var(--primary)', paddingLeft: 14, letterSpacing: '-0.02em', fontFamily: 'var(--font-head)' }}>
-              Base Configuration
+          <div className="floating-panel" style={{ padding: 40, borderRadius: 28 }}>
+            <h3 style={{ fontWeight:950, fontSize:22, color:'var(--text)', marginBottom:32, borderLeft: '4px solid var(--primary)', paddingLeft: 18, letterSpacing: '-0.04em', fontFamily: 'var(--font-head)' }}>
+              {isAr ? 'المعلومات الشخصية' : 'Personal Information'}
             </h3>
             
-            <form onSubmit={handleSubmit(onSubmit)} style={{ display:'flex', flexDirection:'column', gap:20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                <Input label="Neural Handle (Name)" {...register('name', { required:"Name is required" })} />
-                <Input label="Temporal Marker (DOB)" type="date" {...register('dob')} />
+            <form onSubmit={handleSubmit(onSubmit)} style={{ display:'flex', flexDirection:'column', gap:28 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                <Input label={isAr ? 'الاسم الكامل' : 'Full Name'} {...register('name', { required:"Name is required" })} />
+                <Input label={isAr ? 'تاريخ الميلاد' : 'Date of Birth'} type="date" {...register('dob')} />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                <Input label="Comm Signal (Phone)" placeholder="+20..." {...register('phone')} />
-                <Select label="Cadet Grade" {...register('grade')}>
-                  {GRADES.map(g=><option key={g} value={g}>{g}</option>)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                <Input label={isAr ? 'رقم الهاتف' : 'Phone Number'} placeholder="+20..." {...register('phone')} />
+                <Select label={isAr ? 'الصف الدراسي' : 'Academic Grade'} {...register('grade')}>
+                  {GRADES.map(g=><option key={g} value={g}>{g.toUpperCase()}</option>)}
                 </Select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                <Input label="Research Institute (School)" placeholder="Al-Azhar Academy..." {...register('school')} />
-                <Select label="Lexicon (Language)" {...register('language')}>
-                  {LANGUAGES.map(l=><option key={l.value} value={l.value}>{l.label}</option>)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                <Input label={isAr ? 'المدرسة / الجامعة' : 'School / University'} placeholder={isAr ? 'اسم المؤسسة...' : 'Institution name...'} {...register('school')} />
+                <Select label={isAr ? 'اللغة' : 'Language'} {...register('language')}>
+                  {LANGUAGES.map(l=><option key={l.value} value={l.value}>{l.label.toUpperCase()}</option>)}
                 </Select>
               </div>
 
               <div>
-                <label style={{ fontSize:12.5, fontWeight:600, color:'var(--text2)', display:'flex', gap: 4, marginBottom:6 }}>Personnel Narrative (Bio)</label>
-                <textarea {...register('bio')} placeholder="Briefly describe your academic drive..."
-                  style={{ width:'100%', minHeight:110, padding:'14px 16px', fontSize:14, borderRadius:12, resize:'vertical',
-                    background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)',
-                    outline: 'none', transition: 'border-color 0.2s', fontFamily: 'inherit', lineHeight: 1.6 }} 
-                  onFocus={e => e.target.style.borderColor = 'var(--primary)'}
-                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                <label style={{ fontSize:12, fontWeight:900, color:'var(--text4)', display:'flex', gap: 4, marginBottom:10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{isAr ? 'نبذة شخصية' : 'Bio'}</label>
+                <textarea {...register('bio')} placeholder={isAr ? 'اكتب نبذة عن نفسك...' : 'Tell us about yourself...'}
+                  style={{ width:'100%', minHeight:140, padding:'18px 24px', fontSize:15, borderRadius:18, resize:'vertical',
+                    background:'var(--surface2)', border:'1.5px solid var(--border)', color:'var(--text)', fontWeight: 500,
+                    outline: 'none', transition: 'all 0.22s var(--ease)', fontFamily: 'inherit', lineHeight: 1.7 }} 
+                  onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = 'var(--surface3)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.background = 'var(--surface2)'; }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize:12.5, fontWeight:600, color:'var(--text2)', display:'block', marginBottom:6 }}>Signal Links (Social JSON)</label>
+                <label style={{ fontSize:12, fontWeight:900, color:'var(--text4)', display:'block', marginBottom:10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{isAr ? 'روابط التواصل الاجتماعي (JSON)' : 'Social Links (JSON)'}</label>
                 <Input placeholder='{"github": "...", "linkedin": "..."}' {...register('social_links')} />
               </div>
 
-              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="submit" variant="primary" loading={isSubmitting} size="lg">
-                  Synchronize Identity Data
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button type="submit" variant="primary" loading={isSubmitting} size="lg" style={{ height: 56, padding: '0 40px', borderRadius: 18, fontSize: 16, fontWeight: 900, letterSpacing: '0.02em', boxShadow: '0 12px 32px rgba(99,102,241,0.3)' }}>
+                  {isAr ? 'حفظ التغييرات' : 'Save Changes'}
                 </Button>
               </div>
             </form>
-          </Card>
+          </div>
 
           {/* Account Security Insight */}
-          <div className="glass-panel" style={{ padding: '24px 30px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 20, border: '1px solid rgba(16,185,129,0.25)', background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, transparent 100%)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(16,185,129,0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(16,185,129,0.2)' }}>
+          <div className="floating-panel" style={{ padding: '28px 36px', borderRadius: 24, display: 'flex', alignItems: 'center', gap: 24, border: '1px solid rgba(16,185,129,0.25)', background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, transparent 100%)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(16,185,129,0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(16,185,129,0.2)' }}>
               <ShieldIcon />
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginBottom: 4, fontFamily: 'var(--font-head)' }}>Security Protocol Active</div>
-              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
-                Your personal data is heavily encrypted. Only authorized personnel in your sync circle can view your public academic progress markers.
+              <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--text)', marginBottom: 6, fontFamily: 'var(--font-head)', letterSpacing: '-0.01em' }}>
+                {isAr ? 'حسابك محمي' : 'Your Account is Protected'}
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--text4)', lineHeight: 1.6, fontWeight: 500 }}>
+                {isAr 
+                  ? 'بياناتك محمية بتشفير متعدد الطبقات. معلوماتك الشخصية خاصة ولا يتم مشاركتها إلا بإذنك.'
+                  : 'Your data is protected with multi-layer encryption. Personal information remains private and is only shared with your explicit permission.'
+                }
               </div>
             </div>
           </div>

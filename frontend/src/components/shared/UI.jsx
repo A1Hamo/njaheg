@@ -20,10 +20,10 @@ export const Btn = forwardRef(function Btn(
 
   const variants = {
     primary: {
-      background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-      borderColor: 'rgba(124,58,237,0.35)',
+      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+      borderColor: 'rgba(99,102,241,0.35)',
       color: '#fff',
-      boxShadow: '0 4px 18px rgba(124,58,237,0.35)',
+      boxShadow: '0 4px 18px rgba(99,102,241,0.35)',
     },
     secondary: {
       background: 'var(--surface2)',
@@ -54,10 +54,10 @@ export const Btn = forwardRef(function Btn(
       boxShadow: 'var(--shadow-sm)',
     },
     aurora: {
-      background: 'linear-gradient(135deg, #7C3AED, #06B6D4)',
-      borderColor: 'rgba(124,58,237,0.35)',
+      background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+      borderColor: 'rgba(99,102,241,0.35)',
       color: '#fff',
-      boxShadow: '0 4px 20px rgba(124,58,237,0.4)',
+      boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
     },
   };
 
@@ -618,33 +618,47 @@ export function Tag({ children, color = 'primary', onRemove }) {
    SectionHeader
    ══════════════════════════════════════════════════════ */
 export function SectionHeader({ icon, title, subtitle, action, gradient = false }) {
+  const hash = String(title).split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+  const imgIdx = (Math.abs(hash) % 30) + 1;
+
   return (
     <div style={{
+      position: 'relative',
+      padding: '36px 40px',
+      borderRadius: 24,
+      marginBottom: 32,
+      overflow: 'hidden',
       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-      marginBottom: 28, flexWrap: 'wrap', gap: 14,
+      flexWrap: 'wrap', gap: 14,
+      boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+      border: '1px solid var(--border)'
     }}>
-      <div>
+      <img src={`/images/showcase-${imgIdx}.jpeg`} alt="header-bg" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25, pointerEvents: 'none', mixBlendMode: 'overlay' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--surface) 20%, transparent 100%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--surface) 0%, transparent 100%)', pointerEvents: 'none', opacity: 0.6 }} />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
         <h2 style={{
-          fontSize: 26, fontWeight: 800,
+          fontSize: 28, fontWeight: 800,
           fontFamily: 'var(--font-head)',
           letterSpacing: '-0.03em',
-          marginBottom: subtitle ? 6 : 0,
-          display: 'flex', alignItems: 'center', gap: 10,
+          marginBottom: subtitle ? 8 : 0,
+          display: 'flex', alignItems: 'center', gap: 12,
           ...(gradient ? {
             background: 'linear-gradient(135deg, #fff 30%, var(--primary-light) 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          } : {}),
+          } : { color: 'var(--text)' }),
         }}>
-          {icon && <span style={{ fontSize: 28 }}>{icon}</span>}
+          {icon && <span style={{ fontSize: 32, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' }}>{icon}</span>}
           {String(title || 'Untitled')}
         </h2>
         {subtitle && (
-          <p style={{ color: 'var(--text2)', fontSize: 14, maxWidth: 560, lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text2)', fontSize: 14.5, maxWidth: 560, lineHeight: 1.6, fontWeight: 500 }}>
             {String(subtitle)}
           </p>
         )}
       </div>
-      {action && <div>{action}</div>}
+      {action && <div style={{ position: 'relative', zIndex: 1 }}>{action}</div>}
     </div>
   );
 }

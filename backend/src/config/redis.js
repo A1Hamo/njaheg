@@ -9,18 +9,32 @@ let client;
 async function connectRedis() {
   const redisOptions = {
     url: process.env.REDIS_URL,
-    socket: { reconnectStrategy: r => Math.min(r * 100, 3000) },
+    socket: { 
+      reconnectStrategy: r => Math.min(r * 100, 3000),
+      connectTimeout: 5000 // Prevents indefinite hanging
+    },
   };
   if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.trim() !== '') {
     redisOptions.password = process.env.REDIS_PASSWORD;
   } else {
-    redisOptions.password = null; // Explicitly disable password auth
+    redisOptions.password = null;
   }
 
-  client = createClient(redisOptions);
-  client.on('error', e => logger.error('Redis error:', e));
-  await client.connect();
-  logger.info('✅ Redis connected');
+  try {
+    client = createClient(redisOptions);
+    client.on('error', e => {
+      // Only log non-reconnection errors or severe ones to avoid spam
+      if (e.message?.includes('ENOTFOUND')) return; 
+      logger.error('Redis error:', e);
+    });
+    
+    await client.connect();
+    logger.info('✅ Redis connected');
+  } catch (e) {
+    logger.error('❌ Redis Connection Failed. Running without cache.');
+    // Initialize mock behavior if critical, but here we just leave client as is
+    // so cacheGet/Set will fail gracefully if they check for client status
+  }
 }
 
 const getRedis   = ()               => client;

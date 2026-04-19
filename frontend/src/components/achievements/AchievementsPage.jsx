@@ -33,27 +33,28 @@ export default function AchievementsPage() {
     <div>
       <SectionHeader icon="🏆" title="Achievements" subtitle="Track your milestones and compete on the leaderboard" />
 
-      <div className="grid-4" style={{ marginBottom:24 }}>
+      <div className="grid-4" style={{ marginBottom:28 }}>
         {[
-          { icon:'⭐', val:`Level ${user?.level||1}`, label:'Current Level', c:'var(--accent)' },
-          { icon:'💎', val:(user?.xp_points||0).toLocaleString(), label:'Total XP', c:'var(--primary)' },
-          { icon:'🏆', val:earned.length, label:'Earned', c:'#F7B731' },
-          { icon:'🔥', val:`${user?.streak_days||0}d`, label:'Streak', c:'var(--danger)' },
+          { icon:'⭐', val:`Level ${user?.level||1}`, label:'Cognitive Level', c:'var(--primary)' },
+          { icon:'💎', val:(user?.xp_points||0).toLocaleString(), label:'Total Intellect XP', c:'var(--brand-400)' },
+          { icon:'🏆', val:earned.length, label:'Milestones Cleared', c:'var(--success)' },
+          { icon:'🔥', val:`${user?.streak_days||0}D`, label:'Discipline Streak', c:'var(--danger)' },
         ].map(s=>(
-          <Card key={s.label} style={{ textAlign:'center', padding:16 }}>
-            <div style={{ fontSize:28, marginBottom:4 }}>{s.icon}</div>
-            <div style={{ fontSize:24, fontWeight:800, color:s.c, fontFamily:'var(--font-head)' }}>{s.val}</div>
-            <div style={{ fontSize:11, color:'var(--text3)' }}>{s.label}</div>
-          </Card>
+          <div key={s.label} className="floating-panel" style={{ textAlign:'center', padding:24, borderRadius: 20 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>{s.icon}</div>
+            <div style={{ fontSize:26, fontWeight:950, color:s.c, fontFamily:'var(--font-head)', letterSpacing: '-0.02em' }}>{s.val}</div>
+            <div style={{ fontSize:10, color:'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{s.label}</div>
+          </div>
         ))}
       </div>
 
-      <Card style={{ marginBottom:20, padding:16 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text3)', marginBottom:6 }}>
-          <span>Level {user?.level}</span><span>{user?.level*200 - (user?.xp_points%((user?.level||1)*200))} XP to next</span>
+      <div className="floating-panel" style={{ marginBottom:32, padding: 24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text4)', marginBottom:12, fontWeight: 800 }}>
+          <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rank: Level {user?.level}</span>
+          <span>{user?.level*200 - (user?.xp_points%((user?.level||1)*200))} XP TO ASCEND</span>
         </div>
-        <ProgressBar value={xpPct} max={100} color="amber" height={8} />
-      </Card>
+        <ProgressBar value={xpPct} max={100} color="var(--primary)" height={12} />
+      </div>
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
@@ -61,25 +62,34 @@ export default function AchievementsPage() {
         <>
           {isLoading ? <div style={{textAlign:'center',padding:48}}><Spinner size="lg"/></div> : (
             <>
-              <div style={{ fontSize:14, fontWeight:700, marginBottom:12, color:'var(--accent)' }}>
-                🌟 Unlocked ({earned.length})
+              <div style={{ fontSize:13, fontWeight:900, marginBottom:16, color:'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                🌟 UNLOCKED MILESTONES ({earned.length})
               </div>
-              <div className="grid-2" style={{ marginBottom:24 }}>
+              <div className="grid-2" style={{ marginBottom:40 }}>
                 <AnimatePresence>
                   {earned.map((a,i) => (
-                    <motion.div key={a.id} initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} transition={{delay:i*0.04}}
-                      style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px',
-                        background:'var(--surface)', borderRadius:12,
-                        border:`1px solid rgba(247,183,49,0.18)`,
-                        boxShadow:'0 0 20px rgba(247,183,49,0.05)' }}>
-                      <div style={{ width:52, height:52, borderRadius:12, background:'rgba(247,183,49,0.1)',
-                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>{a.icon}</div>
+                    <motion.div key={a.id} 
+                      initial={{opacity:0, scale:0.92, y: 10}} 
+                      animate={{opacity:1, scale:1, y: 0}} 
+                      whileHover={{ scale: 1.02, x: 4 }}
+                      transition={{delay:i*0.03}}
+                      className="floating-card"
+                      style={{ 
+                        display:'flex', alignItems:'center', gap:18, padding:'20px 24px',
+                        borderRadius:20,
+                        borderLeft:`4px solid var(--primary)`,
+                        transition: 'all 0.22s var(--ease)'
+                      }}>
+                      <div style={{ width:60, height:60, borderRadius:18, 
+                        background:'rgba(124,58,237,0.12)',
+                        boxShadow: '0 0 20px rgba(124,58,237,0.15)',
+                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:32, flexShrink:0 }}>{a.icon}</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontWeight:700, fontSize:14, marginBottom:2 }}>{a.title}</div>
-                        <div style={{ fontSize:11, color:'var(--text3)', marginBottom:4 }}>{a.description}</div>
-                        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                          <span style={{ fontSize:10, fontWeight:600, color:'var(--accent)' }}>+{a.xp_reward} XP</span>
-                          {a.earned_at && <span style={{ fontSize:10, color:'var(--text3)' }}>· {format(new Date(a.earned_at),'MMM d, yyyy')}</span>}
+                        <div style={{ fontWeight:900, fontSize:15, marginBottom:4, fontFamily: 'var(--font-head)', letterSpacing: '-0.01em', color: 'var(--text)' }}>{a.title}</div>
+                        <div style={{ fontSize:12, color:'var(--text4)', marginBottom:8, lineHeight: 1.5, fontWeight: 500 }}>{a.description}</div>
+                        <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                          <span style={{ fontSize:11, fontWeight:900, color:'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>+{a.xp_reward} INTELLECT XP</span>
+                          {a.earned_at && <span style={{ fontSize:11, color:'var(--text4)', fontWeight: 800 }}>· {format(new Date(a.earned_at),'MMM d, yyyy')}</span>}
                         </div>
                       </div>
                     </motion.div>
@@ -87,19 +97,18 @@ export default function AchievementsPage() {
                 </AnimatePresence>
               </div>
 
-              <div style={{ fontSize:14, fontWeight:700, marginBottom:12, color:'var(--text3)' }}>
-                🔒 Locked ({locked.length})
+              <div style={{ fontSize:13, fontWeight:900, marginBottom:16, color:'var(--text4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                🔒 POTENTIAL INSIGHTS ({locked.length})
               </div>
               <div className="grid-2">
                 {locked.map(a=>(
-                  <div key={a.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 14px',
-                    background:'var(--surface)', borderRadius:12, border:'1px solid var(--border)',
-                    opacity:0.42, filter:'grayscale(0.8)' }}>
-                    <div style={{ width:48, height:48, borderRadius:12, background:'var(--surface2)',
-                      display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>{a.icon}</div>
+                  <div key={a.id} className="floating-card" style={{ display:'flex', alignItems:'center', gap:18, padding:'16px 20px',
+                    borderRadius:20, opacity:0.5, filter:'grayscale(1)' }}>
+                    <div style={{ width:52, height:52, borderRadius:16, background:'rgba(255,255,255,0.05)',
+                      display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>{a.icon}</div>
                     <div>
-                      <div style={{ fontWeight:600, fontSize:13 }}>{a.title}</div>
-                      <div style={{ fontSize:11, color:'var(--text3)' }}>{a.description}</div>
+                      <div style={{ fontWeight:800, fontSize:14, color: 'var(--text4)' }}>{a.title}</div>
+                      <div style={{ fontSize:11, color:'var(--text4)', opacity: 0.8 }}>{a.description}</div>
                     </div>
                   </div>
                 ))}
@@ -110,29 +119,32 @@ export default function AchievementsPage() {
       )}
 
       {tab === 'leaderboard' && (
-        <Card>
-          {lbLoad ? <div style={{textAlign:'center',padding:32}}><Spinner/></div> :
+        <div className="floating-panel" style={{ padding: 28 }}>
+          {lbLoad ? <div style={{textAlign:'center',padding:48}}><Spinner size="lg"/></div> :
           leaderboard.length===0 ? <EmptyState icon="👑" title="No rankings yet" /> :
           leaderboard.map((u,i)=>(
-            <div key={u.id} style={{ display:'flex', alignItems:'center', gap:12,
-              padding:'12px 0', borderBottom: i<leaderboard.length-1 ? '1px solid var(--border)' : '' }}>
-              <div style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center',
-                justifyContent:'center', fontWeight:800, fontSize:14, flexShrink:0,
-                background: i===0?'rgba(247,183,49,0.2)':i===1?'rgba(192,192,192,0.2)':i===2?'rgba(205,127,50,0.2)':'var(--surface)',
-                color: i===0?'#F7B731':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--text3)' }}>
+            <motion.div key={u.id} 
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i*0.03 }}
+              style={{ display:'flex', alignItems:'center', gap:16,
+              padding:'16px 0', borderBottom: i<leaderboard.length-1 ? '1px solid var(--border)' : '' }}>
+              <div style={{ width:40, height:40, borderRadius:14, display:'flex', alignItems:'center',
+                justifyContent:'center', fontWeight:950, fontSize:15, flexShrink:0, fontFamily: 'var(--font-head)',
+                background: i===0?'rgba(247,183,49,0.2)':i===1?'rgba(192,192,192,0.2)':i===2?'rgba(205,127,50,0.2)':'rgba(255,255,255,0.03)',
+                color: i===0?'#F7B731':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--text4)',
+                boxShadow: i < 3 ? '0 0 15px currentColor' : 'none' }}>
                 {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
               </div>
-              <Avatar name={u.name} src={u.avatar_url} size={36} />
+              <Avatar name={u.name} src={u.avatar_url} size={44} style={{ border: i < 3 ? `2px solid ${i===0?'#F7B731':i===1?'#C0C0C0':'#CD7F32'}` : 'none' }} />
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:600 }}>{u.name}</div>
-                <div style={{ fontSize:11, color:'var(--text3)' }}>Level {u.level} · {u.grade||'Student'}</div>
+                <div style={{ fontSize:15, fontWeight:900, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{u.name}</div>
+                <div style={{ fontSize:11, color:'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level {u.level} · {u.grade||'Scholar'}</div>
               </div>
-              <div style={{ fontWeight:800, fontSize:16, color:'var(--accent)', fontFamily:'var(--font-head)' }}>
-                {Number(u.xp_points).toLocaleString()} XP
+              <div style={{ fontWeight:950, fontSize:18, color:'var(--primary)', fontFamily:'var(--font-head)', textShadow: '0 0 10px rgba(124,58,237,0.2)' }}>
+                {Number(u.xp_points).toLocaleString()} <span style={{ fontSize: 10, opacity: 0.8 }}>XP</span>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </Card>
+        </div>
       )}
     </div>
   );

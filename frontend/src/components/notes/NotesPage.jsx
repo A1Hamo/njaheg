@@ -175,14 +175,14 @@ export default function NotesPage() {
                 return (
                   <motion.div key={note.id}
                     onClick={() => openNote(note)}
-                    whileHover={{ scale: 1.015, y: -2 }}
-                    className="glass-panel"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="floating-card"
                     style={{
-                      padding: '16px 18px', cursor: 'pointer', transition: 'all 0.2s var(--ease)',
-                      background: isSelected ? 'var(--surface2)' : 'var(--surface)',
-                      borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
-                      boxShadow: isSelected ? 'var(--glow-sm)' : 'none',
-                      borderRadius: 16
+                      padding: '18px 20px', cursor: 'pointer', transition: 'all 0.22s var(--ease)',
+                      background: isSelected ? 'var(--surface3)' : undefined,
+                      borderColor: isSelected ? 'var(--primary)' : undefined,
+                      boxShadow: isSelected ? '0 8px 24px rgba(124,58,237,0.15)' : 'none',
+                      borderRadius: 18
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -214,27 +214,27 @@ export default function NotesPage() {
               initial={{ opacity: 0, scale: 0.98, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.98, x: 20 }} transition={transitionBase}
               style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
             >
-              <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+              <div className="floating-panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
                 
                 {/* Header (Title & Meta) */}
-                <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, display: 'flex', gap: 14, alignItems: 'center', minWidth: 200 }}>
                     <input 
                       value={editTitle} 
                       onChange={e => { setEditTitle(e.target.value); setIsDirty(true); }}
                       placeholder="Document Title"
-                      style={{ background: 'none', border: 'none', fontSize: 22, fontWeight: 800, color: 'var(--text)', flex: 1, outline: 'none', fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', padding: 0 }}
+                      style={{ background: 'none', border: 'none', fontSize: 24, fontWeight: 900, color: 'var(--text)', flex: 1, outline: 'none', fontFamily: 'var(--font-head)', letterSpacing: '-0.025em', padding: 0 }}
                     />
                     <Select 
                       value={editSubject} 
                       onChange={e => { setEditSubject(e.target.value); setIsDirty(true); }}
-                      style={{ width: 'auto', padding: '8px 14px', fontSize: 12.5 }}
+                      style={{ width: 'auto', padding: '8px 14px', fontSize: 13, fontWeight: 700 }}
                     >
                       {SUBJECTS.map(s => <option key={s} value={s}>{s.replace('_',' ').toUpperCase()}</option>)}
                     </Select>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
                     <AnimatePresence>
                       {isDirty && (
                         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
@@ -243,7 +243,7 @@ export default function NotesPage() {
                       )}
                     </AnimatePresence>
                     <Btn variant="aurora" size="md" onClick={handleSave} loading={isSaving} icon={<SaveIcon />}>
-                      Save
+                      Sync Now
                     </Btn>
                     <Btn variant="danger" size="md" onClick={() => { if (window.confirm('Erase this knowledge core permanently?')) deleteNote(selectedNote.id); }} style={{ padding: '0 14px' }}>
                       <TrashIcon />
@@ -252,30 +252,30 @@ export default function NotesPage() {
                 </div>
 
                 {/* Formatting Toolbar */}
-                <div style={{ padding: '10px 28px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ padding: '12px 32px', background: 'var(--glass)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(10px)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   {TOOLBAR.map(item => (
-                    <button key={item.cmd}
+                    <motion.button key={item.cmd}
+                      whileHover={{ scale: 1.1, background: 'var(--surface3)' }}
+                      whileTap={{ scale: 0.9 }}
                       onMouseDown={e => { e.preventDefault(); execFormat(item); }}
                       style={{ 
-                        padding: '6px 12px', borderRadius: 8, fontSize: 13,
+                        padding: '8px 14px', borderRadius: 10, fontSize: 14,
                         background: 'transparent', border: '1px solid transparent', color: 'var(--text)',
                         cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface3)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {item.icon}
-                    </button>
+                    </motion.button>
                   ))}
-                  <div style={{ width: 1, height: 20, background: 'var(--border2)', alignSelf: 'center', margin: '0 8px' }} />
-                  <button
+                  <div style={{ width: 1, height: 24, background: 'var(--border2)', alignSelf: 'center', margin: '0 10px' }} />
+                  <motion.button
+                    whileHover={{ scale: 1.1, background: 'var(--surface3)' }}
+                    whileTap={{ scale: 0.9 }}
                     onMouseDown={e => { e.preventDefault(); const url=prompt('Enter destination URL:'); if(url) document.execCommand('createLink',false,url); }}
-                    style={{ padding: '6px 12px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px solid transparent', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface3)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    style={{ padding: '8px 14px', borderRadius: 10, fontSize: 13, background: 'transparent', border: '1px solid transparent', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                   >
                     <LinkIcon />
-                  </button>
+                  </motion.button>
                 </div>
 
                 {/* Rich Editor Pane */}
@@ -286,20 +286,20 @@ export default function NotesPage() {
                   onInput={() => setIsDirty(true)}
                   className="scroll-y"
                   style={{
-                    flex: 1, padding: '36px 48px', outline: 'none', fontSize: 15.5, lineHeight: 1.85,
-                    color: 'var(--text)', background: 'var(--ink)'
+                    flex: 1, padding: '48px 60px', outline: 'none', fontSize: 16, lineHeight: 1.9,
+                    color: 'var(--text)', background: 'transparent'
                   }}
                 />
                 
                 {/* Footer Insight bar */}
-                <div style={{ padding: '12px 28px', background: 'var(--surface2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ padding: '14px 32px', background: 'var(--surface2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: isDirty ? 'var(--warning)' : 'var(--success)' }} />
-                    {isDirty ? 'Unsaved Modifications' : 'Synchronized'}
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: isDirty ? 'var(--warning)' : '#10b981', boxShadow: isDirty ? '0 0 8px var(--warning)' : '0 0 8px #10b981' }} />
+                    {isDirty ? 'Unsaved Modifications' : 'Cloud Synchronized'}
                   </span>
-                  <span>Last check-in: {format(new Date(selectedNote.updated_at), 'hh:mm a')}</span>
+                  <span>Session Length: {format(new Date(selectedNote.updated_at), 'hh:mm a')}</span>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           ) : (
             <motion.div 

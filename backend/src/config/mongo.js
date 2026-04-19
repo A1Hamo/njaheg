@@ -37,7 +37,9 @@ const privateMessageSchema = new mongoose.Schema({
   content:    { type: String, required: true },
   type:       { type: String, enum: ['text','file','image','audio'], default: 'text' },
   fileUrl:    String,
-  isRead:     { type: Boolean, default: false },
+  status:     { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
+  edited:     { type: Boolean, default: false },
+  replyTo:    { type: mongoose.Schema.Types.ObjectId, ref: 'PrivateMessage' },
 }, { timestamps: true });
 
 // Index for conversation retrieval

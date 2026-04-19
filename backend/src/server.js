@@ -46,6 +46,7 @@ const subjectRoutes       = require('./routes/subjects');
 const analyticsRoutes     = require('./routes/analytics');
 const groupRoutes         = require('./routes/groups');
 const toolRoutes          = require('./routes/tools');
+const curriculumRoutes    = require('./routes/curriculum');
 
 const app        = express();
 const httpServer = createServer(app);
@@ -126,6 +127,7 @@ app.use('/api/subjects',      subjectRoutes);
 app.use('/api/analytics',     analyticsRoutes);
 app.use('/api/groups',        groupRoutes);
 app.use('/api/tools',         toolRoutes);
+app.use('/api/curriculum',    curriculumRoutes);
 
 // ── 404 ──
 app.use('*', (_req, res) => res.status(404).json({ error: 'Not found' }));

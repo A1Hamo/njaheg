@@ -60,8 +60,8 @@ const LogoMark = ({ role = 'student' }) => {
     <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
       <defs>
         <linearGradient id={`auth-logo-${role}`} x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={isTeacher ? '#0891B2' : '#6366F1'}/>
-          <stop offset="100%" stopColor={isTeacher ? '#06B6D4' : '#A5B4FC'}/>
+          <stop offset="0%" stopColor={isTeacher ? '#4F46E5' : '#6366F1'}/>
+          <stop offset="100%" stopColor={isTeacher ? '#818CF8' : '#A78BFA'}/>
         </linearGradient>
       </defs>
       <rect width="44" height="44" rx="14" fill={`url(#auth-logo-${role})`}/>
@@ -81,32 +81,57 @@ const LogoMark = ({ role = 'student' }) => {
   );
 };
 
-/* ── Dynamic Background Scene ────────────────────────────── */
-function AuthScene({ role = 'student' }) {
-  const isTeacher = role === 'teacher';
-  const color1 = isTeacher ? 'rgba(8, 145, 178, 0.15)' : 'rgba(99, 102, 241, 0.15)';
-  const color2 = isTeacher ? 'rgba(6, 182, 212, 0.10)' : 'rgba(165, 180, 252, 0.10)';
-
+/* ── Password Strength Meter ────────────────────────────── */
+function PasswordStrength({ password = '' }) {
+  const checks = [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ];
+  const score = checks.filter(Boolean).length;
+  const labels = ['', 'Weak', 'Fair', 'Strong', 'Excellent'];
+  const colors = ['', '#EF4444', '#F59E0B', '#10B981', '#6366F1'];
+  if (!password) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-      {[
-        { x: '-8%',  y: '-12%', c: color1, s: 700, dur: 20 },
-        { x: '68%',  y: '55%',  c: color2, s: 500, dur: 16 },
-        { x: '20%',  y: '70%',  c: color1, s: 350, dur: 18 },
-      ].map((o, i) => (
-        <motion.div key={i}
-          animate={{ background: `radial-gradient(circle, ${o.c}, transparent 68%)` }}
-          style={{
-            position: 'absolute', left: o.x, top: o.y,
-            width: o.s, height: o.s, borderRadius: '50%',
-            filter: 'blur(60px)',
-          }}
-          transition={{ duration: 1 }}
-        />
-      ))}
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            background: i <= score ? colors[score] : 'var(--border)',
+            transition: 'all 0.3s ease',
+          }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: colors[score], transition: 'color 0.3s' }}>
+        {labels[score]}
+      </div>
+    </div>
+  );
+}
+
+function AuthScene() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none', background: '#0f172a' }}>
+      {/* Single static background image */}
+      <img 
+        src="/images/showcase-1.jpeg" 
+        alt="" 
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+          filter: 'brightness(0.45) saturate(1.2)',
+        }}
+      />
+      {/* Premium gradient overlay */}
       <div style={{
-        position: 'absolute', inset: 0, opacity: 0.15,
-        backgroundImage: 'linear-gradient(rgba(100,116,172,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,172,0.08) 1px, transparent 1px)',
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: 'linear-gradient(135deg, rgba(15,23,42,0.75) 0%, rgba(49,46,129,0.5) 50%, rgba(15,23,42,0.82) 100%)',
+      }}/>
+      {/* Subtle grid pattern */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.06, zIndex: 2,
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
         backgroundSize: '48px 48px',
       }}/>
     </div>
@@ -125,10 +150,9 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
       <div style={{
         flex: 1, display: 'none', flexDirection: 'column', justifyContent: 'center',
         padding: '60px 64px', position: 'relative', zIndex: 1,
-        borderRight: '1px solid var(--border)',
-        background: isTeacher
-          ? 'linear-gradient(135deg, rgba(8,145,178,0.06) 0%, transparent 100%)'
-          : 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
+        borderRight: '1px solid rgba(255,255,255,0.08)',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(15,23,42,0.5) 100%)',
+        backdropFilter: 'blur(12px)',
         transition: 'background 0.4s ease'
       }} className="auth-left-panel">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -154,7 +178,7 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
               }}>
                 {isTeacher ? <><span style={{display:'block'}}>Empower Your</span> Students.</> : <><span style={{display:'block'}}>Learn Smarter,</span> Achieve More.</>}
               </h1>
-              <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 400, marginBottom: 48 }}>
+              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, maxWidth: 400, marginBottom: 48 }}>
                 {isTeacher
                   ? "The complete classroom management platform. Track student progress, host interactive quizzes, and leverage AI to plan lessons effortlessly."
                   : "The all-in-one AI-powered platform built for Egyptian students — study tools, exams, real-time chat, and personalized analytics."}
@@ -173,9 +197,9 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
                   <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{
                       width: 40, height: 40, borderRadius: 11,
-                      background: isTeacher ? 'rgba(8,145,178,0.1)' : 'rgba(99,102,241,0.1)',
+                      background: isTeacher ? 'rgba(99,102,241,0.12)' : 'rgba(129,140,248,0.12)',
                       border: '1px solid',
-                      borderColor: isTeacher ? 'rgba(8,145,178,0.2)' : 'rgba(99,102,241,0.2)',
+                      borderColor: isTeacher ? 'rgba(99,102,241,0.25)' : 'rgba(129,140,248,0.25)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 18, flexShrink: 0,
                     }}>
@@ -195,9 +219,9 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
 
       {/* Right panel — Form */}
       <div style={{
-        width: wide ? '55%' : '500px', maxWidth: '100%',
+        width: wide ? '55%' : '520px', maxWidth: '100%',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '40px 24px', position: 'relative', zIndex: 1, margin: '0 auto',
+        padding: '40px 24px', position: 'relative', zIndex: 2, margin: '0 auto',
       }}>
         {/* Top Role Switcher (Mobile & Desktop) */}
         {!setRole ? null : (
@@ -250,6 +274,7 @@ const GoogleIcon = () => (
 export function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [role, setRole] = useState('student');
+  const [pwdValue, setPwdValue] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate    = useNavigate();
@@ -265,67 +290,82 @@ export function LoginPage() {
     }
   };
 
+  const accentColor = role === 'teacher' ? '#4F46E5' : '#6366F1';
+
   return (
     <AuthLayout role={role} setRole={setRole}>
-      <div style={{ textAlign: 'center', marginBottom: 30 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 6, color: 'var(--text)' }}>
-          Welcome Back {role === 'teacher' ? 'Professor' : ''}
-        </h2>
-        <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>Sign in to continue to your dashboard</p>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Input
-          label="Email Address" type="email" icon={<MailIcon />}
-          placeholder={role === 'teacher' ? "mr.ahmed@school.edu" : "student@email.com"}
-          error={errors.email?.message}
-          {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })}
-        />
-        <Input
-          label="Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="••••••••"
-          error={errors.password?.message}
-          rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
-          onRightIconClick={() => setShowPwd(v => !v)}
-          {...register('password', { required: 'Password is required' })}
-        />
-
-        <div style={{ textAlign: 'right', marginTop: -8 }}>
-          <Link to="/forgot-password" style={{ fontSize: 12, color: role==='teacher'?'var(--teacher)':'var(--student)', fontWeight: 600 }}>
-            Forgot password?
-          </Link>
+      {/* Glassmorphism form card */}
+      <div style={{
+        background: 'rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 24, padding: '36px 32px',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <LogoMark role={role} />
+          <h2 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginTop: 14, marginBottom: 6, color: '#fff' }}>
+            Welcome Back {role === 'teacher' ? 'Professor' : ''}
+          </h2>
+          <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.55)' }}>Sign in to continue to your dashboard</p>
         </div>
 
-        <Btn type="submit" loading={isSubmitting} size="lg"
-          style={{ width: '100%', marginTop: 4, borderRadius: 12, background: role==='teacher'?'var(--teacher)':'var(--student)', color: '#fff', border: 'none' }}>
-          Sign In →
-        </Btn>
-      </form>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Input
+            label="Email Address" type="email" icon={<MailIcon />}
+            placeholder={role === 'teacher' ? "professor@university.edu" : "student@email.com"}
+            error={errors.email?.message}
+            {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })}
+          />
+          <div>
+            <Input
+              label="Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="••••••••"
+              error={errors.password?.message}
+              rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
+              onRightIconClick={() => setShowPwd(v => !v)}
+              {...register('password', { required: 'Password is required', onChange: e => setPwdValue(e.target.value) })}
+            />
+          </div>
 
-      <Divider label="or continue with" margin={24} />
+          <div style={{ textAlign: 'right', marginTop: -8 }}>
+            <Link to="/forgot-password" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+              Forgot password?
+            </Link>
+          </div>
 
-      <motion.button onClick={() => authAPI.googleLogin()}
-        whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-        style={{ width: '100%', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-      >
-        <GoogleIcon /> Continue with Google
-      </motion.button>
+          <Btn type="submit" loading={isSubmitting} size="lg"
+            style={{ width: '100%', marginTop: 4, borderRadius: 12, background: `linear-gradient(135deg, ${accentColor}, #8B5CF6)`, color: '#fff', border: 'none', boxShadow: `0 4px 20px ${accentColor}55` }}>
+            Sign In →
+          </Btn>
+        </form>
 
-      {role === 'student' && (
-        <motion.button onClick={async () => {
-          try {
-            const { data } = await authAPI.guestRegister();
-            setAuth(data);
-            navigate('/');
-          } catch { toast.error('Error starting guest session'); }
-        }}
-        style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          Continue as Guest
+        <Divider label="or continue with" margin={24} />
+
+        <motion.button onClick={() => authAPI.googleLogin()}
+          whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+          style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <GoogleIcon /> Continue with Google
         </motion.button>
-      )}
 
-      <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--text3)' }}>
+        {role === 'student' && (
+          <motion.button onClick={async () => {
+            try {
+              const { data } = await authAPI.guestRegister();
+              setAuth(data);
+              navigate('/');
+            } catch { toast.error('Error starting guest session'); }
+          }}
+          style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            Continue as Guest
+          </motion.button>
+        )}
+      </div>
+
+      <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
         Don't have an account?{' '}
-        <Link to="/register" style={{ color: role==='teacher'?'var(--teacher)':'var(--student)', fontWeight: 700 }}>
+        <Link to="/register" style={{ color: '#A5B4FC', fontWeight: 700 }}>
           Create account →
         </Link>
       </p>
@@ -342,6 +382,7 @@ export function RegisterPage() {
   const [grade,    setGrade]    = useState('');
   const [instType, setInstType] = useState('school');
   const [subjects, setSubjects] = useState([]);
+  const [pwdValue, setPwdValue] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate    = useNavigate();
@@ -353,7 +394,7 @@ export function RegisterPage() {
     if (role === 'teacher' && subjects.length === 0) { toast.error('Please select at least one subject'); return; }
     try {
       const payload = {
-        ...d, role, institutionType: role === 'teacher' ? instType : 'school',
+        ...d, role, institutionType: instType,
         grade: role === 'student' ? grade : undefined,
         subjects: role === 'teacher' ? subjects.join(',') : undefined,
       };
@@ -376,7 +417,36 @@ export function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Input label="Full Name" required icon={<UserIcon />} placeholder={role === 'teacher' ? 'Your full name (e.g. Mr. Ahmed)' : 'Your full name'} {...register('name', { required: true })} />
         <Input label="Email Address" type="email" required icon={<MailIcon />} placeholder="your@email.com" {...register('email', { required: true })} />
-        <Input label="Password" type={showPwd ? 'text' : 'password'} required icon={<LockIcon />} placeholder="Minimum 8 chars" rightIcon={showPwd ? <EyeOff /> : <EyeOpen />} onRightIconClick={() => setShowPwd(v => !v)} {...register('password', { required: true, minLength: 8 })} />
+        <div>
+          <Input label="Password" type={showPwd ? 'text' : 'password'} required icon={<LockIcon />} placeholder="Minimum 8 chars" rightIcon={showPwd ? <EyeOff /> : <EyeOpen />} onRightIconClick={() => setShowPwd(v => !v)} {...register('password', { required: true, minLength: 8, onChange: e => setPwdValue(e.target.value) })} />
+          <PasswordStrength password={pwdValue} />
+        </div>
+
+        {/* Institution Type — shared for ALL roles */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Institution Type *</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[{ value: 'school', icon: '🏫', label: 'School (K-12)' }, { value: 'university', icon: '🎓', label: 'University / College' }].map(opt => (
+              <button type="button" key={opt.value} onClick={() => setInstType(opt.value)} style={{
+                flex: 1, padding: '12px 14px', fontSize: 13, fontWeight: 700, borderRadius: 12, cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                background: instType === opt.value
+                  ? (opt.value === 'university' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)')
+                  : 'transparent',
+                color: instType === opt.value
+                  ? (opt.value === 'university' ? '#38BDF8' : '#10b981')
+                  : 'var(--text3)',
+                border: `1.5px solid ${instType === opt.value
+                  ? (opt.value === 'university' ? 'rgba(14,165,233,0.4)' : 'rgba(16,185,129,0.4)')
+                  : 'var(--border)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: instType === opt.value ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+              }}>
+                <span style={{ fontSize: 18 }}>{opt.icon}</span> {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {role === 'student' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -402,14 +472,6 @@ export function RegisterPage() {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 16 }}>
-               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Institution Type</label>
-               <select value={instType} onChange={e => setInstType(e.target.value)} style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: 8, color: 'var(--text)' }}>
-                 <option value="school">School (K-12)</option>
-                 <option value="college">College</option>
-                 <option value="university">University</option>
-               </select>
-            </div>
           </div>
         )}
 
@@ -433,24 +495,84 @@ export function RegisterPage() {
    ──────────────────────────────────────────────────────── */
 export function ForgotPasswordPage() {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm();
+  const [sent, setSent] = useState(false);
+
   const onSubmit = async d => {
-    toast.success('If the email is registered, you will receive a reset link shortly.');
-    try { await authAPI.forgotPassword(d); } catch (e) {}
+    try {
+      setSent(true); // Immediate UI feedback
+      await authAPI.forgotPassword(d.email);
+      toast.success('Reset link sent! Check your inbox.');
+    } catch (e) {
+      // Keep sent true for security, but allow retry if user wants
+      console.error(e);
+    }
   };
+
+  if (sent) {
+    return (
+      <AuthLayout role="student" setRole={null}>
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>📧</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12, color: 'var(--text)' }}>Check Your Email</h2>
+          <p style={{ fontSize: 13.5, color: 'var(--text3)', marginBottom: 28, lineHeight: 1.7 }}>
+            If this email is registered, you'll receive a password reset link within a few minutes.
+          </p>
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14 }}>← Back to Sign In</Link>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout role="student" setRole={null}>
       <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center' }}>Reset Password</h2>
       <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 24 }}>Enter your email address to receive a recovery link.</p>
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Input label="Email Address" type="email" icon={<MailIcon />} {...register('email', { required: true })} />
-        <Btn type="submit" loading={isSubmitting} variant="primary">Send Link</Btn>
+        <Input label="Email Address" type="email" icon={<MailIcon />} placeholder="your@email.com" {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })} />
+        <Btn type="submit" loading={isSubmitting} variant="primary" size="lg" style={{ borderRadius: 12 }}>Send Reset Link →</Btn>
       </form>
-      <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text2)' }}>← Back to login</Link></div>
+      <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text3)' }}>← Back to login</Link></div>
     </AuthLayout>
   );
 }
 
-export function ResetPasswordPage() { return <AuthLayout><h2 style={{color: 'var(--text)'}}>Reset Password (Sent via Email)</h2></AuthLayout>; }
+export function ResetPasswordPage() {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const [searchParams] = useSearchParams();
+  const [showPwd, setShowPwd] = useState(false);
+  const navigate = useNavigate();
+  const token = searchParams.get('token') || window.location.pathname.split('/reset-password/')[1];
+
+  const onSubmit = async d => {
+    if (d.password !== d.confirmPassword) { toast.error('Passwords do not match'); return; }
+    try {
+      await authAPI.resetPassword({ token, password: d.password });
+      toast.success('Password reset successfully! Please sign in.');
+      navigate('/login');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Reset link expired. Please request a new one.');
+    }
+  };
+
+  return (
+    <AuthLayout role="student" setRole={null}>
+      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center' }}>Set New Password</h2>
+      <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 24 }}>Choose a strong password for your account.</p>
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Input label="New Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="Minimum 8 characters"
+          error={errors.password?.message}
+          rightIcon={showPwd ? <EyeOff /> : <EyeOpen />}
+          onRightIconClick={() => setShowPwd(v => !v)}
+          {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })} />
+        <Input label="Confirm Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="Repeat your password"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword', { required: 'Please confirm your password' })} />
+        <Btn type="submit" loading={isSubmitting} variant="primary" size="lg" style={{ borderRadius: 12 }}>Reset Password →</Btn>
+      </form>
+      <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text3)' }}>← Back to login</Link></div>
+    </AuthLayout>
+  );
+}
 export function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

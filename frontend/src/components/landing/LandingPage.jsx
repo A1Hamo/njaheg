@@ -1,513 +1,285 @@
-// src/components/landing/LandingPage.jsx — Najah v5 Stunning Landing
-import { useState, useEffect, useRef } from 'react';
+// src/components/landing/LandingPage.jsx
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { useUIStore } from '../../context/store';
+import { useState, useEffect } from 'react';
 
-/* ── Logo Mark ─────────────────────────────────────────────── */
-function LogoMark({ size = 40 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <defs>
-        <linearGradient id="land-g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#8B5CF6"/>
-          <stop offset="100%" stopColor="#06B6D4"/>
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="12" fill="url(#land-g)"/>
-      <path d="M11 30 L20 11 L29 30" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M14 24 L26 24" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="20" cy="11" r="2" fill="#fff"/>
-    </svg>
-  );
-}
+// ==========================================
+// THEME & COLOR PALETTE (From Pinterest Ref)
+// ==========================================
+const C = {
+  navy:    '#050e14', // Darker slate
+  navyLgt: '#1E293B',
+  magenta: '#10B981', // Now Green
+  magentaH:'#059669', // Dark Green
+  yellow:  '#38BDF8', // Now Light Blue
+  blue:    '#6366F1', // Indigo
+  orange:  '#34D399', // Emerald
+  white:   '#FFFFFF',
+  gray:    '#F0FDF4', // Very light green-tinted gray
+  textD:   '#0F172A',
+  textM:   '#64748B'
+};
 
-/* ── Animated Orb Background ─────────────────────────────── */
-function OrbScene() {
-  return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-      {[
-        { left: '-5%',  top: '-10%', size: 700, color: 'rgba(124,58,237,0.25)',  dur: 22 },
-        { left: '60%',  top: '50%',  size: 500, color: 'rgba(6,182,212,0.18)',   dur: 18 },
-        { left: '75%',  top: '-5%',  size: 380, color: 'rgba(244,63,94,0.10)',   dur: 26 },
-        { left: '15%',  top: '60%',  size: 440, color: 'rgba(99,102,241,0.12)',  dur: 20 },
-        { left: '45%',  top: '30%',  size: 300, color: 'rgba(124,58,237,0.08)', dur: 14 },
-      ].map((o, i) => (
-        <motion.div key={i}
-          style={{
-            position: 'absolute', left: o.left, top: o.top,
-            width: o.size, height: o.size, borderRadius: '50%',
-            background: `radial-gradient(circle, ${o.color}, transparent 68%)`,
-            filter: 'blur(60px)',
-            transformOrigin: 'center center',
-          }}
-          animate={{
-            scale: [1, 1.15, 1, 0.95, 1],
-            x: [0, 40, -20, 30, 0],
-            y: [0, -30, 20, -10, 0],
-          }}
-          transition={{ duration: o.dur, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
-      {/* Grid overlay */}
-      <div style={{
-        position: 'absolute', inset: 0, opacity: 0.15,
-        backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),' +
-          'linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
-        backgroundSize: '52px 52px',
-      }}/>
-    </div>
-  );
-}
-
-/* ── Animated counter ──────────────────────────────────────── */
-function Counter({ target, suffix = '', label, icon }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const [started, setStarted] = useState(false);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting && !started) setStarted(true); },
-      { threshold: 0.5 }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [started]);
-
-  useEffect(() => {
-    if (!started) return;
-    let start = 0;
-    const step = target / 60;
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [started, target]);
-
-  return (
-    <motion.div ref={ref}
-      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.6 }}
-      style={{ textAlign: 'center' }}
-    >
-      <div style={{ fontSize: 36, marginBottom: 6 }}>{icon}</div>
-      <div style={{
-        fontFamily: 'var(--font-head)', fontSize: 40, fontWeight: 900,
-        letterSpacing: '-0.04em', lineHeight: 1,
-        background: 'linear-gradient(135deg, #fff 30%, var(--primary-light) 100%)',
-        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-      }}>
-        {count.toLocaleString()}{suffix}
-      </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text3)', marginTop: 6 }}>{label}</div>
-    </motion.div>
-  );
-}
-
-/* ── Feature card ─────────────────────────────────────────── */
-function FeatureCard({ icon, title, desc, color, delay }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay, duration: 0.55, ease: [0.16,1,0.3,1] }}
-      whileHover={{ y: -6, scale: 1.02 }}
-      style={{
-        background: 'var(--surface)',
-        backdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--border)',
-        borderRadius: 20,
-        padding: '28px 24px',
-        cursor: 'default',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: 'var(--shadow)',
-        transition: 'box-shadow 0.3s',
-      }}
-    >
-      {/* Top color bar */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:color, borderRadius:'20px 20px 0 0' }}/>
-      <div style={{
-        width: 52, height: 52, borderRadius: 14, fontSize: 24,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 18,
-        background: `${color.replace(')', ',0.15)').replace('linear-gradient(135deg,', 'linear-gradient(135deg,')}`,
-        background: 'rgba(124,58,237,0.12)',
-        border: '1px solid rgba(124,58,237,0.20)',
-      }}>
-        {icon}
-      </div>
-      <h3 style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 10, color: 'var(--text)' }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.65 }}>{desc}</p>
-    </motion.div>
-  );
-}
-
-/* ── Testimonial ──────────────────────────────────────────── */
-const TESTIMONIALS = [
-  { name: 'Ahmed Khaled', role: 'Secondary 3 Student', avatar: '👨‍🎓', quote: 'Najah AI explained photosynthesis in a way my teacher never could. I got 95% on my biology exam!', grade: 'Bio 95%' },
-  { name: 'Nour Salem', role: 'University Year 2', avatar: '👩‍💻', quote: 'The study planner keeps me organized across 6 subjects. Best app I\'ve ever used for studying.', grade: 'GPA 3.9' },
-  { name: 'Omar Farouk', role: 'Prep 3 Student', avatar: '🧑‍🏫', quote: 'I failed math last year. This year with Najah AI tutoring me daily, I passed with an A.', grade: 'Math A+' },
-  { name: 'Sara Ahmed', role: 'High School Teacher', avatar: '👩‍🏫', quote: 'Managing my classes, assignments, and announcements is so much easier. My students love the group chat.', grade: 'Teacher' },
-];
-
-function TestimonialCarousel() {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => (i + 1) % TESTIMONIALS.length), 4000);
-    return () => clearInterval(t);
-  }, []);
-  const t = TESTIMONIALS[idx];
-  return (
-    <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-      <AnimatePresence mode="wait">
-        <motion.div key={idx}
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-          transition={{ duration: 0.4 }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 16 }}>{t.avatar}</div>
-          <div style={{
-            background: 'var(--surface2)',
-            border: '1px solid var(--border2)',
-            borderRadius: 20, padding: '28px 32px',
-            boxShadow: 'var(--shadow), var(--glow)',
-            marginBottom: 16,
-            position: 'relative',
-          }}>
-            <div style={{ fontSize: 48, position: 'absolute', top: 12, left: 20, opacity: 0.12, fontFamily: 'Georgia', color: 'var(--primary-light)', lineHeight: 1 }}>"</div>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--text)', fontStyle: 'italic', position: 'relative', zIndex: 1 }}>"{t.quote}"</p>
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)' }}>{t.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>{t.role}</div>
-          <span style={{
-            display: 'inline-block', padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
-            background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)',
-          }}>{t.grade}</span>
-        </motion.div>
-      </AnimatePresence>
-      {/* Dots */}
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 20 }}>
-        {TESTIMONIALS.map((_, i) => (
-          <button key={i} onClick={() => setIdx(i)}
-            style={{
-              width: i === idx ? 24 : 8, height: 8,
-              borderRadius: 99, border: 'none', cursor: 'pointer',
-              background: i === idx ? 'var(--primary)' : 'var(--surface3)',
-              transition: 'all 0.3s var(--ease)',
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Main Landing Page ─────────────────────────────────────── */
-const FEATURES = [
-  { icon:'🤖', title:'Najah AI Tutor', desc:'Gemini-powered AI that explains any Egyptian curriculum topic step-by-step, in Arabic or English, with warmth and patience.', color:'linear-gradient(135deg,#7C3AED,#5B21B6)' },
-  { icon:'📅', title:'Smart Planner', desc:'Personalized study schedules with Pomodoro timers, deadline reminders, and calendar integration. Never miss a session.', color:'linear-gradient(135deg,#3B82F6,#1D4ED8)' },
-  { icon:'🧠', title:'AI Quiz Engine', desc:'Generate unlimited multiple-choice quizzes for any subject and difficulty level. Track your scores and improve weaknesses.', color:'linear-gradient(135deg,#10B981,#047857)' },
-  { icon:'💬', title:'Real-Time Chat', desc:'Study groups with subject channels, private messaging, and real-time presence. Connect with classmates and teachers.', color:'linear-gradient(135deg,#F59E0B,#D97706)' },
-  { icon:'📊', title:'Deep Analytics', desc:'Hourly study heatmaps, subject mastery radar, XP progress, and streaks. Visualize every learning metric.', color:'linear-gradient(135deg,#EF4444,#DC2626)' },
-  { icon:'📁', title:'Files & Notes', desc:'Upload PDFs, create rich notes with Markdown, organize by subject. AI can summarize any document instantly.', color:'linear-gradient(135deg,#EC4899,#BE185D)' },
-];
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { transition: { staggerChildren: 0.15 } }
+};
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+};
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { toggleDark, darkMode } = useUIStore();
   const { scrollY } = useScroll();
-  const navBg = useTransform(scrollY, [0, 100], ['rgba(8,11,20,0)', 'rgba(8,11,20,0.90)']);
+  const yHero = useTransform(scrollY, [0, 500], [0, 100]);
+  
+  // Rotating images for dynamic visual testing
+  const [assetIdx, setAssetIdx] = useState(1);
+  useEffect(() => {
+    const int = setInterval(() => {
+      setAssetIdx(prev => (prev % 31) + 1);
+    }, 5000);
+    return () => clearInterval(int);
+  }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--ink)', position: 'relative', overflowX: 'hidden' }}>
-      <OrbScene />
-
-      {/* ── Sticky Nav ─────────────────────────────────────── */}
-      <motion.nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 48px',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        background: navBg,
+    <div style={{ fontFamily: '"Inter", "Plus Jakarta Sans", sans-serif', backgroundColor: C.gray, overflow: 'hidden' }}>
+      
+      {/* ── TOP NAV (Navy) ── */}
+      <nav style={{ 
+        position: 'fixed', top: 0, width: '100%', height: 80, zIndex: 100,
+        backgroundColor: 'rgba(11, 17, 32, 0.85)', backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid rgba(255,255,255,0.05)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 5%'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <LogoMark size={36} />
-          <span style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 20, letterSpacing: '-0.03em', color: 'var(--text)' }}>
-            Najah
-          </span>
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.15em', textTransform: 'uppercase', marginLeft: 2 }}>
-            Smart Learning
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: C.magenta, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 18 }}>e</div>
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Najah<span style={{color: C.magenta}}>.</span></span>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={toggleDark}
-            style={{
-              width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)',
-              background: 'var(--surface)', color: 'var(--text2)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 16, cursor: 'pointer',
-            }}
-          >
-            {darkMode ? '☀️' : '🌙'}
-          </motion.button>
-          <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/login')}
-            style={{
-              padding: '9px 20px', borderRadius: 11, border: '1.5px solid var(--border2)',
-              background: 'transparent', color: 'var(--primary-light)', fontWeight: 700,
-              fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Sign In
-          </motion.button>
-          <motion.button whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.96 }}
-            onClick={() => navigate('/register')}
-            style={{
-              padding: '9px 20px', borderRadius: 11, border: 'none',
-              background: 'linear-gradient(135deg,#7C3AED,#5B21B6)',
-              color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-              fontFamily: 'inherit',
-              boxShadow: '0 4px 16px rgba(124,58,237,0.40)',
-            }}
-          >
-            Get Started Free →
-          </motion.button>
-        </div>
-      </motion.nav>
 
-      {/* ── Hero ────────────────────────────────────────────── */}
-      <section style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-        padding: '120px 24px 80px', position: 'relative', zIndex: 1,
+        <div style={{ display: 'flex', gap: 32, display: 'none', '@media (minWidth: 768px)': { display: 'flex' } }}>
+           <a href="#courses" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Courses</a>
+           <a href="#mentorship" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Mentorship</a>
+           <a href="#events" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Events</a>
+           <a href="#community" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Community</a>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <button onClick={() => navigate('/login')} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Login</button>
+          <button onClick={() => navigate('/register')} style={{ 
+            background: C.white, color: C.navy, border: 'none', padding: '10px 24px', borderRadius: 99, 
+            fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>Sign Up</button>
+        </div>
+      </nav>
+
+      {/* ── HERO SECTION (Navy) ── */}
+      <section style={{ 
+        backgroundColor: C.navy, minHeight: '100vh', paddingTop: 140, paddingBottom: 60,
+        position: 'relative', overflow: 'hidden'
       }}>
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16,1,0.3,1] }}>
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 18px 6px 8px', borderRadius: 99,
-              background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.30)',
-              marginBottom: 32, cursor: 'default',
-            }}
-          >
-            <span style={{ background: 'linear-gradient(135deg,#7C3AED,#06B6D4)', color:'#fff', padding:'2px 10px', borderRadius:99, fontSize:11, fontWeight:800 }}>✨ NEW</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Gemini 2.0 Flash AI · Now in Egypt</span>
-          </motion.div>
+        {/* Abstract background grids/points */}
+        <div style={{ position: 'absolute', top: '15%', left: '10%', opacity: 0.05, backgroundSize: '24px 24px', backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)', width: 300, height: 300 }} />
+        <div style={{ position: 'absolute', bottom: '20%', right: '5%', opacity: 0.05, backgroundSize: '24px 24px', backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)', width: 400, height: 400 }} />
 
-          {/* Headline */}
-          <h1 style={{
-            fontSize: 'clamp(40px, 7vw, 84px)', fontWeight: 900,
-            fontFamily: 'var(--font-head)', letterSpacing: '-0.05em', lineHeight: 1.05,
-            marginBottom: 28, maxWidth: 900, margin: '0 auto 28px',
-          }}>
-            <span style={{
-              background: 'linear-gradient(135deg, #fff 20%, #A78BFA 60%, #06B6D4 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 5%', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+          <motion.div variants={stagger} initial="hidden" animate="visible" style={{ maxWidth: 800, margin: '0 auto' }}>
+            <motion.h1 variants={fadeInUp} style={{ 
+              fontSize: 'min(5.5vw, 64px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24
             }}>
-              Learn Smarter.<br />Score Higher.
-            </span>
-          </h1>
-
-          <p style={{
-            fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--text2)', lineHeight: 1.7,
-            maxWidth: 600, margin: '0 auto 48px',
-          }}>
-            The all-in-one AI-powered platform for Egyptian students & teachers.
-            Personalized tutoring, smart study plans, real-time collaboration — in Arabic & English.
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 64 }}>
-            <motion.button
-              whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }}
+              Grow Your Skills to<br/>Advance Your Career Path.
+            </motion.h1>
+            
+            <motion.p variants={fadeInUp} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 18, lineHeight: 1.6, marginBottom: 40, maxWidth: 600, margin: '0 auto 40px' }}>
+              High-definition video & audio live classes built to immediately elevate your career trajectory with elite Egyptian educators.
+            </motion.p>
+            
+            <motion.button variants={fadeInUp} 
               onClick={() => navigate('/register')}
+              whileHover={{ scale: 1.05, boxShadow: `0 10px 30px ${C.magenta}60` }}
+              whileTap={{ scale: 0.95 }}
               style={{
-                padding: '16px 36px', borderRadius: 16, border: 'none',
-                background: 'linear-gradient(135deg,#7C3AED,#5B21B6)',
-                color: '#fff', fontWeight: 800, fontSize: 16, cursor: 'pointer',
-                fontFamily: 'var(--font-head)',
-                boxShadow: '0 8px 32px rgba(124,58,237,0.50)',
-              }}
-            >
-              Start Learning Free →
+                background: C.magenta, color: '#fff', border: 'none', padding: '18px 40px', borderRadius: 99,
+                fontSize: 16, fontWeight: 700, cursor: 'pointer', transition: 'box-shadow 0.2s',
+                boxShadow: `0 4px 20px ${C.magenta}40`
+            }}>
+              Get Started Now
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }}
-              onClick={() => navigate('/login')}
-              style={{
-                padding: '16px 32px', borderRadius: 16,
-                border: '1.5px solid var(--border2)',
-                background: 'rgba(124,58,237,0.10)',
-                color: 'var(--primary-light)', fontWeight: 700, fontSize: 15,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              Sign In
-            </motion.button>
-          </div>
-
-          {/* Social proof */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}
-          >
-            <div style={{ display: 'flex' }}>
-              {['🧑‍🎓','👩‍🎓','👨‍🎓','👩‍🏫','🧑‍💻'].map((e,i) => (
-                <div key={i} style={{
-                  width: 32, height: 32, borderRadius: '50%', fontSize: 16,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--surface3)', border: '2px solid var(--ink)',
-                  marginLeft: i === 0 ? 0 : -10, zIndex: 5-i,
-                }}>{e}</div>
-              ))}
-            </div>
-            <span style={{ fontSize: 13, color: 'var(--text2)' }}>
-              <strong style={{ color: 'var(--text)' }}>5,000+</strong> students already learning
-            </span>
-            <span style={{ color: '#FBBF24', fontSize: 14 }}>★★★★★</span>
           </motion.div>
-        </motion.div>
-      </section>
 
-      {/* ── Stats ───────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '60px 48px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{
-          background: 'var(--surface2)',
-          border: '1px solid var(--border2)',
-          borderRadius: 28, padding: '48px 24px',
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32,
-          boxShadow: 'var(--shadow-lg), var(--glow)',
-        }}>
-          <Counter target={5000} suffix="+" label="Active Students" icon="🎓" />
-          <Counter target={50000} suffix="+" label="AI Chat Sessions" icon="🤖" />
-          <Counter target={12} suffix=" Subjects" label="Egyptian Curriculum" icon="📚" />
-          <Counter target={98} suffix="%" label="Student Satisfaction" icon="⭐" />
+          {/* ── THE 3 FLOATING HERO CARDS ── */}
+          <motion.div style={{ y: yHero, display: 'flex', justifyContent: 'center', gap: 24, marginTop: 80, flexWrap: 'wrap' }}>
+            {/* Yellow Card (Asset 1) */}
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, type: 'spring' }}
+              style={{ width: 280, height: 380, borderRadius: 24, background: C.yellow, position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', transform: 'translateY(40px)' }}>
+              <img src="/images/showcase-1.jpeg" alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
+              {/* Fake UI floating element */}
+              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Ahmed Mostafa</div>
+                <div style={{ fontSize: 12, color: C.textM }}>Engineering Track</div>
+              </div>
+            </motion.div>
+
+            {/* Blue Center Card (Asset 2) */}
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, type: 'spring' }}
+              style={{ width: 300, height: 420, borderRadius: 24, background: C.blue, position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', zIndex: 2 }}>
+              <img src="/images/showcase-2.jpeg" alt="Student 2" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
+              <div style={{ position: 'absolute', top: 20, right: 20, background: C.magenta, color: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800 }}>LIVE</div>
+              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Sarah Khaled</div>
+                <div style={{ fontSize: 12, color: C.textM }}>Medical Track</div>
+              </div>
+            </motion.div>
+
+            {/* Orange Card (Asset 3) */}
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, type: 'spring' }}
+              style={{ width: 280, height: 380, borderRadius: 24, background: C.orange, position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', transform: 'translateY(40px)' }}>
+              <img src="/images/showcase-3.jpeg" alt="Student 3" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
+              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Omar Youssef</div>
+                <div style={{ fontSize: 12, color: C.textM }}>Languages Track</div>
+              </div>
+            </motion.div>
+          </motion.div>
+
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 48px', maxWidth: 1200, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: 60 }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--primary-light)', marginBottom: 14 }}>
-            EVERYTHING YOU NEED
-          </div>
-          <h2 style={{
-            fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900,
-            fontFamily: 'var(--font-head)', letterSpacing: '-0.04em',
-            background: 'linear-gradient(135deg, #fff 30%, var(--primary-light) 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            marginBottom: 16,
-          }}>
-            Built for Egyptian Students
-          </h2>
-          <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 560, margin: '0 auto' }}>
-            From Primary 1 to University — Najah covers the complete Egyptian Ministry of Education curriculum.
-          </p>
-        </motion.div>
+      {/* ── WHITE FEATURES SECTION ── */}
+      <section style={{ backgroundColor: C.gray, padding: '120px 5% 80px', position: 'relative' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 64, alignItems: 'center' }}>
+          
+          {/* Left Side: Video Call Mockup */}
+          <div style={{ flex: '1 1 500px', position: 'relative' }}>
+            <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once:true }}
+              style={{ background: '#fff', borderRadius: 24, padding: 16, boxShadow: '0 30px 60px rgba(0,0,0,0.08)', position: 'relative', zIndex: 2 }}>
+              <img src="/images/showcase-4.jpeg" alt="Video Call Main" style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '16/10' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '0 8px' }}>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.gray, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎤</div>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.gray, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📹</div>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.gray, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>💬</div>
+                </div>
+                <button style={{ background: C.magenta, color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 99, fontWeight: 700 }}>End Class</button>
+              </div>
+            </motion.div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-          {FEATURES.map((f, i) => (
-            <FeatureCard key={f.title} {...f} delay={i * 0.08} />
-          ))}
+            {/* Overlapping Small Call Card */}
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once:true }} transition={{ delay: 0.3 }}
+              style={{ position: 'absolute', bottom: -30, right: -30, width: 220, background: '#fff', borderRadius: 16, padding: 10, boxShadow: '0 20px 40px rgba(0,0,0,0.12)', zIndex: 10 }}>
+              <img src="/images/showcase-5.jpeg" alt="Video Call Small" style={{ width: '100%', borderRadius: 10, objectFit: 'cover', aspectRatio: '4/3' }} />
+              <div style={{ position: 'absolute', top: 16, right: 16, background: '#10B981', width: 10, height: 10, borderRadius: '50%', border: '2px solid #fff' }} />
+            </motion.div>
+
+            {/* Floating UI Elements matching reference */}
+            <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4 }}
+              style={{ position: 'absolute', top: -30, left: -20, background: '#fff', padding: '12px 20px', borderRadius: 99, boxShadow: '0 10px 20px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, zIndex: 5 }}>
+              <span style={{ fontSize: 20 }}>👏</span> <span style={{ fontWeight: 800, color: C.textD }}>Excellent Answer!</span>
+            </motion.div>
+          </div>
+
+          {/* Right Side: Text & Features */}
+          <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once:true }} style={{ flex: '1 1 400px' }}>
+            <h2 style={{ fontSize: 'min(4vw, 44px)', fontWeight: 800, color: C.textD, lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24 }}>
+              High Quality Video, Audio & Live Class.
+            </h2>
+            <p style={{ color: C.textM, fontSize: 16, lineHeight: 1.7, marginBottom: 40 }}>
+              Experience high definition classes with crystal clear audio. Our e-learning environment is designed to deliver uninterrupted learning directly to your device globally.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 31, 90, 0.1)', color: C.magenta, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎧</div>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Audio Classes</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(14, 165, 233, 0.1)', color: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🔴</div>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Live Classes</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(249, 115, 22, 0.1)', color: C.orange, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎥</div>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Recorded Class</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 184, 0, 0.1)', color: C.yellow, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📝</div>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>50+ Notes</span>
+              </div>
+            </div>
+
+            <button onClick={() => navigate('/register')} style={{ 
+              marginTop: 48, background: C.navy, color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 99, 
+              fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 20px rgba(11, 17, 32, 0.2)'
+            }}>
+              Explore Courses →
+            </button>
+          </motion.div>
+        
         </div>
       </section>
 
-      {/* ── Testimonials ─────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 48px', maxWidth: 800, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: 48 }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--accent-cyan)', marginBottom: 14 }}>
-            STUDENT STORIES
-          </div>
-          <h2 style={{
-            fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.04em',
-            background: 'linear-gradient(135deg, #fff 30%, var(--accent-cyan) 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>
-            Real Results, Real Students
-          </h2>
-        </motion.div>
-        <TestimonialCarousel />
-      </section>
+      {/* ── COURSE GRID SECTION (Assets 6-10) ── */}
+      <section style={{ backgroundColor: '#fff', padding: '100px 5%' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 36, fontWeight: 800, color: C.textD, marginBottom: 12 }}>Explore Top Subjects</h2>
+          <p style={{ color: C.textM, fontSize: 16, marginBottom: 60 }}>Master new topics from the best Egyptian instructors</p>
 
-      {/* ── CTA ──────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 48px 120px', textAlign: 'center' }}>
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-          style={{
-            maxWidth: 800, margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.20) 0%, rgba(6,182,212,0.10) 100%)',
-            border: '1px solid rgba(124,58,237,0.35)',
-            borderRadius: 32, padding: '60px 48px',
-            boxShadow: '0 0 80px rgba(124,58,237,0.20)',
-          }}
-        >
-          <div style={{ fontSize: 52, marginBottom: 20 }}>🚀</div>
-          <h2 style={{
-            fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, fontFamily: 'var(--font-head)',
-            letterSpacing: '-0.04em', marginBottom: 16,
-            background: 'linear-gradient(135deg, #fff 30%, var(--primary-light) 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>
-            Ready to Excel?
-          </h2>
-          <p style={{ fontSize: 16, color: 'var(--text2)', marginBottom: 36, lineHeight: 1.7 }}>
-            Join thousands of Egyptian students transforming their learning with AI.
-            Free forever. No credit card required.
-          </p>
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <motion.button
-              whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.96 }}
-              onClick={() => navigate('/register')}
-              style={{
-                padding: '18px 44px', borderRadius: 16, border: 'none',
-                background: 'linear-gradient(135deg,#7C3AED,#5B21B6)',
-                color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer',
-                fontFamily: 'var(--font-head)', letterSpacing: '-0.01em',
-                boxShadow: '0 8px 40px rgba(124,58,237,0.60)',
-              }}
-            >
-              Start for Free — It's Fast →
-            </motion.button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 32 }}>
+            {[
+              { title: 'Advanced Physics Concept', tutor: 'Prof. Hassan', img: 'showcase-6.jpeg', tag: 'Physics' },
+              { title: 'Organic Chemistry Masterclass', tutor: 'Dr. Rania', img: 'showcase-7.jpeg', tag: 'Chemistry' },
+              { title: 'Arabic Literature & Grammar', tutor: 'Mr. Tarek', img: 'showcase-8.jpeg', tag: 'Arabic' }
+            ].map((course, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: i*0.15 }}
+                style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,0.06)', border: `1px solid ${C.gray}`, textAlign: 'left' }}>
+                <div style={{ height: 200, position: 'relative' }}>
+                  <img src={`/images/${course.img}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', top: 16, left: 16, background: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, color: C.textD }}>{course.tag}</div>
+                </div>
+                <div style={{ padding: 24 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: C.textD, marginBottom: 8, lineHeight: 1.4 }}>{course.title}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gray, overflow: 'hidden' }}>
+                      <img src={`/images/showcase-${9+i}.jpeg`} alt={course.tutor} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <span style={{ fontSize: 14, color: C.textM, fontWeight: 600 }}>{course.tutor}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.gray}`, paddingTop: 20 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.magenta }}>Register Now</span>
+                    <span style={{ fontSize: 18, color: C.gray }}>→</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
-      </section>
-
-      {/* ── Footer ───────────────────────────────────────────── */}
-      <footer style={{
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid var(--border)',
-        padding: '32px 48px', textAlign: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 }}>
-          <LogoMark size={24} />
-          <span style={{ fontFamily: 'var(--font-head)', fontWeight: 800, color: 'var(--text)', fontSize: 16 }}>Najah</span>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-          © 2026 Najah Platform · Built with ❤️ for Egyptian Students · Powered by Google Gemini AI
-        </p>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ backgroundColor: C.navy, padding: '80px 5% 40px', color: '#fff' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 64, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 24 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: C.magenta, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 18 }}>e</div>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Najah<span style={{color: C.magenta}}>.</span></span>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, fontSize: 14 }}>
+              Egypt's premier advanced E-Learning platform combining deep study analytics, high speed networking, and professional institutional interfaces.
+            </p>
+          </div>
+          <div style={{ flex: '1 1 150px' }}>
+            <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 24 }}>Platform</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+              <span style={{ cursor:'pointer' }}>Courses</span>
+              <span style={{ cursor:'pointer' }}>Live Classes</span>
+              <span style={{ cursor:'pointer' }}>Study Materials</span>
+              <span style={{ cursor:'pointer' }}>Mock Exams</span>
+            </div>
+          </div>
+        </div>
       </footer>
 
-      {/* Mobile responsive styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .landing-nav-desktop { display: none !important; }
-        }
-        @media (max-width: 640px) {
-          [class*="landing"] nav { padding: 14px 20px !important; }
-        }
-      `}</style>
     </div>
   );
 }

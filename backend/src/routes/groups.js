@@ -58,12 +58,12 @@ async function uniqueCode() {
 
 // POST /api/groups  — any authenticated user creates a group
 router.post('/', auth, async (req, res) => {
-  const { name, description, subject, institutionType, institution, maxStudents, color, emoji } = req.body;
+  const { name, description, subject, grade, institutionType, institution, maxStudents, color, emoji } = req.body;
   if (!name || !subject) return res.status(400).json({ error: 'Name and subject are required' });
 
   const code  = await uniqueCode();
   const group = await Group.create({
-    name, description, subject, code,
+    name, description, subject, grade, code,
     institutionType: institutionType || 'school',
     institution,
     maxStudents: maxStudents || 50,

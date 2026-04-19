@@ -22,7 +22,7 @@ if (process.env.GEMINI_API_KEY) {
     ];
 
     model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-latest',
+      model: 'gemini-2.0-flash',
       systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
       safetySettings,
       generationConfig: {
@@ -34,7 +34,7 @@ if (process.env.GEMINI_API_KEY) {
     });
 
     modelStream = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-latest',
+      model: 'gemini-2.0-flash',
       systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
       safetySettings,
       generationConfig: {
@@ -105,7 +105,7 @@ function buildHistory(messages = []) {
   return messages
     .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'model')
     .map(m => ({
-      role:  m.role === 'assistant' ? 'model' : 'user',
+      role:  (m.role === 'assistant' || m.role === 'model') ? 'model' : 'user',
       parts: [{ text: m.content || '' }],
     }))
     .filter(m => m.parts[0].text.trim().length > 0);
@@ -327,7 +327,7 @@ Suggest 3 short follow-up questions the student might ask. Return ONLY JSON: {"s
 
 // ── Availability check ────────────────────────────────────────
 function isAvailable() { return !!model; }
-function getModelName() { return 'gemini-2.0-flash-latest'; }
+function getModelName() { return 'gemini-2.0-flash'; }
 
 module.exports = {
   chat,

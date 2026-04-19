@@ -49,7 +49,10 @@ async function runMigrations(client) {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-      
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS institution_id UUID;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) DEFAULT 'unverified';
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check CHECK(role IN('student','teacher','school_admin','university_admin','admin'));
       -- study_sessions
       ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
       ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS pomodoros_done INTEGER DEFAULT 0;
@@ -78,8 +81,8 @@ async function runMigrations(client) {
       avatar_url     TEXT,
       grade          VARCHAR(20),
       school         VARCHAR(200),
-      role           VARCHAR(20)   DEFAULT 'student' CHECK(role IN('student','teacher','admin')),
-      language       VARCHAR(5)    DEFAULT 'en',
+      role           VARCHAR(20)   DEFAULT 'student' CHECK(role IN('student','teacher','school_admin','university_admin','admin')),
+      language       VARCHAR(5)    DEFAULT 'ar',
       xp_points      INTEGER       DEFAULT 0,
       level          INTEGER       DEFAULT 1,
       streak_days    INTEGER       DEFAULT 0,
@@ -91,9 +94,54 @@ async function runMigrations(client) {
       phone          VARCHAR(20),
       social_links   JSONB         DEFAULT '{}',
       subjects       TEXT[],
+      institution_id UUID,
+      verification_status VARCHAR(20) DEFAULT 'unverified',
       created_at     TIMESTAMPTZ   DEFAULT NOW(),
       updated_at     TIMESTAMPTZ   DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS institutions (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name           VARCHAR(200) NOT NULL,
+      name_ar        VARCHAR(200) NOT NULL,
+      type           VARCHAR(50)  NOT NULL CHECK(type IN('school','university','tutoring_center','educational_institute')),
+      school_grade   VARCHAR(50),
+      curriculum_system VARCHAR(50) DEFAULT 'egyptian_national',
+      admin_id       UUID REFERENCES users(id) ON DELETE SET NULL,
+      verification_status VARCHAR(20) DEFAULT 'pending',
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS groups (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name           VARCHAR(200) NOT NULL,
+      subject        VARCHAR(100) NOT NULL,
+      grade          VARCHAR(50),
+      teacher_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+      max_students   INTEGER DEFAULT 30,
+      privacy        VARCHAR(20) DEFAULT 'private' CHECK(privacy IN('public','private')),
+      schedule       JSONB DEFAULT '[]',
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS group_members (
+      group_id       UUID REFERENCES groups(id) ON DELETE CASCADE,
+      student_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+      status         VARCHAR(20) DEFAULT 'pending' CHECK(status IN('pending','active','rejected')),
+      joined_at      TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (group_id, student_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS curriculum (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      grade_key      VARCHAR(50) NOT NULL,
+      subject_name   VARCHAR(100) NOT NULL,
+      units          JSONB DEFAULT '[]',
+      is_core        BOOLEAN DEFAULT true,
+      created_at     TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(grade_key, subject_name)
+    );
+
 
     CREATE TABLE IF NOT EXISTS study_sessions (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

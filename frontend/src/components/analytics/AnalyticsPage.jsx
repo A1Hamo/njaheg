@@ -24,18 +24,18 @@ export default function AnalyticsPage() {
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginBottom: 32 }}>
-        <Card>
-          <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 20 }}>Knowledge Mastery</h3>
+        <div className="floating-panel" style={{ padding: 28 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 20 }}>Knowledge Mastery</h3>
           {!(d.subjectBreakdown?.length) ? <EmptyState icon="📖" title="Awaiting Data" subtitle="Complete study sessions to begin subject mapping." /> :
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {d.subjectBreakdown.map((s,i) => {
                 const maxMins = Math.max(...d.subjectBreakdown.map(x=>Number(x.total_mins)),1);
                 const colors = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--accent)', 'var(--accent2)'];
                 return (
                   <div key={s.subject}>
                     <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:13 }}>
-                      <span style={{ textTransform:'capitalize', fontWeight:700, color: 'var(--text)' }}>{s.subject.replace('_',' ')}</span>
-                      <span style={{ color:'var(--text2)', fontWeight: 600 }}>
+                      <span style={{ textTransform:'capitalize', fontWeight:800, color: 'var(--text)' }}>{s.subject.replace('_',' ')}</span>
+                      <span style={{ color:'var(--text3)', fontWeight: 700 }}>
                         {Math.round(Number(s.total_mins)/60)}h Studied · {s.completed} Tasks
                       </span>
                     </div>
@@ -45,38 +45,42 @@ export default function AnalyticsPage() {
               })}
             </div>
           }
-        </Card>
+        </div>
 
-        <Card>
-          <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 20 }}>Cognitive Assessments</h3>
+        <div className="floating-panel" style={{ padding: 28 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 20 }}>Cognitive Assessments</h3>
           {!quizStats.length ? <EmptyState icon="📝" title="No Assessments Yet" subtitle="Take a quiz in the AI Assistant to measure your progress." /> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {quizStats.map((q,i) => (
-                <div key={q.subject} className="glass-panel" style={{ 
-                  display:'flex', alignItems:'center', gap:16, padding:'16px 20px', 
-                  marginBottom: 10, background: 'var(--surface)'
-                }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                <motion.div key={q.subject} 
+                  whileHover={{ scale: 1.02 }}
+                  className="floating-card" 
+                  style={{ 
+                    display:'flex', alignItems:'center', gap:16, padding:'16px 20px', 
+                    marginBottom: 10
+                  }}
+                >
+                  <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: 'var(--surface3)' }}>
                     {SUBJ_ICON[q.subject] || '📝'}
                   </div>
                   <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:700, textTransform:'capitalize' }}>{q.subject.replace('_',' ')}</div>
-                    <div style={{ fontSize:12, color:'var(--text3)', marginTop: 2 }}>{q.attempts} attempts · {q.perfect} perfect scores</div>
+                    <div style={{ fontSize:14, fontWeight:800, textTransform:'capitalize', color: 'var(--text)' }}>{q.subject.replace('_',' ')}</div>
+                    <div style={{ fontSize:12, color:'var(--text4)', marginTop: 2, fontWeight: 600 }}>{q.attempts} attempts · {q.perfect} perfect scores</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <div className="neon-text" style={{ fontSize:22, fontWeight:800, fontFamily:'var(--font-head)',
-                      color: q.avg_score>=80?'var(--success)':q.avg_score>=60?'var(--primary)':'var(--danger)' }}>{q.avg_score}%</div>
-                    <div style={{ fontSize:10, color:'var(--text3)', fontWeight: 700, textTransform: 'uppercase' }}>Avg Score</div>
+                    <div className="neon-text" style={{ fontSize:22, fontWeight:900, fontFamily:'var(--font-head)',
+                      color: q.avg_score>=80?'var(--success)':q.avg_score>=60?'var(--primary)':'#ef4444' }}>{q.avg_score}%</div>
+                    <div style={{ fontSize:10, color:'var(--text4)', fontWeight: 800, textTransform: 'uppercase' }}>Avg Score</div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           }
-        </Card>
+        </div>
       </div>
 
-      <Card style={{ marginBottom: 32 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 24 }}>Learning Velocity</h3>
+      <div className="floating-panel" style={{ marginBottom: 32, padding: 32 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 24 }}>Learning Velocity</h3>
         {!d.weeklyActivity?.length ? <EmptyState icon="📅" title="No recent activity" /> : (
           <div style={{ display:'flex', gap:10, alignItems:'flex-end', height:160, padding: '0 10px' }}>
             {d.weeklyActivity.map((day, idx) => {
@@ -85,19 +89,20 @@ export default function AnalyticsPage() {
               return (
                 <div key={day.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
                   <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+                    whileHover={{ scale: 1.05, filter: 'brightness(1.2)' }}
                     style={{ 
-                      width:'100%', height: h, background: idx === 6 ? 'var(--accent2)' : 'var(--primary)', 
+                      width:'100%', height: h, background: idx === 6 ? 'var(--accent2)' : 'linear-gradient(to top, var(--primary), var(--brand-400))', 
                       borderRadius: 8, transformOrigin: 'bottom',
-                      boxShadow: idx === 6 ? '0 0 15px rgba(244, 63, 94, 0.3)' : 'none'
+                      boxShadow: idx === 6 ? '0 0 15px rgba(244, 63, 94, 0.4)' : 'none'
                     }} 
                   />
-                  <div style={{ fontSize:11, fontWeight: 700, color: idx === 6 ? 'var(--text)' : 'var(--text3)' }}>{day.date?.slice(5)}</div>
+                  <div style={{ fontSize:11, fontWeight: 800, color: idx === 6 ? 'var(--text)' : 'var(--text4)' }}>{day.date?.slice(5)}</div>
                 </div>
               );
             })}
           </div>
         )}
-      </Card>
+      </div>
 
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -141,4 +146,13 @@ export default function AnalyticsPage() {
   );
 }
 
-const SUBJ_ICON  = { mathematics:'📐',science:'🔬',arabic:'📚',english:'🌐',social_studies:'🌍' };
+const SUBJ_ICON  = { 
+  mathematics:'📐', 
+  science:'🔬', 
+  arabic:'📚', 
+  english:'🌐', 
+  social_studies:'🌍',
+  physics: '⚡',
+  chemistry: '⚗️',
+  biology: '🧬'
+};

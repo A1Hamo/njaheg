@@ -1,17 +1,27 @@
 // src/components/groups/GroupsPage.jsx
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import confetti from 'canvas-confetti';
 import { groupsAPI } from '../../api/index';
 import { useAuthStore } from '../../context/store';
+import { useTranslation } from '../../i18n/index';
+import CreateGroupWizard from './CreateGroupWizard';
 
 /* ── helpers ────────────────────────────────────────────── */
 const SUBJECT_COLORS = {
-  mathematics:'#7C3AED', science:'#10B981', arabic:'#F59E0B', english:'#3B82F6',
-  physics:'#8B5CF6', chemistry:'#EC4899', biology:'#06B6D4', history:'#F43F5E',
-  geography:'#14B8A6', default:'#7C3AED',
+  mathematics:'#6366f1', // Sky Blue
+  science:'#10B981',     // Emerald
+  arabic:'#F59E0B',      // Amber
+  english:'#2563EB',     // Royal Blue
+  physics:'#6366F1',     // Indigo
+  chemistry:'#EC4899',   // Pink
+  biology:'#14B8A6',     // Teal
+  history:'#D97706',     // Ochre
+  geography:'#059669',   // Dark Green
+  default:'#6366f1',
 };
 const getColor = s => SUBJECT_COLORS[s?.toLowerCase()] || SUBJECT_COLORS.default;
 
@@ -25,16 +35,16 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -8, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => onOpen(group._id)}
+      className="floating-card"
       style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 20,
         overflow: 'hidden',
         cursor: 'pointer',
-        transition: 'box-shadow 0.22s var(--ease)',
         position: 'relative',
+        padding: 0,
+        height: '100%'
       }}
     >
       {/* Color stripe */}
@@ -44,19 +54,20 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
           <div style={{
-            width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-            background: `${color}22`,
-            border: `2px solid ${color}44`,
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: color,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24,
+            fontSize: 26,
+            color: '#fff',
+            boxShadow: `0 8px 16px -4px ${color}66`
           }}>
             {group.emoji || '📚'}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 3, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginBottom: 2, letterSpacing: '-0.025em', lineHeight: 1.25 }}>
               {group.name}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', textTransform: 'capitalize' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
               {INSTITUTION_ICONS[group.institutionType] || '🏫'} {group.institutionType} · {group.subject}
             </div>
           </div>
@@ -186,6 +197,14 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
     setLoading(true);
     try {
       const { data } = await groupsAPI.create({ ...form, maxStudents: Number(form.maxStudents) });
+      confetti({ 
+        particleCount: 180, 
+        spread: 90, 
+        origin: { y: 0.6 }, 
+        colors: [form.color, '#ffffff', 'var(--primary)'],
+        scalar: 1.2,
+        gravity: 0.8
+      });
       toast.success(`Group "${data.group.name}" created! Code: ${data.group.code}`);
       onCreated(data.group);
       onClose();
@@ -280,6 +299,14 @@ function JoinGroupModal({ open, onClose, onJoined }) {
     setLoading(true);
     try {
       const { data } = await groupsAPI.join(code.trim());
+      confetti({ 
+        particleCount: 250, 
+        spread: 120, 
+        origin: { y: 0.7 }, 
+        colors: ['#3B82F6', '#10B981', '#ffffff'],
+        scalar: 1.1,
+        ticks: 200
+      });
       toast.success(`Joined "${data.group.name}" successfully! 🎉`);
       onJoined(data.group);
       onClose();
@@ -331,9 +358,11 @@ export default function GroupsPage() {
   const { user }   = useAuthStore();
   const navigate   = useNavigate();
   const qc         = useQueryClient();
+  const { t, lang } = useTranslation();
   const isTeacher  = user?.role === 'teacher';
 
   const [showCreate, setShowCreate] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [showJoin,   setShowJoin]   = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -355,60 +384,35 @@ export default function GroupsPage() {
   const handleJoined  = () => qc.invalidateQueries({ queryKey: ['groups'] });
 
   return (
-    <div>
+    <div style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:28, flexWrap:'wrap', gap:16 }}>
         <div>
-          <h1 style={{ fontSize:28, fontWeight:800, fontFamily:'var(--font-head)', letterSpacing:'-0.035em', marginBottom:6,
-            background:'linear-gradient(135deg,#fff 30%,var(--primary-light) 100%)',
-            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
-          }}>
-            {isTeacher ? '🏫 My Classes' : '📚 My Groups'}
+          <h1 style={{ fontSize:28, fontWeight:900, color:'var(--text)', marginBottom:6 }}>
+            {isTeacher ? `🏫 ${t('nav.myClasses')}` : `📚 ${t('groups.title')}`}
           </h1>
           <p style={{ fontSize:14, color:'var(--text3)' }}>
             {isTeacher
-              ? `${groups.length} active group${groups.length !== 1 ? 's' : ''} · Create and manage your classes`
-              : `Member of ${groups.length} group${groups.length !== 1 ? 's' : ''} · Join more with an invite code`}
+              ? `${groups.length} ${lang==='ar' ? 'فصل نشط · أنشئ وأدِر فصولك' : `active group${groups.length!==1?'s':''} · Create and manage your classes`}`
+              : `${lang==='ar' ? `عضو في ${groups.length} مجموعة · انضم بكود الدعوة` : `Member of ${groups.length} group${groups.length!==1?'s':''} · Join with an invite code`}`}
           </p>
         </div>
 
         <div style={{ display:'flex', gap:10 }}>
           {isTeacher ? (
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setShowCreate(true)}
-              style={{
-                padding:'10px 20px', borderRadius:12,
-                background:'linear-gradient(135deg,var(--primary),var(--brand-600))',
-                color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none',
-                fontFamily:'inherit', display:'flex', alignItems:'center', gap:8,
-                boxShadow:'0 4px 18px rgba(124,58,237,0.35)',
-              }}
-            >+ New Class</motion.button>
+            <button className="btn btn-primary btn-lg"
+              onClick={() => setShowWizard(true)}
+            >
+              + {lang==='ar' ? 'فصل جديد' : 'New Class'}
+            </button>
           ) : (
             <>
-              <motion.button
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              <button className="btn btn-secondary"
                 onClick={() => setShowJoin(true)}
-                style={{
-                  padding:'10px 20px', borderRadius:12,
-                  background:'linear-gradient(135deg,#3B82F6,#1D4ED8)',
-                  color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none',
-                  fontFamily:'inherit', display:'flex', alignItems:'center', gap:8,
-                  boxShadow:'0 4px 18px rgba(59,130,246,0.35)',
-                }}
-              >🔑 Join with Code</motion.button>
-              <motion.button
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => setShowCreate(true)}
-                style={{
-                  padding:'10px 20px', borderRadius:12,
-                  background:'linear-gradient(135deg,var(--primary),var(--brand-600))',
-                  color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none',
-                  fontFamily:'inherit', display:'flex', alignItems:'center', gap:8,
-                  boxShadow:'0 4px 18px rgba(124,58,237,0.35)',
-                }}
-              >+ New Study Group</motion.button>
+              >🔑 {t('groups.join')}</button>
+              <button className="btn btn-primary"
+                onClick={() => setShowWizard(true)}
+              >+ {t('groups.create')}</button>
             </>
           )}
         </div>
@@ -479,6 +483,16 @@ export default function GroupsPage() {
       {/* Modals */}
       <CreateGroupModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} isTeacher={isTeacher} />
       <JoinGroupModal   open={showJoin}   onClose={() => setShowJoin(false)}   onJoined={handleJoined}  />
+
+      {/* New wizard */}
+      <AnimatePresence>
+        {showWizard && (
+          <CreateGroupWizard
+            onClose={() => setShowWizard(false)}
+            onCreated={() => { qc.invalidateQueries({ queryKey: ['groups'] }); setShowWizard(false); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

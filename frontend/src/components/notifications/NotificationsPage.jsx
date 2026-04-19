@@ -71,80 +71,93 @@ export default function NotificationsPage() {
       />
 
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
           <Spinner size="lg" />
         </div>
       ) : notifications.length === 0 ? (
-        <Card>
+        <div className="floating-panel">
           <EmptyState
             icon="🔔"
-            title="All caught up!"
-            subtitle="No notifications right now. Keep studying to earn achievements and reminders!"
+            title="Silence is Golden"
+            subtitle="Your neural interface is clear. No active alerts or pending tasks detected."
           />
-        </Card>
+        </div>
       ) : (
         Object.entries(grouped).map(([dateKey, items]) => (
-          <div key={dateKey} style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)',
-              textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
-              {format(new Date(dateKey), 'EEEE, MMMM d')}
+          <div key={dateKey}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--text4)',
+              textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12, paddingLeft: 4 }}>
+              {format(new Date(dateKey), 'EEEE, MMMM d').toUpperCase()}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <AnimatePresence>
                 {items.map((n, i) => (
                   <motion.div key={n.id} layout
-                    initial={{ opacity: 0, x: -12 }}
+                    initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1,  x: 0     }}
-                    exit={{ opacity: 0, x: 12, transition: { duration: 0.2 } }}
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                    whileHover={{ scale: 1.01, x: 4 }}
                     onClick={() => !n.is_read && markOne(n.id)}
+                    className="floating-card"
                     style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 12,
-                      padding: '14px 16px',
-                      background: 'var(--surface)',
-                      borderRadius: 10,
-                      border: `1px solid ${n.is_read ? 'var(--border)' : 'var(--border2)'}`,
-                      borderLeft: n.is_read ? '1px solid var(--border)' : '3px solid var(--primary)',
+                      display: 'flex', alignItems: 'flex-start', gap: 16,
+                      padding: '20px 24px',
+                      borderRadius: 18,
+                      background: n.is_read ? 'rgba(255,255,255,0.02)' : 'rgba(124,58,237,0.05)',
+                      border: `1px solid ${n.is_read ? 'var(--border)' : 'rgba(124,58,237,0.2)'}`,
+                      borderLeft: n.is_read ? '4px solid var(--border)' : '4px solid var(--primary)',
                       cursor: n.is_read ? 'default' : 'pointer',
-                      opacity: n.is_read ? 0.65 : 1,
-                      transition: 'all 0.2s',
+                      opacity: n.is_read ? 0.7 : 1,
+                      transition: 'all 0.25s var(--ease)',
                     }}
-                    whileHover={{ borderColor: 'var(--border2)' }}
                   >
                     {/* Icon */}
-                    <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>
+                    <div style={{ 
+                      fontSize: 26, flexShrink: 0, 
+                      width: 48, height: 48, 
+                      borderRadius: 14, 
+                      background: n.is_read ? 'rgba(255,255,255,0.03)' : 'rgba(124,58,237,0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
                       {TYPE_ICONS[n.type] || TYPE_ICONS.default}
                     </div>
 
                     {/* Content */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
                       <div style={{
-                        fontWeight: n.is_read ? 500 : 700,
-                        fontSize: 14, marginBottom: 3, lineHeight: 1.4,
+                        fontWeight: 900,
+                        fontSize: 15, marginBottom: 4, lineHeight: 1.4,
+                        color: n.is_read ? 'var(--text2)' : 'var(--text)',
+                        fontFamily: 'var(--font-head)',
+                        letterSpacing: '-0.01em'
                       }}>{n.title}</div>
                       {n.body && (
-                        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, marginBottom: 4 }}>
+                        <div style={{ fontSize: 13, color: 'var(--text4)', lineHeight: 1.6, marginBottom: 6, fontWeight: 500 }}>
                           {n.body}
                         </div>
                       )}
-                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                        {format(new Date(n.created_at), 'HH:mm')}
+                      <div style={{ fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {format(new Date(n.created_at), 'HH:mm')} PROTOCOL · {n.type.toUpperCase()}
                       </div>
                     </div>
 
                     {/* Unread dot */}
                     {!n.is_read && (
-                      <div style={{ width: 8, height: 8, borderRadius: '50%',
-                        background: 'var(--primary)', flexShrink: 0, marginTop: 6 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: '50%',
+                        background: 'var(--primary)', flexShrink: 0, marginTop: 4,
+                        boxShadow: '0 0 10px var(--primary)' }} />
                     )}
 
                     {/* Delete */}
                     <button
                       onClick={e => { e.stopPropagation(); remove(n.id); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--text3)',
-                        cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0,
-                        transition: 'color 0.2s', lineHeight: 1 }}
-                      onMouseEnter={e => e.target.style.color = 'var(--danger)'}
-                      onMouseLeave={e => e.target.style.color = 'var(--text3)'}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text4)',
+                        width: 32, height: 32, borderRadius: 10,
+                        cursor: 'pointer', fontSize: 12, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.2s', padding: 0 }}
+                      onMouseEnter={e => { e.target.style.background = 'var(--danger)'; e.target.style.color = '#fff'; }}
+                      onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.05)'; e.target.style.color = 'var(--text4)'; }}
                     >✕</button>
                   </motion.div>
                 ))}

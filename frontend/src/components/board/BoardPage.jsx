@@ -13,55 +13,64 @@ const S_ICONS  = { mathematics:'📐',science:'🔬',arabic:'📚',english:'🌐
 function PostCard({ post, onLike, onSave }) {
   return (
     <motion.div layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02, y: -5 }}
+      whileHover={{ scale: 1.03, y: -10, boxShadow: 'var(--shadow-premium)' }}
+      className="floating-card animate-float"
       style={{ 
-        background: 'var(--surface)', border: '1px solid var(--border)', 
-        borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        transition: 'all 0.4s var(--ease)',
+        background: 'var(--glass)',
+        backdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)'
       }}
-      className="glass-panel"
     >
-      <div style={{ height: 160, position: 'relative', overflow: 'hidden', background: 'var(--surface2)' }}>
+      <div style={{ height: 180, position: 'relative', overflow: 'hidden', background: 'var(--surface3)' }}>
         {post.mime_type?.startsWith('image') && post.file_url ? (
-          <img src={post.file_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={post.file_url} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} className="hover-zoom" />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 60, opacity: 0.8 }}>
-            {S_ICONS[post.subject] || '📄'}
+          <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+             <img src={`/images/showcase-${(String(post.id || post._id || '').charCodeAt(0) % 30 || 0) + 1}.jpeg`} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4, mixBlendMode: 'overlay' }} />
+             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}>
+                {S_ICONS[post.subject] || '📄'}
+             </div>
           </div>
         )}
-        <div style={{ position: 'absolute', top: 12, right: 12 }}>
-          <Tag color="blue" style={{ backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.3)', color: '#fff', border: 'none' }}>
+        <div style={{ position: 'absolute', top: 14, right: 14 }}>
+          <div style={{ padding: '6px 14px', borderRadius: 12, backdropFilter: 'blur(12px)', background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: 10, fontWeight: 900, border: '1px solid rgba(255,255,255,0.1)', letterSpacing: '0.05em' }}>
             {post.subject?.replace('_',' ').toUpperCase()}
-          </Tag>
+          </div>
         </div>
       </div>
 
-      <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h4 style={{ fontSize: 15, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }} className="truncate">{post.title}</h4>
-        <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 16, height: 38, overflow: 'hidden' }}>
-          {post.description || 'No description provided.'}
+      <div style={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h4 style={{ fontSize: 17, fontWeight: 950, marginBottom: 10, color: 'var(--text)', fontFamily: 'var(--font-head)', letterSpacing: '-0.01em' }} className="truncate">{post.title}</h4>
+        <p style={{ fontSize: 13, color: 'var(--text4)', lineHeight: 1.6, marginBottom: 20, height: 42, overflow: 'hidden', fontWeight: 500 }}>
+          {post.description || 'No description provided for this neural asset.'}
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-          <Avatar src={post.author_avatar} name={post.author_name} size={28} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <Avatar src={post.author_avatar} name={post.author_name} size={32} ring />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700 }}>{post.author_name}</div>
-            <div style={{ fontSize: 10, color: 'var(--text3)' }}>{format(new Date(post.created_at), 'MMM d, yyyy')}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{post.author_name}</div>
+            <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 700 }}>{format(new Date(post.created_at), 'MMM d, yyyy').toUpperCase()}</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
-          <button onClick={() => onLike(post.id)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: post.liked ? 'var(--danger)' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, transition: 'all 0.2s' }}>
-            {post.liked ? '❤️' : '🤍'} {post.likes_count}
-          </button>
-          <button onClick={() => onSave(post.id)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: post.saved ? 'var(--accent)' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, transition: 'all 0.2s' }}>
-            {post.saved ? '🔖' : '📌'} {post.saves_count}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'auto' }}>
+          <motion.button 
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onLike(post.id)}
+            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 12, cursor: 'pointer', height: 36, padding: '0 12px', color: post.liked ? 'var(--danger)' : 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 900, transition: 'all 0.2s' }}>
+            <span style={{ fontSize: 16 }}>{post.liked ? '❤️' : '🤍'}</span> {post.likes_count}
+          </motion.button>
+          <motion.button 
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onSave(post.id)}
+            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 12, cursor: 'pointer', height: 36, padding: '0 12px', color: post.saved ? 'var(--primary)' : 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 900, transition: 'all 0.2s' }}>
+            <span style={{ fontSize: 16 }}>{post.saved ? '🔖' : '📌'}</span> {post.saves_count}
+          </motion.button>
           {post.file_url && (
             <a href={post.file_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto' }}>
-              <Btn size="sm" variant="glass">VIEW</Btn>
+              <Btn size="sm" variant="glass" style={{ borderRadius: 12, fontWeight: 900, fontSize: 11 }}>ACCESS</Btn>
             </a>
           )}
         </div>
@@ -103,32 +112,39 @@ export default function BoardPage() {
         action={<Btn variant="primary" onClick={() => setShare(true)}>+ Share Resource</Btn>} 
       />
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center', background: 'var(--surface2)', padding: 10, borderRadius: 16, border: '1px solid var(--border)' }}>
-        <Btn size="sm" variant={!subject ? 'primary' : 'ghost'} onClick={() => setSubject('')}>ALL RESOURCES</Btn>
+      <div className="floating-panel" style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap', alignItems: 'center', padding: '12px 14px', borderRadius: 24 }}>
+        <Btn size="sm" variant={!subject ? 'primary' : 'ghost'} onClick={() => setSubject('')} style={{ borderRadius: 14, fontWeight: 900 }}>ALL MATRIX</Btn>
         {SUBJECTS.map(s => (
-          <Btn key={s} size="sm" variant={subject === s ? 'primary' : 'ghost'} onClick={() => setSubject(s)}>
+          <Btn key={s} size="sm" variant={subject === s ? 'primary' : 'ghost'} onClick={() => setSubject(s)} style={{ borderRadius: 14, fontWeight: 900 }}>
             {S_ICONS[s]} {s.replace('_',' ').toUpperCase()}
           </Btn>
         ))}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Select value={sort} onChange={e => setSort(e.target.value)} style={{ width: 140, padding: '7px 12px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 14, alignItems: 'center' }}>
+          <Select value={sort} onChange={e => setSort(e.target.value)} style={{ width: 150, height: 44, borderRadius: 14, fontWeight: 900, fontSize: 12 }}>
             <option value="newest">NEWEST</option>
-            <option value="popular">MOST POPULAR</option>
+            <option value="popular">VOPULAR</option>
           </Select>
-          <div style={{ width: 220 }}>
-            <Input placeholder="Search resources..." value={search} onChange={e => setSearch(e.target.value)} prefix="🔍" />
+          <div style={{ width: 260 }}>
+            <Input placeholder="Search global assets..." value={search} onChange={e => setSearch(e.target.value)} prefix="🔍" style={{ height: 44, borderRadius: 14 }} />
           </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
-          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="skeleton" style={{ height: 380, borderRadius: 20 }} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 28 }}>
+          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="skeleton" style={{ height: 420, borderRadius: 24 }} />)}
         </div>
       ) : posts.length === 0 ? (
-        <Card><EmptyState icon="📋" title="No resources found" subtitle="Be the first to share a high-quality resource for this category!" action={<Btn variant="primary" onClick={() => setShare(true)}>+ Share Now</Btn>} /></Card>
+        <div className="floating-panel">
+          <EmptyState 
+            icon="📋" 
+            title="Matrix Empty" 
+            subtitle="The global exchange for this vector is currently offline. Be the first to initialize shared knowledge." 
+            action={<Btn variant="primary" onClick={() => setShare(true)} style={{ height: 48, padding: '0 24px', borderRadius: 14, fontWeight: 900 }}>INITIALIZE RESOURCE</Btn>} 
+          />
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 28 }}>
           <AnimatePresence>
             {posts.map(p => <PostCard key={p.id} post={p} onLike={like} onSave={save_} />)}
           </AnimatePresence>

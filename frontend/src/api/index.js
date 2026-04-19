@@ -127,6 +127,7 @@ export const boardAPI = {
 export const chatAPI = {
   getRooms:    ()         => client.get('/chat/rooms'),
   getMessages: (subj, p)  => client.get(`/chat/${subj}/messages`, { params: p }),
+  getRecent:   ()         => client.get('/chat/recent'),
 };
 
 export const aiAPI = {

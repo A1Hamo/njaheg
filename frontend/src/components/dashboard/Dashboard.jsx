@@ -8,8 +8,10 @@ import { useAuthStore } from '../../context/store';
 import { plannerAPI, usersAPI, groupsAPI, toolsAPI } from '../../api/index';
 import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import StreakHeatmap from '../shared/StreakHeatmap';
 
 const TeacherDashboard = lazy(() => import('../teacher/TeacherDashboard'));
+
 
 /* ── Data mappings ─────────────────────────────────────── */
 const SUBJ_COLOR = {
@@ -93,13 +95,15 @@ function WelcomeBanner({ user }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      className="floating-panel animate-breathe"
       style={{
-        marginBottom: 28, borderRadius: 24,
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(6,182,212,0.06) 60%, rgba(124,58,237,0.04) 100%)',
-        border: '1px solid rgba(124,58,237,0.22)',
-        boxShadow: '0 8px 40px rgba(124,58,237,0.12)',
+        marginBottom: 28, borderRadius: 28,
+        padding: 0,
         overflow: 'hidden',
         position: 'relative',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 50%, rgba(99,102,241,0.04) 100%)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-premium)'
       }}
     >
       {/* Background decoration */}
@@ -107,21 +111,21 @@ function WelcomeBanner({ user }) {
         position: 'absolute', right: -60, top: -60,
         width: 320, height: 320,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)',
         pointerEvents: 'none',
       }}/>
       <div style={{
         position: 'absolute', left: '40%', bottom: -40,
         width: 200, height: 200,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
         pointerEvents: 'none',
       }}/>
 
       <div style={{ padding: '32px 40px', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
           {/* Left — greeting */}
-          <div>
+          <div style={{ flex: 1 }}>
             <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8 }}>
               {emoji} {greet}
             </p>
@@ -160,6 +164,21 @@ function WelcomeBanner({ user }) {
             </div>
           </div>
 
+          {/* Center — Generated Artwork */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ delay: 0.2, type: 'spring' }}
+            style={{ 
+              flexShrink: 0, 
+              width: 240, height: 180, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '-20px 20px -20px 0'
+            }}
+          >
+            <img src="/images/showcase-6.jpeg" alt="Student Studying" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 24, boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }} />
+          </motion.div>
+
           {/* Right — XP progress */}
           <div style={{ minWidth: 220 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -179,15 +198,14 @@ function WelcomeBanner({ user }) {
                 { label: 'Streak', value: `${user?.streak_days || 0}d`, icon: '🔥' },
                 { label: 'Rank',   value: user?.rank || '—',             icon: '🏅' },
               ].map(s => (
-                <div key={s.label} style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '8px 12px',
+                <div key={s.label} className="floating-card" style={{
+                  padding: '8px 12px',
                   textAlign: 'center',
+                  borderRadius: 14,
                 }}>
                   <div style={{ fontSize: 16, marginBottom: 2 }}>{s.icon}</div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -203,7 +221,7 @@ function WelcomeBanner({ user }) {
    ════════════════════════════════════════════════════════ */
 function QuickActions({ navigate }) {
   return (
-    <Card style={{ padding: 24 }}>
+    <div className="floating-panel" style={{ padding: 24, height: '100%' }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 18, letterSpacing: '-0.02em' }}>
         Quick Access
       </h3>
@@ -214,34 +232,35 @@ function QuickActions({ navigate }) {
             onClick={() => navigate(a.path)}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1, transition: { delay: i * 0.05 } }}
-            whileHover={{ y: -4, boxShadow: '0 12px 28px rgba(0,0,0,0.4)' }}
+            whileHover={{ y: -6, scale: 1.05, boxShadow: 'var(--shadow-xl)' }}
             whileTap={{ scale: 0.95 }}
+            className="floating-card"
             style={{
               display: 'flex', flexDirection: 'column',
               alignItems: 'flex-start',
-              padding: '16px 14px',
-              background: 'var(--surface2)',
+              padding: '20px 16px',
+              background: 'var(--glass)',
               border: '1px solid var(--border)',
-              borderRadius: 14,
+              borderRadius: 20,
               cursor: 'pointer',
-              gap: 6,
-              transition: 'all 0.22s var(--ease)',
+              gap: 8,
+              transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
               position: 'relative',
               overflow: 'hidden',
             }}
           >
             {/* Gradient accent bar */}
             <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-              background: a.grad, borderRadius: '14px 14px 0 0',
+              position: 'absolute', top: 0, left: 0, right: 0, height: 4,
+              background: a.grad, borderRadius: '20px 20px 0 0',
             }}/>
-            <span style={{ fontSize: 24 }}>{a.icon}</span>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{a.label}</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 500 }}>{a.sub}</div>
+            <span style={{ fontSize: 26, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.1))' }}>{a.icon}</span>
+            <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)', lineHeight: 1.1, fontFamily: 'var(--font-head)' }}>{a.label}</div>
+            <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{a.sub}</div>
           </motion.button>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -250,7 +269,7 @@ function QuickActions({ navigate }) {
    ════════════════════════════════════════════════════════ */
 function TodaySchedule({ sessions, isLoading, navigate }) {
   return (
-    <Card style={{ padding: 28 }}>
+    <div className="floating-panel" style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.025em', marginBottom: 3 }}>
@@ -289,15 +308,14 @@ function TodaySchedule({ sessions, isLoading, navigate }) {
                 key={s.id}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0, transition: { delay: i * 0.06 } }}
-                whileHover={{ x: 4 }}
+                whileHover={{ x: 6, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="floating-card"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 18px',
-                  borderRadius: 14,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderLeft: `3px solid ${color}`,
-                  cursor: 'pointer', transition: 'all 0.18s var(--ease)',
+                  padding: '16px 20px',
+                  borderRadius: 18,
+                  cursor: 'pointer', transition: 'all 0.22s var(--ease)',
                 }}
               >
                 <div style={{
@@ -331,7 +349,7 @@ function TodaySchedule({ sessions, isLoading, navigate }) {
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -389,6 +407,17 @@ function StudentDashboard() {
   const stats        = statsData?.data?.stats    || {};
   const studentCount = publicStats?.data?.count  || 0;
 
+  // All sessions for heatmap (last 90 days)
+  const { data: allSessData } = useQuery({
+    queryKey: ['sessions', 'all-heatmap'],
+    queryFn: () => plannerAPI.getSessions({
+      start: (() => { const d = new Date(); d.setDate(d.getDate() - 90); return d.toISOString(); })(),
+      end: new Date().toISOString(),
+    }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const allSessions = allSessData?.data?.sessions || [];
+
   return (
     <motion.div variants={stagger.container} initial="hidden" animate="visible">
       <motion.div variants={stagger.item}><WelcomeBanner user={user} /></motion.div>
@@ -406,6 +435,22 @@ function StudentDashboard() {
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:24, marginBottom:28 }}>
         <TodaySchedule sessions={sessions} isLoading={loadSess} navigate={navigate} />
         <QuickActions navigate={navigate} />
+      </motion.div>
+
+      {/* Streak Heatmap */}
+      <motion.div variants={stagger.item} style={{ marginBottom: 28 }}>
+        <div className="floating-panel" style={{ padding: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 3 }}>
+                🔥 Study Activity
+              </h3>
+              <p style={{ fontSize: 12, color: 'var(--text3)' }}>Your learning consistency over the last 90 days</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/analytics')}>Full Analytics →</Button>
+          </div>
+          <StreakHeatmap sessions={allSessions} days={90} />
+        </div>
       </motion.div>
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:20, marginBottom:28, alignItems:'stretch' }}>
@@ -436,6 +481,7 @@ function StudentDashboard() {
       </motion.div>
     </motion.div>
   );
+
 }
 
 /* ════════════════════════════════════════════════════════

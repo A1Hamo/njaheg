@@ -411,9 +411,12 @@ function AIChat() {
           <motion.div
             initial={{ width: 0, opacity: 0 }} animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="floating-panel"
             style={{
-              background: 'var(--surface2)', borderRight: '1px solid var(--border)',
+              margin: '12px 0 12px 12px',
+              borderRadius: 24,
               display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
+              backdropFilter: 'var(--glass-blur)'
             }}
           >
             <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -450,34 +453,36 @@ function AIChat() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* Header */}
-        <div style={{
-          padding: '14px 20px', borderBottom: '1px solid var(--border)',
-          background: 'var(--surface2)', backdropFilter: 'blur(20px)',
+        <div className="floating-panel" style={{
+          margin: '12px 12px 0 12px',
+          padding: '14px 24px',
+          borderRadius: 20,
           display: 'flex', alignItems: 'center', gap: 12,
+          backdropFilter: 'var(--glass-blur)'
         }}>
-          <button onClick={() => setShowHistory(v => !v)}
+          <motion.button 
+            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={() => setShowHistory(v => !v)}
             style={{ width: 34, height: 34, borderRadius: 10, background: showHistory ? 'rgba(99,102,241,0.15)' : 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 16 }}>
             {showHistory ? '✕' : '☰'}
-          </button>
+          </motion.button>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 0 16px rgba(99,102,241,0.4)' }}>🎓</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Najah AI</div>
+            <div style={{ fontWeight: 800, fontSize: 17, fontFamily: 'var(--font-head)' }}>Najah AI</div>
             <div style={{ fontSize: 11, color: geminiOk ? '#10B981' : '#F59E0B', fontWeight: 600 }}>
               {geminiOk === null ? '⏳ Connecting...' : geminiOk ? '● Gemini 2.0 Flash · Online' : '● Basic Mode · No API Key'}
             </div>
           </div>
 
-          {/* Search mode toggle */}
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => setSearchMode(v => !v)}
-            title={isAr ? 'وضع البحث' : 'Web Search Mode'}
+            className="floating-card"
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', borderRadius: 20,
-              background: searchMode ? 'linear-gradient(135deg,#06B6D4,#0891B2)' : 'var(--surface)',
-              border: '1px solid', borderColor: searchMode ? 'transparent' : 'var(--border)',
+              padding: '8px 16px', borderRadius: 20,
+              background: searchMode ? 'linear-gradient(135deg,#06B6D4,#0891B2)' : 'var(--glass)',
               color: searchMode ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 700,
             }}
           >
@@ -542,9 +547,11 @@ function AIChat() {
         </div>
 
         {/* Input area */}
-        <div style={{
-          padding: '12px 20px', borderTop: '1px solid var(--border)',
-          background: 'var(--surface2)', backdropFilter: 'blur(20px)',
+        <div className="floating-panel" style={{
+          margin: '0 12px 12px 12px',
+          padding: '16px 24px 20px', 
+          borderRadius: 24,
+          backdropFilter: 'var(--glass-blur)'
         }}>
           {searchMode && (
             <div style={{ fontSize: 12, color: '#06B6D4', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -562,15 +569,13 @@ function AIChat() {
                   ? (isAr ? 'ابحث عن أي موضوع...' : 'Search any topic...')
                   : (isAr ? 'اكتب سؤالك هنا... (Enter للإرسال، Shift+Enter لسطر جديد)' : 'Ask anything... (Enter to send, Shift+Enter for new line)')}
                 rows={1}
+                className="floating-card"
                 style={{
-                  width: '100%', padding: '14px 18px', borderRadius: 20, fontSize: 14,
-                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  width: '100%', padding: '14px 20px', borderRadius: 20, fontSize: 14,
                   resize: 'none', outline: 'none', lineHeight: 1.5,
                   maxHeight: 140, overflowY: 'auto', color: 'var(--text)',
-                  transition: 'border-color 0.2s',
+                  border: '1px solid var(--border)'
                 }}
-                onFocus={e => e.target.style.borderColor = '#6366F1'}
-                onBlur={e => e.target.style.borderColor = 'var(--border)'}
               />
             </div>
             <motion.button

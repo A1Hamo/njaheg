@@ -39,54 +39,59 @@ function ExamSetup({ onStart, loading }) {
   });
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <SectionHeader
-        icon="📝"
-        title="Exam Mode"
-        subtitle="Generate a timed exam and test your knowledge under pressure"
+        icon="🧠"
+        title="Intellect Exam Mode"
+        subtitle="Simulate real-world academic pressure with AI-curated timed assessments."
       />
 
-      <Card>
-        <form onSubmit={handleSubmit(onStart)} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div className="floating-panel" style={{ padding: 32 }}>
+        <form onSubmit={handleSubmit(onStart)} style={{ display:'flex', flexDirection:'column', gap:20 }}>
           <Select label="Subject" {...register('subject', { required: true })}>
             {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </Select>
 
           <Input
-            label="Topic (optional)"
-            placeholder="e.g. Fractions, Photosynthesis, Grammar..."
+            label="Specific Topic"
+            placeholder="e.g. Quantum Physics, Middle East History..."
             {...register('topic')}
           />
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <Select label="Number of Questions" {...register('count')}>
-              {[5,10,15,20].map(n => <option key={n} value={n}>{n} questions</option>)}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <Select label="Batch Size" {...register('count')}>
+              {[5,10,15,20,30].map(n => <option key={n} value={n}>{n} questions</option>)}
             </Select>
-            <Select label="Difficulty" {...register('difficulty')}>
+            <Select label="Cognitive Load" {...register('difficulty')}>
               {DIFFICULTIES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </Select>
           </div>
 
-          <Select label="Time Limit" {...register('duration')}>
+          <Select label="Temporal Constraints" {...register('duration')}>
             {DURATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </Select>
 
           <div style={{
-            padding:'14px 16px', background:'rgba(108,99,255,0.08)',
-            border:'1px solid rgba(108,99,255,0.15)', borderRadius:10,
-            fontSize:13, color:'var(--text2)', lineHeight:1.6,
+            padding:'16px 20px', background:'rgba(124,58,237,0.06)',
+            border:'1px solid rgba(124,58,237,0.15)', borderRadius:16,
+            fontSize:13, color:'var(--text2)', lineHeight:1.7,
           }}>
-            <strong style={{ color:'var(--primary-light)' }}>ℹ️ How it works:</strong> An AI-generated exam will be created with
-            a countdown timer. You must submit before time runs out. Each question is worth equal points
-            and your results are saved to your profile.
+            <strong style={{ color:'var(--primary-light)', display: 'block', marginBottom: 4 }}>🚀 System Protocol:</strong>
+            Najah AI will synthesize an original assessment. The neural timer will enforce strict submission. 
+            Results will be integrated into your performance matrix.
           </div>
 
-          <Btn type="submit" variant="primary" size="lg" loading={loading}
-            style={{ marginTop:4 }}>
-            🚀 Generate & Start Exam
-          </Btn>
+          <motion.button 
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            type="submit" 
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ padding: '14px', fontSize: 16, fontWeight: 800, marginTop: 8 }}
+          >
+            {loading ? '✨ Initializing Assessment...' : '🚀 Initialize Exam Protocol'}
+          </motion.button>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -172,21 +177,22 @@ function ExamActive({ exam, totalSeconds, onSubmit }) {
   return (
     <div>
       {/* Header bar */}
-      <div style={{
+      <div className="floating-panel" style={{
         display:'flex', alignItems:'center', justifyContent:'space-between',
-        marginBottom:20, padding:'16px 20px',
-        background:'var(--surface)', borderRadius:'var(--radius)',
-        border:'1px solid var(--border2)',
+        marginBottom:24, padding:'20px 28px',
+        borderRadius: 24,
       }}>
         <div>
-          <div style={{ fontWeight:700, fontSize:15 }}>{exam.subject?.replace('_',' ')} Exam</div>
-          <div style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>
-            {answered}/{questions.length} answered
-            {flagged.size > 0 && <span style={{ color:'var(--accent)', marginLeft:8 }}>🚩 {flagged.size} flagged</span>}
+          <div style={{ fontWeight:900, fontSize:18, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', color: 'var(--text)' }}>
+            {exam.subject?.replace('_',' ').toUpperCase()} ASSESSMENT
+          </div>
+          <div style={{ fontSize:12, color:'var(--text4)', marginTop: 4, fontWeight: 700 }}>
+            <span style={{ color: 'var(--primary)' }}>{answered}</span> / {questions.length} completed
+            {flagged.size > 0 && <span style={{ color:'var(--warning)', marginLeft:12 }}>🚩 {flagged.size} flagged</span>}
           </div>
         </div>
         <TimerRing seconds={seconds} totalSeconds={totalSeconds} />
-        <Btn variant="primary" onClick={handleSubmit}>Submit Exam →</Btn>
+        <Btn variant="aurora" onClick={handleSubmit}>Finalize Submission →</Btn>
       </div>
 
       {/* Progress */}
@@ -196,61 +202,69 @@ function ExamActive({ exam, totalSeconds, onSubmit }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 260px', gap:16, alignItems:'start' }}>
         {/* Question */}
-        <Card>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-            <div style={{ fontSize:12, color:'var(--text3)', fontWeight:600 }}>
-              QUESTION {current + 1} OF {questions.length}
+        <div className="floating-panel" style={{ padding: 32 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <div style={{ fontSize:12, color:'var(--text4)', fontWeight:800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              PHASE {current + 1} OF {questions.length}
             </div>
-            <div style={{ display:'flex', gap:6 }}>
-              {flagged.has(current) && <span style={{ fontSize:11, color:'var(--accent)' }}>🚩 Flagged</span>}
-              <Btn size="sm" onClick={toggleFlag}>
-                {flagged.has(current) ? '🚩 Unflag' : '🚩 Flag'}
+            <div style={{ display:'flex', gap:8 }}>
+              {flagged.has(current) && <span style={{ fontSize:11, color:'var(--warning)', fontWeight: 800 }}>🚩 FLAG ACTIVE</span>}
+              <Btn size="sm" variant="glass" onClick={toggleFlag}>
+                {flagged.has(current) ? 'Remove Flag' : 'Flag Question'}
               </Btn>
             </div>
           </div>
 
-          <div style={{ fontSize:16, fontWeight:600, lineHeight:1.6, marginBottom:20, color:'var(--text)' }}>
+          <div style={{ fontSize:18, fontWeight:800, lineHeight:1.7, marginBottom:28, color:'var(--text)', fontFamily: 'var(--font-head)' }}>
             {q.question}
           </div>
 
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {q.options.map((opt, oi) => {
               const selected = answers[current] === oi;
               return (
                 <motion.div key={oi}
                   onClick={() => answer(oi)}
-                  whileHover={{ x: 4 }}
+                  whileHover={{ scale: 1.015, x: 4 }}
                   whileTap={{ scale: 0.98 }}
+                  className="floating-card"
                   style={{
-                    padding:'13px 18px', borderRadius:10, cursor:'pointer',
-                    border:'1px solid',
-                    background: selected ? 'rgba(108,99,255,0.12)' : 'var(--surface)',
-                    borderColor: selected ? 'var(--primary)' : 'var(--border)',
+                    padding:'16px 24px', borderRadius:16, cursor:'pointer',
+                    background: selected ? 'var(--surface3)' : undefined,
+                    borderColor: selected ? 'var(--primary)' : undefined,
                     color: selected ? 'var(--text)' : 'var(--text2)',
-                    fontSize:14, transition:'all 0.15s',
+                    fontSize:15, transition:'all 0.2s',
+                    display: 'flex', alignItems: 'center'
                   }}
                 >
-                  <span style={{ fontWeight:600, marginRight:8, color:selected?'var(--primary-light)':'var(--text3)' }}>
-                    {String.fromCharCode(65 + oi)})
+                  <span style={{ 
+                    width: 32, height: 32, borderRadius: 10,
+                    fontWeight: 900, marginRight: 16, 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: selected ? 'var(--primary)' : 'var(--surface3)',
+                    color: selected ? '#fff' : 'var(--text4)',
+                    fontSize: 13
+                  }}>
+                    {String.fromCharCode(65 + oi)}
                   </span>
-                  {opt.replace(/^[A-Da-d]\)\s*/, '')}
+                  <div style={{ flex: 1 }}>{opt.replace(/^[A-Da-d]\)\s*/, '')}</div>
                 </motion.div>
               );
             })}
           </div>
 
           {/* Prev / Next */}
-          <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'space-between' }}>
-            <Btn onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0}>← Prev</Btn>
-            <span style={{ fontSize:12, color:'var(--text3)', alignSelf:'center' }}>{current+1}/{questions.length}</span>
-            <Btn onClick={() => setCurrent(c => Math.min(questions.length - 1, c + 1))} disabled={current === questions.length - 1}>Next →</Btn>
+          <div style={{ display:'flex', gap:12, marginTop:32, justifyContent:'space-between', borderTop: '1px solid var(--border)', paddingTop: 24 }}>
+            <Btn onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0}>← PREV</Btn>
+            <span style={{ fontSize:13, fontWeight: 800, color:'var(--text4)', alignSelf:'center' }}>{current+1} / {questions.length}</span>
+            <Btn variant="primary" onClick={() => setCurrent(c => Math.min(questions.length - 1, c + 1))} disabled={current === questions.length - 1}>NEXT →</Btn>
           </div>
-        </Card>
+        </div>
 
         {/* Question navigator */}
-        <Card style={{ padding:16 }}>
-          <div style={{ fontWeight:600, fontSize:13, marginBottom:12 }}>Question Navigator</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6 }}>
+        <div className="floating-panel" style={{ padding: 20 }}>
+          <div style={{ fontWeight:900, fontSize:13, marginBottom:16, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text2)' }}>Protocols Grid</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
             {questions.map((_, qi) => {
               const isAnswered = answers[qi] !== undefined;
               const isFlagged  = flagged.has(qi);
@@ -258,47 +272,44 @@ function ExamActive({ exam, totalSeconds, onSubmit }) {
               return (
                 <motion.div key={qi}
                   onClick={() => setCurrent(qi)}
-                  whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }}
+                  whileHover={{ scale:1.15, y: -2 }} whileTap={{ scale:0.9 }}
                   style={{
-                    width:32, height:32, borderRadius:7,
+                    width:36, height:36, borderRadius:10,
                     display:'flex', alignItems:'center', justifyContent:'center',
-                    fontSize:11, fontWeight:700, cursor:'pointer',
-                    border:'1px solid',
+                    fontSize:12, fontWeight:900, cursor:'pointer',
                     background: isCurrent   ? 'var(--primary)'
-                              : isFlagged  ? 'rgba(247,183,49,0.2)'
-                              : isAnswered ? 'rgba(14,205,168,0.15)'
-                              : 'var(--surface)',
-                    borderColor: isCurrent  ? 'var(--primary)'
-                              : isFlagged  ? 'var(--accent)'
-                              : isAnswered ? 'var(--accent2)'
-                              : 'var(--border)',
-                    color: isCurrent ? '#fff' : isFlagged ? 'var(--accent)' : isAnswered ? 'var(--accent2)' : 'var(--text3)',
+                              : isFlagged  ? 'var(--warning)'
+                              : isAnswered ? 'var(--success)'
+                              : 'var(--surface3)',
+                    boxShadow: isCurrent ? '0 0 12px var(--primary)' : 'none',
+                    color: isCurrent || isFlagged || isAnswered ? '#fff' : 'var(--text4)',
+                    transition: 'all 0.22s var(--ease)'
                   }}
                 >{qi + 1}</motion.div>
               );
             })}
           </div>
 
-          <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:6, fontSize:11, color:'var(--text3)' }}>
+          <div style={{ marginTop:24, display:'flex', flexDirection:'column', gap:8, fontSize:11, color:'var(--text4)', fontWeight: 800 }}>
             {[
-              { bg:'rgba(14,205,168,0.15)', bc:'var(--accent2)', label:'Answered' },
-              { bg:'rgba(247,183,49,0.2)',  bc:'var(--accent)',  label:'Flagged' },
-              { bg:'var(--surface)',        bc:'var(--border)',  label:'Not answered' },
+              { color:'var(--success)', label:'RESOLVED' },
+              { color:'var(--warning)',  label:'FLAGGED' },
+              { color:'var(--surface3)', label:'PENDING' },
             ].map(item => (
-              <div key={item.label} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{ width:14, height:14, borderRadius:3, background:item.bg, border:`1px solid ${item.bc}` }} />
+              <div key={item.label} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:12, height:12, borderRadius:4, background:item.color }} />
                 {item.label}
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop:16, padding:'12px', background:'var(--surface2)', borderRadius:8, fontSize:12 }}>
-            <div style={{ color:'var(--text3)', marginBottom:4 }}>Difficulty</div>
-            <div style={{ fontWeight:600, textTransform:'capitalize', color:'var(--primary-light)' }}>
+          <div className="floating-card" style={{ marginTop:24, padding:'14px', borderRadius:14, fontSize:12 }}>
+            <div style={{ color:'var(--text4)', marginBottom:4, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>DIFFICULTY</div>
+            <div style={{ fontWeight:900, textTransform:'uppercase', color:'var(--primary-light)', fontSize: 13 }}>
               {exam.difficulty}
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

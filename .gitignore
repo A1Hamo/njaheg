@@ -48,3 +48,5 @@ output.txt
 
 # Subfolders to ignore
 njah-clean/
+.vercel
+.env*.local

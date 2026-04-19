@@ -105,6 +105,7 @@ docker compose up postgres mongo redis -d
 ### 3. Start backend
 
 ```bash
+
 cd backend
 npm install
 npm run dev        # → http://localhost:5000

@@ -30,8 +30,15 @@ export function CommandPalette() {
       }
       if (e.key === 'Escape' && open) setOpen(false);
     };
+    const handleCustomEvent = () => setOpen(true);
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('open-command-palette', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('open-command-palette', handleCustomEvent);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -82,35 +89,40 @@ export function CommandPalette() {
           }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+            initial={{ opacity: 0, scale: 0.9, y: -40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            exit={{ opacity: 0, scale: 0.9, y: -40 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 32 }}
             style={{
-              width: 560, maxWidth: '90vw', background: 'var(--surface2)',
-              border: '1px solid var(--border2)', borderRadius: 'var(--radius)',
-              overflow: 'hidden', boxShadow: 'var(--shadow-lg), var(--glow)',
+              width: 600, maxWidth: '94vw', 
+              background: 'rgba(20, 20, 25, 0.75)',
+              backdropFilter: 'blur(30px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.08)', 
+              borderRadius: 24,
+              overflow: 'hidden', 
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 58, 237, 0.15)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 20, color: 'var(--text3)', marginRight: 12 }}>🔍</span>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize: 24, color: 'var(--primary)', marginRight: 16, filter: 'drop-shadow(0 0 8px var(--primary))' }}>⚡</span>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search commands... (e.g. 'files')"
+                placeholder="EXECUTIVE SEARCH..."
                 style={{
                   flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                  color: 'var(--text)', fontSize: 18, fontFamily: 'var(--font-en)'
+                  color: '#fff', fontSize: 20, fontFamily: 'var(--font-head)',
+                  fontWeight: 900, letterSpacing: '0.05em'
                 }}
               />
-              <div style={{ fontSize: 12, color: 'var(--text3)', background: 'var(--surface)', padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>ESC</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: 8, fontWeight: 900, letterSpacing: '0.1em' }}>ESC</div>
             </div>
             
-            <div style={{ maxHeight: 360, overflowY: 'auto', padding: 12 }} className="scroll-y">
+            <div style={{ maxHeight: 420, overflowY: 'auto', padding: 12, scrollbarWidth: 'none' }} className="scroll-y">
               {filtered.length === 0 ? (
-                <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text3)', fontSize: 15 }}>No commands found</div>
+                <div style={{ padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 16, fontWeight: 700 }}>NO NEURAL MATCHES FOUND</div>
               ) : (
                 filtered.map((cmd, idx) => {
                   const active = idx === selectedIndex;
@@ -119,17 +131,26 @@ export function CommandPalette() {
                       key={cmd.id}
                       onClick={() => { navigate(cmd.path); setOpen(false); }}
                       onMouseEnter={() => setSelectedIndex(idx)}
+                      whileTap={{ scale: 0.98 }}
                       style={{
-                        display: 'flex', alignItems: 'center', padding: '14px 16px',
-                        cursor: 'pointer', borderRadius: 'var(--radius-sm)',
-                        background: active ? 'var(--primary)' : 'transparent',
-                        color: active ? '#fff' : 'var(--text2)',
-                        transition: 'all 0.15s ease'
+                        display: 'flex', alignItems: 'center', padding: '16px 20px',
+                        cursor: 'pointer', borderRadius: 18,
+                        background: active ? 'linear-gradient(90deg, var(--primary), rgba(124,58,237,0.6))' : 'transparent',
+                        color: active ? '#fff' : 'rgba(255,255,255,0.6)',
+                        boxShadow: active ? '0 8px 20px rgba(124,58,237,0.3)' : 'none',
+                        transition: 'all 0.22s var(--ease)',
+                        marginBottom: 4
                       }}
                     >
-                      <span style={{ fontSize: 20, marginRight: 16 }}>{cmd.icon}</span>
-                      <span style={{ fontSize: 15, fontWeight: 500, flex: 1 }}>{cmd.title}</span>
-                      {active && <span style={{ fontSize: 12, opacity: 0.8, fontWeight: 600 }}>↵ Enter</span>}
+                      <span style={{ fontSize: 24, marginRight: 20, filter: active ? 'drop-shadow(0 0 8px #fff)' : 'none' }}>{cmd.icon}</span>
+                      <span style={{ fontSize: 16, fontWeight: 900, flex: 1, fontFamily: 'var(--font-head)', letterSpacing: '0.02em' }}>{cmd.title.toUpperCase()}</span>
+                      {active && (
+                        <motion.span 
+                          initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                          style={{ fontSize: 11, opacity: 0.9, fontWeight: 900, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 8, letterSpacing: '0.05em' }}>
+                          ENTER ↵
+                        </motion.span>
+                      )}
                     </motion.div>
                   );
                 })

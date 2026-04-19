@@ -174,8 +174,16 @@ async function chatStream(req, res) {
     }
   } catch (err) {
     logger.error('Stream error:', err.message);
-    res.write(`data: ${JSON.stringify({ error: 'Stream failed', message: err.message })}\n\n`);
+    
+    // Seamless Fallback mid-stream
+    const reply = internalAI.generateChatResponse(message, history, language);
+    const fallbackMsg = `\n\n*(Gemini Connection Lost - Falling back to Internal Engine)*\n\n${reply}`;
+    
+    res.write(`data: ${JSON.stringify({ chunk: fallbackMsg })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, fullText: fallbackMsg, provider: 'internal_fallback' })}\n\n`);
     res.end();
+    
+    saveToConversation(conversationId, req.user.id, message, fallbackMsg, language, null).catch(() => {});
   }
 }
 

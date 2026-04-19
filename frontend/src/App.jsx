@@ -1,4 +1,4 @@
-// src/App.jsx — Najah v5 — Landing + Onboarding + full routes
+// src/App.jsx — Najah v6 — Landing + Onboarding + full routes
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { AppShell } from './components/shared/Layout';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { Spinner } from './components/shared/UI';
 import { CommandPalette } from './components/shared/CommandPalette';
+import { I18nProvider } from './i18n/index';
 import './styles/global.css';
 
 // ── Lazy load all pages ──────────────────────────────────────
@@ -31,11 +32,21 @@ const AnalyticsPage     = lazy(() => import('./components/analytics/AnalyticsPag
 const ProfilePage       = lazy(() => import('./components/profile/ProfilePage'));
 const SettingsPage      = lazy(() => import('./components/settings/SettingsPage'));
 const ExamPage          = lazy(() => import('./components/exam/ExamPage'));
-const PrivateChat       = lazy(() => import('./components/chat/PrivateChat'));
 const QuizHistoryPage   = lazy(() => import('./components/quiz/QuizHistoryPage'));
 const GroupsPage        = lazy(() => import('./components/groups/GroupsPage'));
 const GroupDetailPage   = lazy(() => import('./components/groups/GroupDetailPage'));
+const AssignmentCreation= lazy(() => import('./components/groups/AssignmentCreation'));
+const GradingInterface  = lazy(() => import('./components/groups/GradingInterface'));
+const StudentProfile    = lazy(() => import('./components/groups/StudentProfile'));
 const StudyTools        = lazy(() => import('./components/tools/StudyTools'));
+const TeacherRegistration = lazy(() => import('./components/auth/TeacherRegistration'));
+const CurriculumBrowser    = lazy(() => import('./components/teacher/CurriculumBrowser'));
+const StudentsOverview     = lazy(() => import('./components/teacher/StudentsOverview'));
+const CalendarPage         = lazy(() => import('./components/calendar/CalendarPage'));
+const TeacherRegWizard     = lazy(() => import('./components/auth/teacher/TeacherRegisterWizard'));
+const TeacherPendingPage   = lazy(() => import('./components/auth/teacher/PendingApproval'));
+const PaymentPage          = lazy(() => import('./components/payment/PaymentPage'));
+const HelpCenter           = lazy(() => import('./components/help/HelpCenter'));
 
 // ── QueryClient ─────────────────────────────────────────────
 const qc = new QueryClient({
@@ -57,7 +68,13 @@ function PageLoader() {
       alignItems: 'center', justifyContent: 'center',
       background: 'var(--ink)', gap: 20,
     }}>
-      <div style={{ fontSize: 44 }}>🎓</div>
+      <svg width="52" height="52" viewBox="0 0 44 44" fill="none">
+        <defs><linearGradient id="pl-g" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse"><stop offset="0%" stopColor="#6366F1"/><stop offset="100%" stopColor="#A78BFA"/></linearGradient></defs>
+        <rect width="44" height="44" rx="14" fill="url(#pl-g)"/>
+        <path d="M13 32 L22 12 L31 32" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M16 26 L28 26" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+        <circle cx="22" cy="12" r="2.5" fill="#fff"/>
+      </svg>
       <Spinner size="lg" />
       <p style={{ fontSize: 13, color: 'var(--text3)' }}>Loading Najah…</p>
     </div>
@@ -121,11 +138,14 @@ function NotFound() {
         boxShadow: 'var(--shadow-lg)',
         backdropFilter: 'var(--glass-blur)',
       }}>
-        <div style={{ fontSize: 72, marginBottom: 24 }}>🔍</div>
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 24, opacity: 0.6 }}>
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
         <h2 style={{
           fontSize: 32, fontWeight: 900, fontFamily: 'var(--font-head)',
           marginBottom: 12, letterSpacing: '-0.03em',
-          background: 'linear-gradient(135deg,#fff 30%,var(--primary-light) 100%)',
+          background: 'linear-gradient(135deg, var(--text) 30%, #6366F1 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
         }}>
           Page Not Found
@@ -134,9 +154,9 @@ function NotFound() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <a href="/" style={{
-          padding: '13px 32px', background: 'var(--grad-primary)', color: '#fff',
+          padding: '13px 32px', background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: '#fff',
           borderRadius: 12, fontSize: 14, fontWeight: 700, textDecoration: 'none',
-          display: 'inline-block', boxShadow: 'var(--glow-intense)',
+          display: 'inline-block', boxShadow: '0 4px 20px rgba(99,102,241,0.3)',
           transition: 'all 0.3s var(--ease)',
         }}>
           ← Back to Dashboard
@@ -150,6 +170,7 @@ function NotFound() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <I18nProvider>
       <QueryClientProvider client={qc}>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <GlobalSync />
@@ -181,6 +202,9 @@ export default function App() {
             {/* ── Public (auth) ── */}
             <Route path="/login"                 element={<Public><LoginPage /></Public>} />
             <Route path="/register"              element={<Public><RegisterPage /></Public>} />
+            <Route path="/teacher/register"      element={<Public><TeacherRegistration /></Public>} />
+            <Route path="/teacher/apply"         element={<Public><Suspense fallback={<PageLoader />}><TeacherRegWizard /></Suspense></Public>} />
+            <Route path="/teacher/pending"       element={<Suspense fallback={<PageLoader />}><TeacherPendingPage /></Suspense>} />
             <Route path="/forgot-password"       element={<Public><ForgotPasswordPage /></Public>} />
             <Route path="/reset-password/:token" element={<Public><ResetPasswordPage /></Public>} />
             <Route path="/auth/callback"         element={<Suspense fallback={<PageLoader />}><AuthCallback /></Suspense>} />
@@ -192,9 +216,11 @@ export default function App() {
             <Route path="/notes"           element={<Protected><NotesPage /></Protected>} />
             <Route path="/board"           element={<Protected><BoardPage /></Protected>} />
             <Route path="/chat"            element={<Protected><ChatPage /></Protected>} />
-            <Route path="/chat/private"    element={<Protected><PrivateChat /></Protected>} />
+            <Route path="/chat/private"    element={<Protected><ChatPage /></Protected>} />
             <Route path="/ai"              element={<Protected><AIAssistant /></Protected>} />
             <Route path="/focus"           element={<Protected><FocusPage /></Protected>} />
+            <Route path="/calendar"        element={<Protected><CalendarPage /></Protected>} />
+            <Route path="/students"        element={<Protected><StudentsOverview /></Protected>} />
             <Route path="/achievements"    element={<Protected><AchievementsPage /></Protected>} />
             <Route path="/notifications"   element={<Protected><NotificationsPage /></Protected>} />
             <Route path="/analytics"       element={<Protected><AnalyticsPage /></Protected>} />
@@ -204,13 +230,20 @@ export default function App() {
             <Route path="/quiz-history"    element={<Protected><QuizHistoryPage /></Protected>} />
             <Route path="/groups"          element={<Protected><GroupsPage /></Protected>} />
             <Route path="/groups/:id"      element={<Protected><GroupDetailPage /></Protected>} />
+            <Route path="/groups/:id/assignments/new" element={<Protected><AssignmentCreation /></Protected>} />
+            <Route path="/groups/:id/assignments/:assignmentId/grade" element={<Protected><GradingInterface /></Protected>} />
+            <Route path="/groups/:id/students/:studentId" element={<Protected><StudentProfile /></Protected>} />
+            <Route path="/curriculum"      element={<Protected><CurriculumBrowser /></Protected>} />
             <Route path="/tools"           element={<Protected><StudyTools /></Protected>} />
+            <Route path="/payment"        element={<Protected><PaymentPage /></Protected>} />
+            <Route path="/help"           element={<Protected><HelpCenter /></Protected>} />
 
             {/* ── 404 ── */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </QueryClientProvider>
+      </I18nProvider>
     </ErrorBoundary>
   );
 }

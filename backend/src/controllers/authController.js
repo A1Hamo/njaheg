@@ -37,7 +37,7 @@ async function register(req, res) {
   try {
     const result = await pool.query(`
       INSERT INTO users (name,email,password_hash,grade,school,language,email_verified,role,institution_type)
-      VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8)
+      VALUES ($1,$2,$3,$4,$5,$6,false,$7,$8)
       RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
     `, [name, email, hash, grade || null, institutionName, language, role, institutionType]);
     rows = result.rows;
@@ -45,7 +45,7 @@ async function register(req, res) {
     // Fallback: columns may not exist yet
     const result = await pool.query(`
       INSERT INTO users (name,email,password_hash,grade,school,language,email_verified)
-      VALUES ($1,$2,$3,$4,$5,$6,true)
+      VALUES ($1,$2,$3,$4,$5,$6,false)
       RETURNING id,name,email,grade,level,xp_points,language,avatar_url,role,streak_days,email_verified
     `, [name, email, hash, grade || null, institutionName, language]);
     rows = result.rows;

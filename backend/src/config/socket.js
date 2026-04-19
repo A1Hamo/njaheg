@@ -2,6 +2,8 @@
 const jwt    = require('jsonwebtoken');
 const { pool } = require('./postgres');
 const { Message, PrivateMessage } = require('./mongo');
+const geminiAI = require('../services/geminiAI');
+const internalAI = require('../services/internalAI');
 const logger = require('../utils/logger');
 
 let ioInstance;
@@ -61,22 +63,65 @@ function setupSocketIO(io) {
         });
         // +5 XP for chat participation
         await pool.query('UPDATE users SET xp_points=xp_points+5 WHERE id=$1', [socket.user.id]);
+
+        // ── Inline @AI processing ──
+        if (type === 'text' && content.toLowerCase().includes('@ai')) {
+          setTimeout(async () => {
+             try {
+               // Show AI is typing...
+               io.to(roomId).emit('ai_typing', { isTyping: true });
+               
+               let aiResponse;
+               const prompt = content.replace(/@ai/gi, '').trim();
+               
+               if (geminiAI.isAvailable()) {
+                 aiResponse = await geminiAI.chat(prompt, [], 'en').catch(() => null);
+               }
+               if (!aiResponse) {
+                 aiResponse = internalAI.generateChatResponse(prompt, [], 'en');
+               }
+
+               const aiMsg = await Message.create({
+                 roomId, subject, 
+                 userId: '00000000-0000-0000-0000-000000000000', userName: 'Najah AI',
+                 avatarUrl: '/icon.png', content: aiResponse, type: 'text', fileUrl: null, replyTo: msg._id
+               });
+
+               io.to(roomId).emit('new_message', {
+                 id: aiMsg._id, roomId, userId: '00000000-0000-0000-0000-000000000000',
+                 userName: 'Najah AI', avatarUrl: '/icon.png',
+                 content: aiResponse, type: 'text', fileUrl: null, replyTo: msg._id, createdAt: aiMsg.createdAt,
+               });
+             } catch (err) {
+               logger.warn('Inline @AI failed:', err);
+             } finally {
+               io.to(roomId).emit('ai_typing', { isTyping: false });
+             }
+          }, 100);
+        }
+
       } catch (err) {
         socket.emit('error', { message: 'Message failed' });
         logger.error('send_message:', err);
       }
     });
 
-    // ── Private Messaging ──
+    // ── Private Messaging (WhatsApp Protocol) ──
     socket.on('send_private_message', async ({ receiverId, content, type = 'text', fileUrl }) => {
       if (!content?.trim() && type === 'text') return;
       try {
+        // Automatically mark delivered if the receiver is currently connected to their personal socket room
+        const receiverRoom = io.sockets.adapter.rooms.get(`user:${receiverId}`);
+        const isOnline = receiverRoom && receiverRoom.size > 0;
+        const initStatus = isOnline ? 'delivered' : 'sent';
+
         const msg = await PrivateMessage.create({
           senderId: socket.user.id,
           receiverId,
           content,
           type,
           fileUrl,
+          status: initStatus,
         });
         
         const payload = {
@@ -88,32 +133,29 @@ function setupSocketIO(io) {
           content,
           type,
           fileUrl,
+          status: initStatus,
           createdAt: msg.createdAt,
         };
 
-        // Emit to both sender and receiver
         io.to(`user:${receiverId}`).emit('new_private_message', payload);
         socket.emit('new_private_message', payload);
         
-        // Push notification (non-blocking)
         const notif = {
           type: 'private_message',
           title: `New message from ${socket.user.name}`,
           body: type === 'text' ? content.slice(0, 100) : `Sent you a ${type}`,
           data: { senderId: socket.user.id },
-          action_url: `/chats?userId=${socket.user.id}`,
+          action_url: `/chat/private`,
         };
 
         pool.query(
-          `INSERT INTO notifications (user_id, type, title, body, data, action_url) 
-           VALUES ($1::uuid, $2, $3, $4, $5, $6)`,
+          `INSERT INTO notifications (user_id, type, title, body, data, action_url) VALUES ($1::uuid, $2, $3, $4, $5, $6)`,
           [receiverId, notif.type, notif.title, notif.body, JSON.stringify(notif.data), notif.action_url]
-        ).catch(err => logger.error('PM notification failed:', err.message, '| receiverId:', receiverId));
+        ).catch(() => {});
 
         pushNotification(receiverId, notif);
       } catch (err) {
         logger.error('send_private_message:', err);
-        socket.emit('error', { message: 'Failed to send private message' });
       }
     });
 
@@ -130,9 +172,32 @@ function setupSocketIO(io) {
           targetId, 
           messages: msgs.reverse().map(m => ({ ...m, id: m._id.toString() })) 
         });
+
+        // Upon fetching, auto-mark their unread messages to us as 'read'
+        const unreadIds = msgs.filter(m => m.senderId === targetId && m.status !== 'read').map(m => m._id);
+        if (unreadIds.length > 0) {
+          await PrivateMessage.updateMany({ _id: { $in: unreadIds } }, { status: 'read' });
+          io.to(`user:${targetId}`).emit('messages_read_by_target', {
+            readerId: socket.user.id,
+            messageIds: unreadIds.map(id => id.toString())
+          });
+        }
       } catch (err) {
         logger.error('fetch_private_history:', err);
       }
+    });
+
+    socket.on('mark_messages_read', async ({ senderId }) => {
+      try {
+        await PrivateMessage.updateMany(
+          { senderId, receiverId: socket.user.id, status: { $ne: 'read' } },
+          { status: 'read' }
+        );
+        io.to(`user:${senderId}`).emit('messages_read_by_target', {
+          readerId: socket.user.id,
+          allFromUser: true
+        });
+      } catch (err) {}
     });
 
     socket.on('react_message', async ({ messageId, emoji }) => {
@@ -154,8 +219,44 @@ function setupSocketIO(io) {
       const roomId = `room:${subject.toLowerCase()}`;
       socket.to(roomId).emit('user_typing', {
         userId: socket.user.id, name: socket.user.name, isTyping,
-        roomId,  // ← Fix: include roomId so frontend can filter by room
+        roomId,
       });
+    });
+
+    // ── Private Typing Indicator ──
+    socket.on('private_typing', ({ receiverId, isTyping }) => {
+      io.to(`user:${receiverId}`).emit('private_user_typing', {
+        senderId: socket.user.id,
+        senderName: socket.user.name,
+        isTyping,
+      });
+    });
+
+    // ── Edit Private Message ──
+    socket.on('edit_private_message', async ({ messageId, content }) => {
+      if (!content?.trim()) return;
+      try {
+        const msg = await PrivateMessage.findOneAndUpdate(
+          { _id: messageId, senderId: socket.user.id },
+          { content: content.trim(), edited: true },
+          { new: true }
+        );
+        if (!msg) return socket.emit('error', { message: 'Message not found or unauthorized' });
+        const payload = { messageId, content: msg.content, edited: true };
+        socket.emit('message_edited', payload);
+        io.to(`user:${msg.receiverId}`).emit('message_edited', payload);
+      } catch (err) { logger.error('edit_private_message:', err); }
+    });
+
+    // ── Delete Private Message ──
+    socket.on('delete_private_message', async ({ messageId }) => {
+      try {
+        const msg = await PrivateMessage.findOneAndDelete({ _id: messageId, senderId: socket.user.id });
+        if (!msg) return socket.emit('error', { message: 'Message not found or unauthorized' });
+        const payload = { messageId };
+        socket.emit('message_deleted', payload);
+        io.to(`user:${msg.receiverId}`).emit('message_deleted', payload);
+      } catch (err) { logger.error('delete_private_message:', err); }
     });
 
     // ── WebRTC Voice/Video Call Signaling ──

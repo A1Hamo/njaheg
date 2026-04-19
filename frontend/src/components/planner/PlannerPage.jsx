@@ -101,22 +101,25 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
           return (
             <motion.div key={day.toISOString()}
               onClick={() => setSelectedDay(day)}
-              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.95 }}
               style={{
-                padding: '10px 6px', borderRadius: 10, textAlign: 'center', cursor: 'pointer',
+                padding: '12px 6px', borderRadius: 14, textAlign: 'center', cursor: 'pointer',
                 border: '1px solid',
-                background: isSelected ? 'var(--primary)' : isToday ? 'rgba(108,99,255,0.08)' : 'var(--surface)',
-                borderColor: isSelected ? 'var(--primary)' : isToday ? 'var(--primary)' : 'var(--border)',
-                transition: 'all 0.2s',
+                background: isSelected 
+                  ? 'linear-gradient(135deg, var(--primary), var(--brand-600))' 
+                  : isToday ? 'rgba(124,58,237,0.08)' : 'var(--surface2)',
+                borderColor: isSelected ? 'transparent' : isToday ? 'var(--primary)' : 'var(--border)',
+                boxShadow: isSelected ? '0 8px 16px rgba(124,58,237,0.3)' : 'none',
+                transition: 'all 0.22s var(--ease)',
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)',
+              <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-head)',
                 color: isSelected ? '#fff' : 'var(--text)' }}>{format(day, 'd')}</div>
-              <div style={{ fontSize: 10, color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--text3)',
-                marginTop: 2 }}>{format(day, 'EEE')}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? 'rgba(255,255,255,0.8)' : 'var(--text4)',
+                marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{format(day, 'EEE')}</div>
               {hasSessions && (
-                <div style={{ width: 5, height: 5, borderRadius: '50%', margin: '4px auto 0',
-                  background: isSelected ? '#fff' : 'var(--accent)' }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', margin: '6px auto 0',
+                  background: isSelected ? '#fff' : 'var(--primary)', boxShadow: isSelected ? 'none' : '0 0 8px var(--primary)' }} />
               )}
             </motion.div>
           );
@@ -143,11 +146,12 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
                 <motion.div key={s.id} layout
                   initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
+                  whileHover={{ scale: 1.01, x: 4 }}
+                  className="floating-card"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-                    background: 'var(--surface)', borderRadius: 12,
-                    borderLeft: `3px solid ${subj?.color || 'var(--primary)'}`,
-                    border: '1px solid var(--border)',
+                    display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
+                    borderRadius: 16,
+                    borderLeft: `4px solid ${subj?.color || 'var(--primary)'}`,
                   }}
                 >
                   <div>
@@ -229,9 +233,9 @@ function AIScheduleTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Card>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>🤖 Generate AI Study Schedule</div>
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="floating-panel" style={{ padding: 28 }}>
+        <h3 style={{ fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 20 }}>🤖 Generate AI Study Schedule</h3>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <Select label="Subject" {...register('subject')}>
             {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </Select>
@@ -244,10 +248,17 @@ function AIScheduleTab() {
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
           </Select>
-          <Button type="submit" variant="primary" loading={loading}
-            style={{ gridColumn: '1/-1' }}>✨ Generate Plan</Button>
+          <motion.button 
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            type="submit" 
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ gridColumn: '1/-1', padding: '12px', fontSize: 15, fontWeight: 800 }}
+          >
+            {loading ? '✨ Generating...' : '✨ Generate AI Plan'}
+          </motion.button>
         </form>
-      </Card>
+      </div>
 
       {plan && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -347,31 +358,29 @@ export default function PlannerPage() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total Sessions', value: sessions.length, icon: '📖' },
-          { label: 'Completed',      value: completed,       icon: '✅' },
-          { label: 'Hours Studied',  value: `${Math.round(totalMinutes/60)}h`, icon: '⏱️' },
+          { label: 'Total Sessions', value: sessions.length, icon: '📅', color: 'var(--primary)' },
+          { label: 'Completed',      value: completed,       icon: '✨', color: 'var(--success)' },
+          { label: 'Hours Studied',  value: `${Math.round(totalMinutes/60)}h`, icon: '💎', color: 'var(--warning)' },
         ].map(s => (
-          <Card key={s.label} style={{ padding: '14px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 22 }}>{s.icon}</span>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-head)' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text3)' }}>{s.label}</div>
-              </div>
+          <div key={s.label} className="floating-panel" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 16, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{s.icon}</div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, fontFamily: 'var(--font-head)', color: 'var(--text)', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 4 }}>{s.label}</div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
       <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'weekly' && (
-        <Card>
+        <div className="floating-panel" style={{ padding: 28 }}>
           {isLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 60 }} />)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 68, borderRadius: 16 }} />)}
             </div>
           ) : (
             <WeeklyView
@@ -380,7 +389,7 @@ export default function PlannerPage() {
               onDelete={(id) => { if (window.confirm('Delete this session?')) deleteSession(id); }}
             />
           )}
-        </Card>
+        </div>
       )}
 
       {activeTab === 'ai' && <AIScheduleTab />}
