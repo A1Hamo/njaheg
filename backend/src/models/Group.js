@@ -24,6 +24,10 @@ const groupSchema = new mongoose.Schema({
   isActive:        { type: Boolean, default: true },
   color:           { type: String, default: '#7C3AED' },
   emoji:           { type: String, default: '📚' },
+  privacy:         { type: String, enum: ['public', 'private'], default: 'public' },
+  isPaid:          { type: Boolean, default: false },
+  price:           { type: Number, default: 0 },
+  curriculumLinked:{ type: String, default: null },
 }, { timestamps: true });
 
 groupSchema.index({ teacherId: 1, isActive: 1 });

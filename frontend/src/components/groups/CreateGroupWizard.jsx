@@ -79,14 +79,17 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
         description: form.description,
         maxStudents: form.capacity,
         privacy: form.enrollment === 'open' ? 'public' : 'private',
-        schedule: []
+        schedule: [],
+        isPaid: form.isPaid,
+        price: form.isPaid ? Number(form.price) : 0,
+        curriculumLinked: form.curriculumLinked ? form.curriculumLinked.unit : null,
       };
       
       const { data } = await groupsAPI.create(payload);
       toast.success(lang === 'ar' ? '✅ تم إنشاء المجموعة بنجاح!' : '✅ Group created!');
       if (onCreated) onCreated(data.group);
       if (onClose) onClose();
-      navigate(`/groups/${data.group.id}`);
+      // Remove navigate so the new group appears instantly on the grid
     } catch (err) {
       console.error(err);
       toast.error(lang === 'ar' ? '❌ فشل إنشاء المجموعة' : '❌ Failed to create group');
@@ -320,9 +323,22 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
                       ))}
                     </div>
                     {form.isPaid && (
-                      <input type="number" value={form.price} onChange={e => set('price', e.target.value)}
-                        placeholder={lang === 'ar' ? 'سعر الحصة (جنيه)' : 'Price per session (EGP)'}
-                        style={{ marginTop: 12 }} />
+                      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <input type="number" value={form.price} onChange={e => set('price', e.target.value)}
+                          placeholder={lang === 'ar' ? 'سعر الحصة (جنيه)' : 'Price per session (EGP)'}
+                          style={{ width: '100%', padding: '10px 14px', background: 'var(--surface2)', border: '1.5px solid var(--border)', borderRadius: 10, color: 'var(--text)', outline: 'none', fontSize: 14, fontFamily: 'inherit' }} />
+                        <div>
+                          <label className="form-label">{lang === 'ar' ? 'بوابات الدفع المدعومة' : 'Supported Payment Gateways'}</label>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                            {['InstaPay', 'Bank Transfer', 'Vodafone Cash', 'E-wallets'].map(gw => (
+                              <span key={gw} style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.1)', color: '#059669', borderRadius: 8, fontSize: 12, fontWeight: 700, border: '1px solid rgba(16,185,129,0.2)' }}>✓ {gw}</span>
+                            ))}
+                          </div>
+                          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>
+                            {lang === 'ar' ? 'سيتمكن الطلاب من الدفع عبر هذه البوابات تلقائياً.' : 'Students can pay automatically via these integrated gateways.'}
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

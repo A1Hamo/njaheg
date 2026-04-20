@@ -38,9 +38,10 @@ async function connectRedis() {
 }
 
 const getRedis   = ()               => client;
-const cacheSet   = (k, v, ttl=300) => client.setEx(k, ttl, JSON.stringify(v));
-const cacheGet   = async k          => { const v = await client.get(k); return v ? JSON.parse(v) : null; };
-const cacheDel   = k                => client.del(k);
-const cacheIncr  = (k, ttl=86400)  => client.incr(k).then(v => { client.expire(k, ttl); return v; });
+const isReady    = () => client && client.isOpen;
+const cacheSet   = async (k, v, ttl=300) => { if (isReady()) { try { await client.setEx(k, ttl, JSON.stringify(v)); } catch(e){} } };
+const cacheGet   = async k          => { if (isReady()) { try { const v = await client.get(k); return v ? JSON.parse(v) : null; } catch(e){ return null; } } return null; };
+const cacheDel   = async k                => { if (isReady()) { try { await client.del(k); } catch(e){} } };
+const cacheIncr  = async (k, ttl=86400)  => { if (isReady()) { try { const v = await client.incr(k); await client.expire(k, ttl); return v; } catch(e){ return 0; } } return 0; };
 
 module.exports = { connectRedis, getRedis, cacheSet, cacheGet, cacheDel, cacheIncr };

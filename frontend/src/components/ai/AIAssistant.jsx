@@ -51,11 +51,12 @@ function TypingDots() {
 // ── AI status badge ───────────────────────────────────────
 function StatusBadge({ provider }) {
   const labels = {
-    gemini:           { label: '✨ Najah AI', color: '#6366F1', bg: 'rgba(99,102,241,0.12)' },
-    internal_fallback:{ label: '⚡ Basic Mode', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
+    gemini:           { label: '✨ External AI', color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' },
+    najah_inhouse:    { label: '🧠 Najah Massive AI', color: '#10B981', bg: 'rgba(16,185,129,0.12)' },
+    najah_heuristics: { label: '⚡ Core Heuristics', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
     error:            { label: '❌ Error', color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
   };
-  const b = labels[provider] || labels.gemini;
+  const b = labels[provider] || labels.najah_inhouse;
   return (
     <span style={{
       fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
@@ -470,7 +471,7 @@ function AIChat() {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 17, fontFamily: 'var(--font-head)' }}>Najah AI</div>
             <div style={{ fontSize: 11, color: geminiOk ? '#10B981' : '#F59E0B', fontWeight: 600 }}>
-              {geminiOk === null ? '⏳ Connecting...' : geminiOk ? '● Gemini 2.0 Flash · Online' : '● Basic Mode · No API Key'}
+              {geminiOk === null ? '⏳ Connecting...' : '● Najah Massive In-House AI · Online'}
             </div>
           </div>
 

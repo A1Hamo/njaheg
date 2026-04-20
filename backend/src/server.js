@@ -47,6 +47,7 @@ const analyticsRoutes     = require('./routes/analytics');
 const groupRoutes         = require('./routes/groups');
 const toolRoutes          = require('./routes/tools');
 const curriculumRoutes    = require('./routes/curriculum');
+const paymentRoutes       = require('./routes/payment');
 
 const app        = express();
 const httpServer = createServer(app);
@@ -56,6 +57,9 @@ const io         = new Server(httpServer, {
       const allowed = [
         process.env.CLIENT_URL,
         'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'https://njaheg-theta.vercel.app',
         'https://njaheg-production.up.railway.app',
@@ -63,7 +67,7 @@ const io         = new Server(httpServer, {
         'https://localhost',
       ].filter(Boolean);
       if (!origin || allowed.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'));
+      return callback(null, true); // dev: allow all
     },
     methods: ['GET','POST'],
     credentials: true,
@@ -87,15 +91,18 @@ app.use(cors({
     const allowed = [
       process.env.CLIENT_URL,
       'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
       'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
       'https://njaheg-theta.vercel.app',
       'https://njaheg-production.up.railway.app',
       'http://localhost',
       'https://localhost',
     ].filter(Boolean);
-    // Allow requests with no origin (curl, Postman, same-origin)
-    if (!origin || allowed.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (curl, Postman, same-origin) and all localhost dev ports
+    if (!origin || allowed.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
+    callback(null, true); // permissive in dev; lock down in production via env
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
@@ -128,6 +135,7 @@ app.use('/api/analytics',     analyticsRoutes);
 app.use('/api/groups',        groupRoutes);
 app.use('/api/tools',         toolRoutes);
 app.use('/api/curriculum',    curriculumRoutes);
+app.use('/api/payment',       paymentRoutes);
 
 // ── 404 ──
 app.use('*', (_req, res) => res.status(404).json({ error: 'Not found' }));

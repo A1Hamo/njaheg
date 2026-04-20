@@ -116,7 +116,7 @@ function AuthScene() {
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none', background: '#0f172a' }}>
       {/* Single static background image */}
       <img 
-        src="/images/showcase-1.jpeg" 
+        src="/images/najah-bg-1.jpeg" 
         alt="" 
         style={{
           position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
@@ -178,7 +178,7 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
               }}>
                 {isTeacher ? <><span style={{display:'block'}}>Empower Your</span> Students.</> : <><span style={{display:'block'}}>Learn Smarter,</span> Achieve More.</>}
               </h1>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, maxWidth: 400, marginBottom: 48 }}>
+              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, maxWidth: 400, marginBottom: 40 }}>
                 {isTeacher
                   ? "The complete classroom management platform. Track student progress, host interactive quizzes, and leverage AI to plan lessons effortlessly."
                   : "The all-in-one AI-powered platform built for Egyptian students — study tools, exams, real-time chat, and personalized analytics."}
@@ -214,6 +214,18 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
               </div>
             </motion.div>
           </AnimatePresence>
+
+          {/* Campus photo strip */}
+          <div style={{ marginTop: 28 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Our Campus</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[1, 5, 8, 10].map(n => (
+                <div key={n} style={{ flex: 1, height: 66, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <img src={`/images/najah-bg-${n}.jpeg`} alt="campus" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85) saturate(1.1)' }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
 
@@ -294,21 +306,19 @@ export function LoginPage() {
 
   return (
     <AuthLayout role={role} setRole={setRole}>
-      {/* Glassmorphism form card */}
+      {/* Themed form card to fix text contrast */}
       <div style={{
-        background: 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
         borderRadius: 24, padding: '36px 32px',
-        boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+        boxShadow: 'var(--shadow-xl)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <LogoMark role={role} />
-          <h2 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginTop: 14, marginBottom: 6, color: '#fff' }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginTop: 14, marginBottom: 6, color: 'var(--text)' }}>
             Welcome Back {role === 'teacher' ? 'Professor' : ''}
           </h2>
-          <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.55)' }}>Sign in to continue to your dashboard</p>
+          <p style={{ fontSize: 13.5, color: 'var(--text3)' }}>Sign in to continue to your dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -329,7 +339,7 @@ export function LoginPage() {
           </div>
 
           <div style={{ textAlign: 'right', marginTop: -8 }}>
-            <Link to="/forgot-password" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+            <Link to="/forgot-password" style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
               Forgot password?
             </Link>
           </div>
@@ -344,7 +354,7 @@ export function LoginPage() {
 
         <motion.button onClick={() => authAPI.googleLogin()}
           whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-          style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          style={{ width: '100%', padding: '12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
         >
           <GoogleIcon /> Continue with Google
         </motion.button>
@@ -357,7 +367,7 @@ export function LoginPage() {
               navigate('/');
             } catch { toast.error('Error starting guest session'); }
           }}
-          style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Continue as Guest
           </motion.button>
         )}
@@ -365,7 +375,7 @@ export function LoginPage() {
 
       <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
         Don't have an account?{' '}
-        <Link to="/register" style={{ color: '#A5B4FC', fontWeight: 700 }}>
+        <Link to="/register" style={{ color: '#C7D2FE', fontWeight: 700 }}>
           Create account →
         </Link>
       </p>
@@ -407,6 +417,10 @@ export function RegisterPage() {
 
   return (
     <AuthLayout role={role} setRole={setRole}>
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 24, padding: '36px 32px', boxShadow: 'var(--shadow-xl)',
+      }}>
       <div style={{ textAlign: 'center', marginBottom: 22 }}>
         <h2 style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 5, color: 'var(--text)' }}>
           Join Najah 🚀
@@ -479,6 +493,7 @@ export function RegisterPage() {
           Create Account
         </Btn>
       </form>
+      </div>
 
       <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--text3)' }}>
         Already have an account?{' '}
@@ -525,13 +540,18 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout role="student" setRole={null}>
-      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center' }}>Reset Password</h2>
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 24, padding: '36px 32px', boxShadow: 'var(--shadow-xl)',
+      }}>
+      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center', color: 'var(--text)' }}>Reset Password</h2>
       <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 24 }}>Enter your email address to receive a recovery link.</p>
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Input label="Email Address" type="email" icon={<MailIcon />} placeholder="your@email.com" {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+/, message: 'Invalid email' } })} />
         <Btn type="submit" loading={isSubmitting} variant="primary" size="lg" style={{ borderRadius: 12 }}>Send Reset Link →</Btn>
       </form>
       <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text3)' }}>← Back to login</Link></div>
+      </div>
     </AuthLayout>
   );
 }
@@ -556,7 +576,11 @@ export function ResetPasswordPage() {
 
   return (
     <AuthLayout role="student" setRole={null}>
-      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center' }}>Set New Password</h2>
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 24, padding: '36px 32px', boxShadow: 'var(--shadow-xl)',
+      }}>
+      <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, textAlign: 'center', color: 'var(--text)' }}>Set New Password</h2>
       <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 24 }}>Choose a strong password for your account.</p>
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Input label="New Password" type={showPwd ? 'text' : 'password'} icon={<LockIcon />} placeholder="Minimum 8 characters"
@@ -570,6 +594,7 @@ export function ResetPasswordPage() {
         <Btn type="submit" loading={isSubmitting} variant="primary" size="lg" style={{ borderRadius: 12 }}>Reset Password →</Btn>
       </form>
       <div style={{ textAlign: 'center', marginTop: 20 }}><Link to="/login" style={{ fontSize: 13, color: 'var(--text3)' }}>← Back to login</Link></div>
+      </div>
     </AuthLayout>
   );
 }

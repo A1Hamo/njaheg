@@ -292,6 +292,7 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
 function JoinGroupModal({ open, onClose, onJoined }) {
   const [code, setCode]     = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const submit = async e => {
     e.preventDefault();
@@ -311,7 +312,15 @@ function JoinGroupModal({ open, onClose, onJoined }) {
       onJoined(data.group);
       onClose();
       setCode('');
-    } catch { }
+    } catch (err) {
+      if (err.response?.status === 402) {
+        toast.info(err.response.data.error || 'Payment required to join this group.');
+        onClose();
+        navigate(`/payment?amount=${err.response.data.price}&groupId=${err.response.data.groupId}&type=group_join`);
+      } else {
+        toast.error(err.response?.data?.error || 'Failed to join group');
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -448,7 +457,7 @@ export default function GroupsPage() {
               : 'Ask your teacher for a 6-character invite code to join a group.'}
           </p>
           {isTeacher ? (
-            <button onClick={() => setShowCreate(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
+            <button onClick={() => setShowWizard(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
               + Create First Class
             </button>
           ) : (
@@ -456,7 +465,7 @@ export default function GroupsPage() {
               <button onClick={() => setShowJoin(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,#3B82F6,#1D4ED8)', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
                 🔑 Join with Code
               </button>
-              <button onClick={() => setShowCreate(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
+              <button onClick={() => setShowWizard(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
                 + Create Study Group
               </button>
             </div>
@@ -472,7 +481,7 @@ export default function GroupsPage() {
               key={g._id}
               group={g}
               isTeacher={isTeacher}
-              isOwner={g.teacherId === (user?.id || user?.userId)}
+              isOwner={g.teacherId === (user?.id || user?.userId) || g.owner?.toString() === (user?.id || user?.userId)?.toString() || g.ownerId === (user?.id || user?.userId)}
               onOpen={id => navigate(`/groups/${id}`)}
               onDelete={deleteGroup}
             />

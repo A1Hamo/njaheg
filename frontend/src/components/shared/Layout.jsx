@@ -259,9 +259,10 @@ function NotifDrawer({ open, onClose }) {
 
 function StaticAppBackground() {
   const { institutionMode } = useUIStore();
-  const bgImage = institutionMode === 'school' 
-    ? '/images/showcase-22.jpeg' 
-    : '/images/showcase-5.jpeg';
+  // Use user's own najah-bg images (copied from /images folder)
+  const bgImage = institutionMode === 'university'
+    ? '/images/najah-bg-5.jpeg'   // university campus feel
+    : '/images/najah-bg-1.jpeg';  // school setting
   
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -660,7 +661,8 @@ export function Header({ sidebarOpen, onToggle, onOpenNotifs, onOpenWizard }) {
           top: 12,
           zIndex: 500, 
           flexShrink: 0,
-          margin: '12px 12px 0 0'
+          margin: '12px 12px 0 0',
+          overflow: 'visible'
         }}
       >
         {/* Menu toggle */}
@@ -777,7 +779,7 @@ export function Header({ sidebarOpen, onToggle, onOpenNotifs, onOpenWizard }) {
                   exit={{ opacity: 0, scale: 0.94, y: 8 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   style={{
-                    position: 'absolute', top: 50, right: 0, width: 280,
+                    position: 'absolute', top: 50, ...(lang === 'ar' ? { left: 0 } : { right: 0 }), width: 280,
                     background: 'var(--surface3)',
                     border: '1px solid var(--border2)',
                     backdropFilter: 'var(--glass-blur)',

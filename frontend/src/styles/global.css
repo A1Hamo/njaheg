@@ -1220,7 +1220,6 @@ code, pre {
 }
 
 /* ── Hide on mobile ── */
-.hide-mobile { }
 @media (max-width: 768px) {
   .hide-mobile { display: none !important; }
 }

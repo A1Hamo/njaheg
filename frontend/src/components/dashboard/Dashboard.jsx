@@ -9,6 +9,7 @@ import { plannerAPI, usersAPI, groupsAPI, toolsAPI } from '../../api/index';
 import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import StreakHeatmap from '../shared/StreakHeatmap';
+import { WeatherWidget, WordOfDayWidget } from '../shared/PublicAPIWidgets';
 
 const TeacherDashboard = lazy(() => import('../teacher/TeacherDashboard'));
 
@@ -453,14 +454,22 @@ function StudentDashboard() {
         </div>
       </motion.div>
 
-      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:20, marginBottom:28, alignItems:'stretch' }}>
+      {/* Quote, Weather & Word of Day — Public API Widgets */}
+      <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:28 }}>
         <DailyQuoteWidget />
-        <div style={{ minWidth:180, padding:'24px 20px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
-          <div style={{ fontSize:44, lineHeight:1 }}>🔥</div>
-          <div style={{ fontSize:38, fontWeight:900, fontFamily:'var(--font-head)', color:'#FBBF24', lineHeight:1, letterSpacing:'-0.04em' }}>{user?.streak_days || 0}</div>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Day Streak</div>
-          <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <WeatherWidget />
+          <div style={{ minWidth:180, padding:'18px 20px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
+            <div style={{ fontSize:40, lineHeight:1 }}>🔥</div>
+            <div style={{ fontSize:36, fontWeight:900, fontFamily:'var(--font-head)', color:'#FBBF24', lineHeight:1, letterSpacing:'-0.04em' }}>{user?.streak_days || 0}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Day Streak</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}</div>
+          </div>
         </div>
+      </motion.div>
+
+      <motion.div variants={stagger.item} style={{ marginBottom: 28 }}>
+        <WordOfDayWidget />
       </motion.div>
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
@@ -478,6 +487,40 @@ function StudentDashboard() {
             <div style={{ marginTop:14, fontSize:12, fontWeight:700, color:f.color }}>Open →</div>
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* Campus Gallery — showcasing Najah environment */}
+      <motion.div variants={stagger.item} style={{ marginTop: 32, marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>
+            📸 Campus Life
+          </h3>
+          <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>Your learning environment</span>
+        </div>
+        <div style={{
+          display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
+          scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent',
+        }}>
+          {[1,3,5,8,9,11,12,15].map((n, i) => (
+            <motion.div
+              key={n}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1, transition: { delay: 0.04 * i } }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              style={{
+                flexShrink: 0, width: 160, height: 110, borderRadius: 14,
+                overflow: 'hidden', border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)', cursor: 'pointer',
+              }}
+            >
+              <img
+                src={`/images/najah-bg-${n}.jpeg`}
+                alt={`campus-${n}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
     </motion.div>
   );

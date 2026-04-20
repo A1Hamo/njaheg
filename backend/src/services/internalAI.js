@@ -292,9 +292,16 @@ function getCurriculumInfo(subject, topic, language) {
   if (!facts || !facts.length) return null;
 
   const intro = isAr
-    ? `📚 **إليك معلومات مفصلة:**\n\n`
-    : `📚 **Here's what you need to know about ${topic || subject}:**\n\n`;
-  return intro + facts.map((f, i) => `${i + 1}. ${f}`).join('\n');
+    ? `📚 **هذا ما أعرفه عن ${topic || subject}:**\n\n`
+    : `📚 **Here's a starting point about ${topic || subject}:**\n\n`;
+    
+  const explanation = facts.slice(0, 3).map((f, i) => `${i + 1}. ${f}`).join('\n');
+  
+  const socraticPrompt = isAr
+    ? `\n\n🧠 **تفكير نقدي (Socratic Scaffolding):** بناءً على هذه المعلومات، كيف يمكنك تطبيق ذلك في الحياة العملية؟ أو ماذا تعتقد أنه سيحدث إذا تغير أحد هذه العوامل؟ شاركني أفكارك!`
+    : `\n\n🧠 **Critical Thinking (Socratic Scaffolding):** Based on these concepts, how would you apply this in a real-world scenario? Or what do you think happens if we change one of these factors? Tell me your thoughts!`;
+
+  return intro + explanation + socraticPrompt;
 }
 
 // ── Main Chat Function ──────────────────────────────────
@@ -317,13 +324,10 @@ function generateChatResponse(message, history = [], language = 'en') {
     return isAr ? '👋 مع السلامة! استمر في التعلم.' : '👋 Goodbye! Keep studying! You\'ve got this! 🎓';
   }
 
-  // Curriculum-specific answer
+  // Curriculum-specific Socratic Scaffolding
   const info = getCurriculumInfo(subject, topic, language);
   if (info) {
-    const suffix = isAr
-      ? '\n\n💡 هل تريد مزيداً من التوضيح أو أمثلة؟'
-      : '\n\n💡 Would you like more examples or a deeper explanation?';
-    return info + suffix;
+    return info;
   }
 
   // Subject detected, no specific topic
@@ -354,8 +358,8 @@ function generateChatResponse(message, history = [], language = 'en') {
       const result = Function('"use strict"; return (' + expr + ')')();
       if (typeof result === 'number' && isFinite(result)) {
         return isAr
-          ? `🔢 الجواب: **${result}**\n\nهل تريد مني أن أشرح لك الخطوات؟`
-          : `🔢 The answer is **${result}**\n\nWould you like me to explain the steps?`;
+          ? `أرى أنك تحاول حل مسألة رياضية. الناتج هو **${result}**. \nلكن الأهم من الناتج هو طريقة الحل! هل يمكنك شرح الخطوات التي استخدمتها للوصول إلى هذا الرقم؟ (أسلوب سقراطي)`
+          : `I see you are solving a math problem. The final result is **${result}**. \nHowever, the process is more important than the answer! Can you explain the steps you would take to reach this? (Socratic Approach)`;
       }
     } catch {}
   }
@@ -374,17 +378,17 @@ function generateChatResponse(message, history = [], language = 'en') {
       : '📝 Head to the **Assessments** tab in the AI section to generate an interactive quiz in any subject and difficulty level!';
   }
 
-  // Fallback — conversational
+  // Fallback — conversational (Socratic Inquiry)
   const fallbacks = isAr
     ? [
-        '🤔 سؤال جيد! هل يمكنك توضيح المادة الدراسية أو الموضوع المحدد؟ سأعطيك إجابة وافية.',
-        '💡 لمساعدتك بشكل أفضل، أخبرني بالمادة (رياضيات، علوم، عربي، إنجليزي، تاريخ...) والموضوع المحدد.',
-        '📚 أنا هنا لمساعدتك! حدد المادة والموضوع وسأشرح لك بالتفصيل.',
+        '🤔 هذا مثير للاهتمام. ما الذي يجعلك تفكر في هذا؟ دعنا نستكشف الموضوع خطوة بخطوة.',
+        '💡 أنا هنا لتوجيهك بدلاً من إعطائك إجابات مباشرة. ما هي معلوماتك الحالية عن هذا الموضوع؟',
+        '📚 كمعلم سقراطي، أود أن أسألك أولاً: كيف تعرف هذا المفهوم بكلماتك الخاصة؟',
       ]
     : [
-        '🤔 Great question! Could you specify which subject and topic you need help with? I\'ll give you a thorough explanation.',
-        '💡 To help you better, tell me the subject (Math, Science, Arabic, English, History...) and the specific topic.',
-        '📚 I\'m here to help with all Egyptian curriculum subjects! What exactly would you like to understand better?',
+        '🤔 That is very interesting. What makes you think of that? Let\'s explore this step-by-step.',
+        '💡 I am here to guide you rather than just giving direct answers. What do you already know about this topic?',
+        '📚 As your Socratic tutor, I want to ask you first: how would you define this concept in your own words?',
       ];
   return pickRandom(fallbacks);
 }
@@ -482,10 +486,10 @@ function generateStudyPlan({ subject, daysUntil, dailyHours = 2, currentLevel = 
 // ── Capabilities ────────────────────────────────────────
 function getCapabilities() {
   return {
-    engine:'Najah Internal AI v2.0 — Full Egyptian Curriculum',
+    engine:'Najah Internal AI v2.0 (DeepTutor Socratic Engine)',
     alwaysAvailable:true, requiresApiKey:false,
     features:{
-      chat:      { supported:true, quality:'Excellent', notes:'Full Egyptian curriculum K1-12, Arabic+English' },
+      chat:      { supported:true, quality:'Excellent', notes:'DeepTutor Socratic Pedagogy, Cognitive Scaffolding' },
       quiz:      { supported:true, quality:'Excellent', notes:'Math, Science, Arabic, English, Social Studies' },
       summary:   { supported:true, quality:'Good',      notes:'TF-IDF extraction from uploaded PDFs' },
       studyPlan: { supported:true, quality:'Excellent', notes:'Personalized plans for all subjects' },

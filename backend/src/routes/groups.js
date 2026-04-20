@@ -34,7 +34,7 @@ async function ownerOnly(req, res, next) {
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
     const uid = req.user.id || req.user.userId;
-    if (group.teacherId !== uid) return res.status(403).json({ error: 'Forbidden. Only the group teacher can perform this action.' });
+    if (String(group.teacherId) !== String(uid)) return res.status(403).json({ error: 'Forbidden. Only the group teacher can perform this action.' });
     req.group = group; // Pass it along to save a DB call if needed
     next();
   } catch (err) {
@@ -58,7 +58,7 @@ async function uniqueCode() {
 
 // POST /api/groups  — any authenticated user creates a group
 router.post('/', auth, async (req, res) => {
-  const { name, description, subject, grade, institutionType, institution, maxStudents, color, emoji } = req.body;
+  const { name, description, subject, grade, institutionType, institution, maxStudents, color, emoji, privacy, isPaid, price, curriculumLinked } = req.body;
   if (!name || !subject) return res.status(400).json({ error: 'Name and subject are required' });
 
   const code  = await uniqueCode();
@@ -69,6 +69,10 @@ router.post('/', auth, async (req, res) => {
     maxStudents: maxStudents || 50,
     color: color || '#7C3AED',
     emoji: emoji || '📚',
+    privacy: privacy || 'public',
+    isPaid: isPaid || false,
+    price: price || 0,
+    curriculumLinked: curriculumLinked || null,
     teacherId:   req.user.id || req.user.userId,
     teacherName: req.user.name || '',
   });
@@ -120,6 +124,16 @@ router.post('/join', auth, async (req, res) => {
   if (group.students.length >= group.maxStudents)
     return res.status(400).json({ error: 'Group is full' });
 
+  // If group is paid, redirect to payment flow before joining
+  if (group.isPaid && group.price > 0) {
+    return res.status(402).json({
+      error: 'Payment required to join this group.',
+      requiresPayment: true,
+      groupId: group._id,
+      price: group.price
+    });
+  }
+
   group.students.push({
     userId:   uid,
     name:     req.user.name || '',
@@ -147,7 +161,7 @@ router.delete('/:id/members/:userId', auth, ownerOnly, async (req, res) => {
 router.delete('/:id', auth, ownerOnly, async (req, res) => {
   const group = req.group;
   if (!group) return res.status(404).json({ error: 'Group not found' });
-  if (group.teacherId !== (req.user.id || req.user.userId))
+  if (String(group.teacherId) !== String(req.user.id || req.user.userId))
     return res.status(403).json({ error: 'Forbidden' });
 
   group.isActive = false;
@@ -159,7 +173,7 @@ router.delete('/:id', auth, ownerOnly, async (req, res) => {
 router.patch('/:id', auth, ownerOnly, async (req, res) => {
   const group = req.group;
   if (!group) return res.status(404).json({ error: 'Group not found' });
-  if (group.teacherId !== (req.user.id || req.user.userId))
+  if (String(group.teacherId) !== String(req.user.id || req.user.userId))
     return res.status(403).json({ error: 'Forbidden' });
 
   const allowed = ['name', 'description', 'subject', 'maxStudents', 'color', 'emoji'];

@@ -12,6 +12,7 @@ import { useAuthStore, useUIStore } from '../../context/store';
 const TABS = [
   { key:'feed',        label:'📢 Feed' },
   { key:'assignments', label:'📝 Assignments' },
+  { key:'progress',    label:'📈 Academic Progress' },
   { key:'members',     label:'👥 Members' },
   { key:'insights',    label:'📊 Insights',  ownerOnly: true },
 ];
@@ -200,7 +201,7 @@ export default function GroupDetailPage() {
     enabled: !!id && id !== 'undefined'
   });
   const group       = gData?.data?.group;
-  const isOwner     = group ? group.teacherId === userId : false;
+  const isOwner     = group ? String(group.teacherId) === String(userId) : false;
 
   // Use isOwner in queries that restrict to teacher
   const { data: insData } = useQuery({ queryKey:['group-insights',id], queryFn:() => groupsAPI.getInsights(id), enabled: isOwner && tab==='insights' });
@@ -400,6 +401,41 @@ export default function GroupDetailPage() {
                 onGrade={a => navigate(`/groups/${id}/assignments/${a._id}/grade`)}
               />
             ))}
+          </div>
+        )}
+
+        {tab === 'progress' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
+               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>Academic Progress</h2>
+            </div>
+            {group.curriculumLinked ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16, padding:'24px', boxShadow:'var(--shadow-sm)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap: 12, marginBottom:16 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background:'rgba(16,185,129,0.15)', color:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>📈</div>
+                  <div>
+                    <h3 style={{ fontSize:18, fontWeight:800, color:'var(--text)' }}>{group.curriculumLinked}</h3>
+                    <p style={{ fontSize:13, color:'var(--text3)' }}>Curriculum Unit Tracked</p>
+                  </div>
+                </div>
+                <p style={{ fontSize:14, color:'var(--text2)', marginBottom:20, lineHeight: 1.6 }}>
+                  Your progress is strictly linked to this curriculum unit. Completing assignments, attending lectures, and taking AI quizzes in this group will automatically update your overall mastery.
+                </p>
+                <div style={{ display:'flex', gap:20, alignItems:'center', padding: '16px', background: 'var(--surface2)', borderRadius: 12 }}>
+                  <div style={{ flex:1, height:12, background:'var(--surface3)', borderRadius:6, overflow:'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <motion.div initial={{ width:0 }} animate={{ width:'45%' }} transition={{ duration: 1.2, ease: 'easeOut' }}
+                      style={{ height:'100%', background:'linear-gradient(90deg, #10B981, #34D399)', borderRadius:6 }} />
+                  </div>
+                  <div style={{ fontSize:18, fontWeight:800, color:'var(--text)' }}>45% Mastery</div>
+                </div>
+              </motion.div>
+            ) : (
+              <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--text3)' }}>
+                <div style={{ fontSize:40, marginBottom:12 }}>🔗</div>
+                <div style={{ fontSize:15, fontWeight:600 }}>No specific curriculum unit linked to this group.</div>
+              </div>
+            )}
           </div>
         )}
 

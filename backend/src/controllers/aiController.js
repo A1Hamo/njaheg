@@ -7,9 +7,15 @@ const { pool }               = require('../config/postgres');
 const { AIConversation }     = require('../config/mongo');
 const { cacheSet, cacheGet } = require('../config/redis');
 const { checkAchievements }  = require('../services/achievementService');
-const geminiAI               = require('../services/geminiAI');
+const localAI                = require('../services/localAI');
 const internalAI             = require('../services/internalAI');
+const deepTutor              = require('../services/deepTutorService');
+const geminiAI               = require('../services/geminiAI');
+const CognitiveEngine        = require('../ai/core/CognitiveEngine');
 const logger                 = require('../utils/logger');
+
+const cognitiveEngine = new CognitiveEngine(internalAI, deepTutor);
+cognitiveEngine.init().catch(e => logger.error('Failed to init CognitiveEngine:', e));
 
 // ── PDF text fetch ───────────────────────────────────────────
 async function fetchPdfText(fileUrl, maxChars = 10000) {
@@ -24,16 +30,21 @@ async function fetchPdfText(fileUrl, maxChars = 10000) {
 async function getProvider(req, res) {
   res.json({
     gemini: {
-      available:      geminiAI.isAvailable(),
-      name:           'Najah AI (Gemini 2.0 Flash)',
-      description:    'Powered by Google Gemini — intelligent, human-like, web-search capable',
-      requiresApiKey: true,
-      model:          geminiAI.getModelName(),
+      available:      false,
+      name:           'Deprecated External AI',
+      description:    'Replaced by Najah Local AI',
+      requiresApiKey: false,
     },
     internal: {
       available:      true,
-      name:           'Internal Fallback AI',
-      description:    'Built-in keyword engine — always available, used when Gemini is unavailable',
+      name:           'Najah Massive In-House AI',
+      description:    'Fully autonomous, local AI engine powered by Xenova Transformers running in-house',
+      requiresApiKey: false,
+    },
+    deeptutor: {
+      available:      true,
+      name:           'HKUDS DeepTutor Engine',
+      description:    'Advanced Socratic AI framework adapted for 100% Arabic educational interactions.',
       requiresApiKey: false,
     },
   });
@@ -41,18 +52,18 @@ async function getProvider(req, res) {
 
 async function getCapabilities(req, res) {
   res.json({
-    engine:          geminiAI.isAvailable() ? 'Gemini 2.0 Flash' : 'Internal Fallback',
-    geminiAvailable: geminiAI.isAvailable(),
+    engine:          'Najah Massive In-House AI',
+    geminiAvailable: false,
     features: {
       chat:         { supported: true },
-      stream:       { supported: geminiAI.isAvailable() },
-      search:       { supported: geminiAI.isAvailable() },
+      stream:       { supported: false },
+      search:       { supported: false, note: 'External search disabled for privacy' },
       summary:      { supported: true },
       quiz:         { supported: true },
       studyPlan:    { supported: true },
       askFile:      { supported: true },
       youtube:      { supported: true },
-      imageAnalysis:{ supported: false, note: 'Coming soon' },
+      imageAnalysis:{ supported: false },
     },
   });
 }
@@ -91,29 +102,15 @@ async function chat(req, res) {
     } catch {}
   }
 
-  let reply, usedProvider;
+  // Process via Unified Cognitive Core
+  reply = await cognitiveEngine.processMessage(req.user, message, language, history);
+  usedProvider = 'najah_cognitive_core';
 
-  // Try Gemini first
-  if (geminiAI.isAvailable()) {
-    try {
-      reply = await geminiAI.chat(message, history, language);
-      usedProvider = 'gemini';
-    } catch (err) {
-      logger.warn('Gemini chat failed, falling back to internal:', err.message);
-    }
-  }
-
-  // Fallback to internal AI
-  if (!reply) {
-    reply = internalAI.generateChatResponse(message, history, language);
-    usedProvider = 'internal_fallback';
-  }
-
-  // Generate follow-up suggestions
-  let suggestions = [];
-  if (withFollowUps && geminiAI.isAvailable() && usedProvider === 'gemini') {
-    suggestions = await geminiAI.generateFollowUps(message, reply, language).catch(() => []);
-  }
+  // Generate follow-up suggestions using internal AI heuristic
+  let suggestions = [
+    language === 'ar' ? 'اشرح لي المزيد عن هذا.' : 'Can you explain more about this?',
+    language === 'ar' ? 'أعطني مثالاً.' : 'Give me an example.',
+  ];
 
   // Save conversation
   const conv = await saveToConversation(conversationId, req.user.id, message, reply, language, null);
@@ -155,54 +152,48 @@ async function chatStream(req, res) {
     } catch {}
   }
 
-  if (!geminiAI.isAvailable()) {
-    // Fallback: send full response as single chunk
+  // Since we rely entirely on in-house AI, we don't stream Transformers output yet,
+  // we just yield the entire generated response directly as a chunk to maintain UI compatibility.
+  try {
+    let fullText;
+    if (localAI.isReady && localAI.models.generator) {
+      fullText = await localAI.chat(message, history, language);
+    } else {
+      fullText = internalAI.generateChatResponse(message, history, language);
+    }
+    
+    res.write(`data: ${JSON.stringify({ chunk: fullText })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, fullText: fullText, provider: 'najah_inhouse' })}\n\n`);
+    res.end();
+    
+    saveToConversation(conversationId, req.user.id, message, fullText, language, null).catch(() => {});
+    pool.query('UPDATE users SET xp_points = xp_points + 5 WHERE id = $1', [req.user.id]).catch(() => {});
+  } catch (err) {
+    logger.error('In-house stream error:', err.message);
     const reply = internalAI.generateChatResponse(message, history, language);
     res.write(`data: ${JSON.stringify({ chunk: reply })}\n\n`);
-    res.write(`data: ${JSON.stringify({ done: true, fullText: reply, provider: 'internal_fallback' })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, fullText: reply, provider: 'najah_heuristics' })}\n\n`);
     res.end();
-    await saveToConversation(conversationId, req.user.id, message, reply, language, null);
-    return;
-  }
-
-  try {
-    const fullText = await geminiAI.chatStream(message, history, res);
-    // Save asynchronously
-    if (fullText) {
-      saveToConversation(conversationId, req.user.id, message, fullText, language, null).catch(() => {});
-      pool.query('UPDATE users SET xp_points = xp_points + 5 WHERE id = $1', [req.user.id]).catch(() => {});
-    }
-  } catch (err) {
-    logger.error('Stream error:', err.message);
-    
-    // Seamless Fallback mid-stream
-    const reply = internalAI.generateChatResponse(message, history, language);
-    const fallbackMsg = `\n\n*(Gemini Connection Lost - Falling back to Internal Engine)*\n\n${reply}`;
-    
-    res.write(`data: ${JSON.stringify({ chunk: fallbackMsg })}\n\n`);
-    res.write(`data: ${JSON.stringify({ done: true, fullText: fallbackMsg, provider: 'internal_fallback' })}\n\n`);
-    res.end();
-    
-    saveToConversation(conversationId, req.user.id, message, fallbackMsg, language, null).catch(() => {});
   }
 }
 
 // ── Web Search ────────────────────────────────────────────────
 async function webSearch(req, res) {
   const { query, language = 'en' } = req.body;
-  if (!query?.trim()) return res.status(400).json({ error: 'query is required' });
+  if (!query) return res.status(400).json({ error: 'Query is required' });
 
-  if (!geminiAI.isAvailable()) {
-    return res.status(503).json({ error: 'Search requires Gemini AI. Please set GEMINI_API_KEY.' });
+  if (geminiAI.isAvailable()) {
+    try {
+      const answer = await geminiAI.searchAndAnswer(query, language);
+      return res.json({ answer, provider: 'gemini-2.0-flash' });
+    } catch (err) {
+      logger.error('Gemini Web Search failed:', err.message);
+      return res.status(500).json({ error: 'Search engine encountered an error' });
+    }
   }
 
-  try {
-    const answer = await geminiAI.searchAndAnswer(query, language);
-    res.json({ answer, query, language });
-  } catch (err) {
-    logger.error('Web search error:', err.message);
-    res.status(500).json({ error: 'Search failed', message: err.message });
-  }
+  // Fallback if Gemini is not available
+  return res.status(503).json({ error: 'Web Search is currently offline. Please configure the Cloud AI.' });
 }
 
 // ── Conversations ─────────────────────────────────────────────
@@ -257,17 +248,17 @@ async function summarizePdf(req, res) {
   const { text, pages } = await fetchPdfText(rows[0].file_url);
 
   let summary, usedProvider;
-  if (geminiAI.isAvailable()) {
+  if (localAI.isReady && localAI.models.summarizer) {
     try {
-      summary = await geminiAI.summarize(text, language, pages);
-      usedProvider = 'gemini';
+      summary = await localAI.summarize(text);
+      usedProvider = 'najah_inhouse';
     } catch (err) {
-      logger.warn('Gemini summarize failed:', err.message);
+      logger.warn('Local summarization failed:', err.message);
     }
   }
   if (!summary) {
     summary = internalAI.summarizeText(text, language, pages);
-    usedProvider = 'internal_fallback';
+    usedProvider = 'najah_heuristics';
   }
 
   const result = { fileId, fileName: rows[0].original_name, summary, pages, language, provider: usedProvider };
@@ -293,20 +284,8 @@ async function generateQuiz(req, res) {
     } catch {}
   }
 
-  let quiz, usedProvider;
-  if (geminiAI.isAvailable()) {
-    try {
-      const raw = await geminiAI.generateQuiz({ subject, topic, difficulty, count: parseInt(count), language, context });
-      quiz = raw;
-      usedProvider = 'gemini';
-    } catch (err) {
-      logger.warn('Gemini quiz failed:', err.message);
-    }
-  }
-  if (!quiz) {
-    quiz = internalAI.generateQuiz({ subject, difficulty, count: parseInt(count), language });
-    usedProvider = 'internal_fallback';
-  }
+  let quiz = internalAI.generateQuiz({ subject, difficulty, count: parseInt(count), language });
+  let usedProvider = 'najah_heuristics';
 
   await checkAchievements(req.user.id, 'quiz_generated').catch(() => {});
   res.json({ subject, topic, difficulty, language, count: quiz.questions?.length, ...quiz, provider: usedProvider });
@@ -342,20 +321,8 @@ async function generateStudyPlan(req, res) {
   const daysUntil = Math.ceil((new Date(deadline) - new Date()) / 86400000);
   if (daysUntil < 1) return res.status(400).json({ error: 'Deadline must be in the future' });
 
-  let plan, usedProvider;
-  if (geminiAI.isAvailable()) {
-    try {
-      const raw = await geminiAI.generateStudyPlan({ subject, daysUntil, dailyHours: parseInt(dailyHours), currentLevel, language });
-      plan = raw;
-      usedProvider = 'gemini';
-    } catch (err) {
-      logger.warn('Gemini study plan failed:', err.message);
-    }
-  }
-  if (!plan) {
-    plan = internalAI.generateStudyPlan({ subject, daysUntil, dailyHours: parseInt(dailyHours), currentLevel, language });
-    usedProvider = 'internal_fallback';
-  }
+  let plan = internalAI.generateStudyPlan({ subject, daysUntil, dailyHours: parseInt(dailyHours), currentLevel, language });
+  let usedProvider = 'najah_heuristics';
 
   res.json({ ...plan, subject, deadline, daysUntil, dailyHours, currentLevel, provider: usedProvider });
 }
@@ -375,17 +342,18 @@ async function answerFromFile(req, res) {
   const { text } = await fetchPdfText(rows[0].file_url, 8000);
 
   let answer, usedProvider;
-  if (geminiAI.isAvailable()) {
+  if (localAI.isReady && localAI.models.generator) {
     try {
-      answer = await geminiAI.answerFromContext(question, text, language);
-      usedProvider = 'gemini';
+      const contextChunk = text.slice(0, 3000);
+      answer = await localAI.chat(`Answer the question based on this document: ${contextChunk}\n\nQuestion: ${question}`, [], language);
+      usedProvider = 'najah_inhouse';
     } catch (err) {
-      logger.warn('Gemini file Q&A failed:', err.message);
+      logger.warn('Local file Q&A failed:', err.message);
     }
   }
   if (!answer) {
     answer = internalAI.generateChatResponse(`${question}\n\nDocument context:\n${text.slice(0, 2000)}`, [], language);
-    usedProvider = 'internal_fallback';
+    usedProvider = 'najah_heuristics';
   }
 
   res.json({ question, answer, fileId, fileName: rows[0].original_name, provider: usedProvider });
@@ -409,17 +377,17 @@ async function youtubeSummarize(req, res) {
   const fullText = transcriptItems.map(t => t.text).join(' ').slice(0, 18000);
 
   let summary, usedProvider;
-  if (geminiAI.isAvailable()) {
+  if (localAI.isReady && localAI.models.summarizer) {
     try {
-      summary = await geminiAI.summarizeYoutube(fullText, language);
-      usedProvider = 'gemini';
+      summary = await localAI.summarize(fullText);
+      usedProvider = 'najah_inhouse';
     } catch (err) {
-      logger.warn('Gemini YouTube summarize failed:', err.message);
+      logger.warn('Local YouTube summarize failed:', err.message);
     }
   }
   if (!summary) {
     summary = internalAI.summarizeText(fullText, language, 1);
-    usedProvider = 'internal_fallback';
+    usedProvider = 'najah_heuristics';
   }
 
   res.json({ summary, url, language, provider: usedProvider });

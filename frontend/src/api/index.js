@@ -202,3 +202,9 @@ export const toolsAPI = {
   wikipedia:  (query, lang = 'en') => client.get('/tools/wikipedia', { params: { query, lang } }),
   quote:      () => client.get('/tools/quote'),
 };
+
+export const paymentAPI = {
+  initiate:        d => client.post('/payment/initiate', d),
+  history:         () => client.get('/payment/history'),
+  simulateSuccess: d => client.post('/payment/simulate-success', d),
+};
