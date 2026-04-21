@@ -22,32 +22,45 @@ function initFirebase() {
 }
 
 async function uploadToFirebase(buffer, destPath, mimeType) {
-  if (!admin.apps.length) {
-    throw new Error('Firebase not initialized - configure FIREBASE_PRIVATE_KEY and FIREBASE_PROJECT_ID');
-  }
-  try {
-    const file = admin.storage().bucket().file(destPath);
-    await file.save(buffer, { metadata: { contentType: mimeType }, resumable: false });
-    await file.makePublic();
-    return `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${destPath}`;
-  } catch (err) {
-    logger.warn('Mocking Firebase upload, saving to local disk instead: ' + err.message);
+  const saveLocally = () => {
     const fs = require('fs');
     const path = require('path');
     const filename = destPath.split('/').pop();
     const localDir = path.join(__dirname, '../../public/uploads');
     fs.mkdirSync(localDir, { recursive: true });
     fs.writeFileSync(path.join(localDir, filename), buffer);
-    return `http://localhost:5000/uploads/${filename}`; // Return real local URL
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.CLIENT_URL || 'http://localhost:5000' 
+      : 'http://localhost:5000';
+    return `${baseUrl}/uploads/${filename}`;
+  };
+
+  if (!admin.apps.length) {
+    logger.warn('Firebase not initialized, saving to local disk instead.');
+    return saveLocally();
+  }
+
+  try {
+    const file = admin.storage().bucket().file(destPath);
+    await file.save(buffer, { metadata: { contentType: mimeType }, resumable: false });
+    await file.makePublic();
+    return `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${destPath}`;
+  } catch (err) {
+    logger.warn(`Firebase upload failed (${err.message}), saving to local disk instead.`);
+    return saveLocally();
   }
 }
 
 async function deleteFromFirebase(destPath) {
   if (!admin.apps.length) {
-    logger.warn('Firebase not initialized, skipping file deletion');
+    logger.warn('Firebase not initialized, skipping file deletion from Firebase.');
     return;
   }
-  await admin.storage().bucket().file(destPath).delete({ ignoreNotFound: true });
+  try {
+    await admin.storage().bucket().file(destPath).delete({ ignoreNotFound: true });
+  } catch (err) {
+    logger.warn(`Failed to delete from Firebase: ${err.message}`);
+  }
 }
 
 module.exports = { initFirebase, uploadToFirebase, deleteFromFirebase };

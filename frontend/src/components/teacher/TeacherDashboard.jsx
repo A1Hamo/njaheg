@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../context/store';
 import { groupsAPI } from '../../api/index';
+import { useTranslation } from '../../i18n/index';
 
 /* ── stagger ──────────────────────────────────────────────── */
 const stagger = {
@@ -98,11 +99,20 @@ function QuickAction({ icon, label, sub, grad, onClick }) {
    TeacherDashboard
 ═════════════════════════════════════════════════════════ */
 export default function TeacherDashboard() {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { user }  = useAuthStore();
   const navigate  = useNavigate();
   const hr        = new Date().getHours();
-  const greet     = hr < 5 ? 'Good Night' : hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
-  const firstName = user?.name?.split(' ')[0] || 'Teacher';
+  
+  let greet = '';
+  if (isAr) {
+    greet = hr < 5 ? 'طابت ليلتك' : hr < 12 ? 'صباح الخير' : hr < 17 ? 'مساء الخير' : 'مساء الخير';
+  } else {
+    greet = hr < 5 ? 'Good Night' : hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+  }
+
+  const firstName = user?.name?.split(' ')[0] || (isAr ? 'معلم' : 'Teacher');
 
   const { data: groupData } = useQuery({ queryKey:['groups'], queryFn:() => groupsAPI.list() });
   const groups = groupData?.data?.groups || [];
@@ -112,15 +122,21 @@ export default function TeacherDashboard() {
   const activeGroups     = groups.length;
 
   const QUICK_ACTIONS = [
-    { icon:'🏫', label:'New Group',       sub:'Create a class',          grad:'linear-gradient(135deg,#7C3AED,#5B21B6)', path:'/groups' },
-    { icon:'📢', label:'Announcements',   sub:'Post to your classes',    grad:'linear-gradient(135deg,#F59E0B,#D97706)', path:'/groups' },
-    { icon:'📝', label:'Assignments',     sub:'Set homework & quizzes',  grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)', path:'/groups' },
-    { icon:'📊', label:'Analytics',       sub:'View learning insights',  grad:'linear-gradient(135deg,#10B981,#059669)', path:'/analytics' },
-    { icon:'💬', label:'Messages',        sub:'Chat with students',      grad:'linear-gradient(135deg,#EC4899,#BE185D)', path:'/chat' },
-    { icon:'📁', label:'Resources',       sub:'Upload study materials',  grad:'linear-gradient(135deg,#06B6D4,#0891B2)', path:'/files' },
+    { icon:'🏫', label: isAr ? 'مجموعة جديدة' : 'New Group',       sub: isAr ? 'إنشاء فصل' : 'Create a class',          grad:'linear-gradient(135deg,#7C3AED,#5B21B6)', path:'/groups' },
+    { icon:'📢', label: isAr ? 'الإعلانات' : 'Announcements',   sub: isAr ? 'نشر للفصول' : 'Post to your classes',    grad:'linear-gradient(135deg,#F59E0B,#D97706)', path:'/groups' },
+    { icon:'📝', label: isAr ? 'الواجبات' : 'Assignments',     sub: isAr ? 'تحديد واجبات واختبارات' : 'Set homework & quizzes',  grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)', path:'/groups' },
+    { icon:'📊', label: isAr ? 'التحليلات' : 'Analytics',       sub: isAr ? 'رؤى التعلم' : 'View learning insights',  grad:'linear-gradient(135deg,#10B981,#059669)', path:'/analytics' },
+    { icon:'💬', label: isAr ? 'الرسائل' : 'Messages',        sub: isAr ? 'دردش مع الطلاب' : 'Chat with students',      grad:'linear-gradient(135deg,#EC4899,#BE185D)', path:'/chat' },
+    { icon:'📁', label: isAr ? 'المصادر' : 'Resources',       sub: isAr ? 'رفع مواد دراسية' : 'Upload study materials',  grad:'linear-gradient(135deg,#06B6D4,#0891B2)', path:'/files' },
   ];
 
-  const TIPS = [
+  const TIPS = isAr ? [
+    '💡 نصيحة: ثبّت الإعلانات الهامة ليراها الطلاب دائماً أولاً.',
+    '📝 أنشئ واجبات بتواريخ استحقاق لإبقاء الطلاب على المسار الصحيح.',
+    '📊 تحقق من رؤى المجموعات لتحديد الطلاب الذين يحتاجون لدعم إضافي.',
+    '🔑 شارك كود دعوتك مباشرة مع الطلاب ليتمكنوا من الانضمام فوراً.',
+    '⭐ قم بتقييم الإجابات بسرعة للحفاظ على تحفيز الطلاب.',
+  ] : [
     '💡 Tip: Pin important announcements so students always see them first.',
     '📝 Create assignments with due dates to keep students on track.',
     '📊 Check group insights to identify students who need extra support.',
@@ -158,14 +174,15 @@ export default function TeacherDashboard() {
                 {firstName}
               </h2>
               <p style={{ color:'var(--text2)', fontSize:14, marginBottom:20, maxWidth:500, lineHeight:1.65 }}>
-                You're managing <strong style={{ color:'#38BDF8' }}>{activeGroups}</strong> class{activeGroups !== 1 ? 'es' : ''} with{' '}
-                <strong style={{ color:'#38BDF8' }}>{totalStudents}</strong> student{totalStudents !== 1 ? 's' : ''} total.
-                {activeGroups === 0 && ' Create your first group to get started!'}
+                {isAr ? 'أنت تدير ' : "You're managing "}
+                <strong style={{ color:'#38BDF8' }}>{activeGroups}</strong> {isAr ? 'فصل/فصول' : `class${activeGroups !== 1 ? 'es' : ''}`} {isAr ? 'مع ' : 'with '}
+                <strong style={{ color:'#38BDF8' }}>{totalStudents}</strong> {isAr ? 'طالب' : `student${totalStudents !== 1 ? 's' : ''}`} {isAr ? 'إجمالاً.' : 'total.'}
+                {activeGroups === 0 && (isAr ? ' أنشئ مجموعتك الأولى للبدء!' : ' Create your first group to get started!')}
               </p>
               {/* Role badge */}
               <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                 <span style={{ padding:'5px 14px', borderRadius:99, fontSize:12, fontWeight:700, color:'#38BDF8', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.28)', display:'inline-flex', alignItems:'center', gap:5 }}>
-                  👨‍🏫 Teacher
+                  👨‍🏫 {isAr ? 'معلم' : 'Teacher'}
                 </span>
                 {user?.school && (
                   <span style={{ padding:'5px 14px', borderRadius:99, fontSize:12, fontWeight:700, color:'var(--text2)', background:'var(--surface)', border:'1px solid var(--border)', display:'inline-flex', alignItems:'center', gap:5 }}>
@@ -181,8 +198,8 @@ export default function TeacherDashboard() {
             {/* Right stats */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:220 }}>
               {[
-                { v: activeGroups, l:'Active Classes', icon:'🏫', c:'#38BDF8' },
-                { v: totalStudents, l:'Total Students',  icon:'👥', c:'#7C3AED' },
+                { v: activeGroups, l: isAr ? 'فصول نشطة' : 'Active Classes', icon:'🏫', c:'#38BDF8' },
+                { v: totalStudents, l: isAr ? 'إجمالي الطلاب' : 'Total Students',  icon:'👥', c:'#7C3AED' },
               ].map(s => (
                 <div key={s.l} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'14px 16px', textAlign:'center' }}>
                   <div style={{ fontSize:18, marginBottom:4 }}>{s.icon}</div>
@@ -197,7 +214,7 @@ export default function TeacherDashboard() {
 
       {/* ── Quick Actions ── */}
       <motion.div variants={stagger.item} style={{ marginBottom:28 }}>
-        <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', marginBottom:14, letterSpacing:'-0.02em' }}>Quick Actions</h3>
+        <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', marginBottom:14, letterSpacing:'-0.02em' }}>{isAr ? 'وصول سريع' : 'Quick Actions'}</h3>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(170px,1fr))', gap:12 }}>
           {QUICK_ACTIONS.map(a => (
             <QuickAction key={a.label} {...a} onClick={() => navigate(a.path)} />
@@ -209,10 +226,10 @@ export default function TeacherDashboard() {
       <motion.div variants={stagger.item} style={{ marginBottom:28 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
           <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', letterSpacing:'-0.02em' }}>
-            My Classes
+            {isAr ? 'فصولي' : 'My Classes'}
           </h3>
           <button onClick={() => navigate('/groups')} style={{ fontSize:12, fontWeight:700, color:'var(--primary-light)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
-            View all →
+            {isAr ? 'عرض الكل ←' : 'View all →'}
           </button>
         </div>
 
@@ -223,9 +240,9 @@ export default function TeacherDashboard() {
             borderRadius:20,
           }}>
             <div style={{ fontSize:48, marginBottom:14 }}>🏫</div>
-            <p style={{ fontSize:14, color:'var(--text3)', marginBottom:20 }}>No classes yet. Create your first group!</p>
+            <p style={{ fontSize:14, color:'var(--text3)', marginBottom:20 }}>{isAr ? 'لا توجد فصول بعد. أنشئ مجموعتك الأولى!' : 'No classes yet. Create your first group!'}</p>
             <button onClick={() => navigate('/groups')} style={{ padding:'10px 24px', borderRadius:12, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
-              + Create First Group
+              {isAr ? '+ إنشاء أول مجموعة' : '+ Create First Group'}
             </button>
           </div>
         ) : (
@@ -242,7 +259,7 @@ export default function TeacherDashboard() {
           background:'linear-gradient(135deg,rgba(99,102,241,0.12) 0%,rgba(124,58,237,0.06) 100%)',
           border:'1px solid rgba(99,102,241,0.2)',
         }}>
-          <p style={{ fontSize:11, fontWeight:800, color:'#38BDF8', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8 }}>Teacher Tip</p>
+          <p style={{ fontSize:11, fontWeight:800, color:'#38BDF8', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8 }}>{isAr ? 'نصيحة للمعلم' : 'Teacher Tip'}</p>
           <p style={{ fontSize:14, color:'var(--text2)', lineHeight:1.7, fontStyle:'italic' }}>{todayTip}</p>
         </div>
       </motion.div>

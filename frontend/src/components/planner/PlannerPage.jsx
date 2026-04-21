@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { plannerAPI, aiAPI } from '../../api/index';
 import { Card, Button, Input, Select, Modal, Tabs, ProgressBar, EmptyState, SectionHeader, Btn } from '../shared/UI';
+import { useTranslation } from '../../i18n/index';
 
 const SUBJECTS = [
   { value: 'mathematics',   label: '📐 Mathematics',   color: '#6C63FF' },
@@ -25,6 +26,17 @@ const STATUS_COLORS = {
 
 // ── Add Session Modal ──
 function AddSessionModal({ open, onClose, onSaved }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
+  
+  const SUBJECTS = [
+    { value: 'mathematics',   label: isAr ? '📐 الرياضيات' : '📐 Mathematics',   color: '#6C63FF' },
+    { value: 'science',       label: isAr ? '🔬 العلوم' : '🔬 Science',        color: '#0ECDA8' },
+    { value: 'arabic',        label: isAr ? '📚 اللغة العربية' : '📚 Arabic',         color: '#F7B731' },
+    { value: 'english',       label: isAr ? '🌐 اللغة الإنجليزية' : '🌐 English',        color: '#38BDF8' },
+    { value: 'social_studies',label: isAr ? '🌍 الدراسات الاجتماعية' : '🌍 Social Studies', color: '#FF5470' },
+  ];
+
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { subject: 'mathematics', topic: '', start_time: '', end_time: '', notes: '' }
   });
@@ -38,28 +50,28 @@ function AddSessionModal({ open, onClose, onSaved }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="📅 Add Study Session">
+    <Modal open={open} onClose={onClose} title={isAr ? "📅 إضافة جلسة دراسية" : "📅 Add Study Session"}>
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Select label="Subject" {...register('subject', { required: true })}>
+        <Select label={isAr ? "المادة" : "Subject"} {...register('subject', { required: true })}>
           {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Select>
-        <Input label="Topic (optional)" placeholder="e.g. Chapter 3 — Fractions" {...register('topic')} />
+        <Input label={isAr ? "الموضوع (اختياري)" : "Topic (optional)"} placeholder={isAr ? "مثال: الفصل الثالث - الكسور" : "e.g. Chapter 3 — Fractions"} {...register('topic')} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Input label="Start Time" type="datetime-local" error={errors.start_time?.message}
-            {...register('start_time', { required: 'Start time required' })} />
-          <Input label="End Time" type="datetime-local" error={errors.end_time?.message}
-            {...register('end_time', { required: 'End time required' })} />
+          <Input label={isAr ? "وقت البدء" : "Start Time"} type="datetime-local" error={errors.start_time?.message}
+            {...register('start_time', { required: isAr ? 'وقت البدء مطلوب' : 'Start time required' })} />
+          <Input label={isAr ? "وقت الانتهاء" : "End Time"} type="datetime-local" error={errors.end_time?.message}
+            {...register('end_time', { required: isAr ? 'وقت الانتهاء مطلوب' : 'End time required' })} />
         </div>
         <div>
-          <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Notes</label>
-          <textarea {...register('notes')} placeholder="Any notes or goals for this session..."
+          <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>{isAr ? "ملاحظات" : "Notes"}</label>
+          <textarea {...register('notes')} placeholder={isAr ? "أي ملاحظات أو أهداف لهذه الجلسة..." : "Any notes or goals for this session..."}
             style={{ width: '100%', padding: '10px 14px', fontSize: 13, borderRadius: 8,
               minHeight: 80, resize: 'vertical', border: '1px solid var(--border2)',
               background: 'var(--surface)', color: 'var(--text)' }} />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-          <Button type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" loading={isSubmitting}>Add Session →</Button>
+          <Button type="button" onClick={onClose}>{isAr ? "إلغاء" : "Cancel"}</Button>
+          <Button type="submit" variant="primary" loading={isSubmitting}>{isAr ? "إضافة جلسة ←" : "Add Session →"}</Button>
         </div>
       </form>
     </Modal>
@@ -68,6 +80,8 @@ function AddSessionModal({ open, onClose, onSaved }) {
 
 // ── Weekly View ──
 function WeeklyView({ sessions, onStatusChange, onDelete }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedDay, setSelectedDay] = useState(new Date());
 
@@ -84,11 +98,11 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
     <div>
       {/* Week navigation */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <Button size="sm" onClick={() => setWeekStart(d => addDays(d, -7))}>← Prev</Button>
+        <Button size="sm" onClick={() => setWeekStart(d => addDays(d, -7))}>{isAr ? '← السابق' : '← Prev'}</Button>
         <span style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>
           {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d, yyyy')}
         </span>
-        <Button size="sm" onClick={() => setWeekStart(d => addDays(d, 7))}>Next →</Button>
+        <Button size="sm" onClick={() => setWeekStart(d => addDays(d, 7))}>{isAr ? 'التالي →' : 'Next →'}</Button>
       </div>
 
       {/* Day cells */}
@@ -130,18 +144,31 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
       <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 600, color: 'var(--text2)' }}>
         {format(selectedDay, 'EEEE, MMMM d')}
         <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text3)' }}>
-          {selectedSessions.length} session{selectedSessions.length !== 1 ? 's' : ''}
+          {selectedSessions.length} {isAr ? 'جلسات' : `session${selectedSessions.length !== 1 ? 's' : ''}`}
         </span>
       </div>
 
       <AnimatePresence>
         {selectedSessions.length === 0 ? (
-          <EmptyState icon="📅" title="No sessions this day" subtitle="Click 'Add Session' to plan your study time" />
+          <EmptyState icon="📅" title={isAr ? "لا توجد جلسات في هذا اليوم" : "No sessions this day"} subtitle={isAr ? "انقر على 'إضافة جلسة' لتخطيط وقت دراستك" : "Click 'Add Session' to plan your study time"} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {selectedSessions.map(s => {
-              const subj = SUBJECTS.find(x => x.value === s.subject);
-              const st = STATUS_COLORS[s.status] || STATUS_COLORS.planned;
+              const SUBJECTS_LOC = [
+                { value: 'mathematics',   label: isAr ? '📐 الرياضيات' : '📐 Mathematics',   color: '#6C63FF' },
+                { value: 'science',       label: isAr ? '🔬 العلوم' : '🔬 Science',        color: '#0ECDA8' },
+                { value: 'arabic',        label: isAr ? '📚 اللغة العربية' : '📚 Arabic',         color: '#F7B731' },
+                { value: 'english',       label: isAr ? '🌐 اللغة الإنجليزية' : '🌐 English',        color: '#38BDF8' },
+                { value: 'social_studies',label: isAr ? '🌍 الدراسات الاجتماعية' : '🌍 Social Studies', color: '#FF5470' },
+              ];
+              const subj = SUBJECTS_LOC.find(x => x.value === s.subject);
+              const STATUS_COLORS_LOC = {
+                planned:     { bg: 'rgba(108,99,255,0.12)', color: '#9D96FF', label: isAr ? 'مخطط' : 'Planned' },
+                in_progress: { bg: 'rgba(247,183,49,0.12)', color: '#F7B731', label: isAr ? 'قيد التنفيذ' : 'In Progress' },
+                completed:   { bg: 'rgba(14,205,168,0.12)', color: '#0ECDA8', label: isAr ? 'مكتمل' : 'Completed' },
+                skipped:     { bg: 'rgba(255,84,112,0.12)', color: '#FF5470', label: isAr ? 'تم التخطي' : 'Skipped' },
+              };
+              const st = STATUS_COLORS_LOC[s.status] || STATUS_COLORS_LOC.planned;
               return (
                 <motion.div key={s.id} layout
                   initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
@@ -172,7 +199,7 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
                         background: st.bg, color: st.color, border: `1px solid ${st.color}44`,
                         fontWeight: 600, cursor: 'pointer' }}
                     >
-                      {Object.entries(STATUS_COLORS).map(([k, v]) => (
+                      {Object.entries(STATUS_COLORS_LOC).map(([k, v]) => (
                         <option key={k} value={k}>{v.label}</option>
                       ))}
                     </select>
@@ -190,6 +217,8 @@ function WeeklyView({ sessions, onStatusChange, onDelete }) {
 
 // ── AI Schedule Tab ──
 function AIScheduleTab() {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { register, handleSubmit } = useForm({
     defaultValues: { subject: 'mathematics', deadline: '', dailyHours: 2, currentLevel: 'intermediate' }
   });
@@ -234,19 +263,25 @@ function AIScheduleTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="floating-panel" style={{ padding: 28 }}>
-        <h3 style={{ fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 20 }}>🤖 Generate AI Study Schedule</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-head)', marginBottom: 20 }}>{isAr ? '🤖 إنشاء جدول دراسي بالذكاء الاصطناعي' : '🤖 Generate AI Study Schedule'}</h3>
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <Select label="Subject" {...register('subject')}>
-            {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          <Select label={isAr ? "المادة" : "Subject"} {...register('subject')}>
+            {[
+              { value: 'mathematics',   label: isAr ? '📐 الرياضيات' : '📐 Mathematics' },
+              { value: 'science',       label: isAr ? '🔬 العلوم' : '🔬 Science' },
+              { value: 'arabic',        label: isAr ? '📚 اللغة العربية' : '📚 Arabic' },
+              { value: 'english',       label: isAr ? '🌐 اللغة الإنجليزية' : '🌐 English' },
+              { value: 'social_studies',label: isAr ? '🌍 الدراسات الاجتماعية' : '🌍 Social Studies' },
+            ].map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </Select>
-          <Input label="Exam Deadline" type="date" {...register('deadline', { required: true })} />
-          <Select label="Daily Study Hours" {...register('dailyHours')}>
-            {[1,2,3,4,5].map(h => <option key={h} value={h}>{h} hour{h>1?'s':''}</option>)}
+          <Input label={isAr ? "تاريخ الامتحان" : "Exam Deadline"} type="date" {...register('deadline', { required: true })} />
+          <Select label={isAr ? "ساعات الدراسة اليومية" : "Daily Study Hours"} {...register('dailyHours')}>
+            {[1,2,3,4,5].map(h => <option key={h} value={h}>{h} {isAr ? 'ساعات' : `hour${h>1?'s':''}`}</option>)}
           </Select>
-          <Select label="Current Level" {...register('currentLevel')}>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+          <Select label={isAr ? "المستوى الحالي" : "Current Level"} {...register('currentLevel')}>
+            <option value="beginner">{isAr ? 'مبتدئ' : 'Beginner'}</option>
+            <option value="intermediate">{isAr ? 'متوسط' : 'Intermediate'}</option>
+            <option value="advanced">{isAr ? 'متقدم' : 'Advanced'}</option>
           </Select>
           <motion.button 
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -255,7 +290,7 @@ function AIScheduleTab() {
             disabled={loading}
             style={{ gridColumn: '1/-1', padding: '12px', fontSize: 15, fontWeight: 800 }}
           >
-            {loading ? '✨ Generating...' : '✨ Generate AI Plan'}
+            {loading ? (isAr ? '✨ جاري الإنشاء...' : '✨ Generating...') : (isAr ? '✨ إنشاء الخطة' : '✨ Generate AI Plan')}
           </motion.button>
         </form>
       </div>
@@ -266,20 +301,26 @@ function AIScheduleTab() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>
-                  📋 {plan.daysUntil}-Day Plan — {SUBJECTS.find(s=>s.value===plan.subject)?.label}
+                  📋 {plan.daysUntil}-{isAr ? 'أيام خطة' : 'Day Plan'} — {[
+                    { value: 'mathematics',   label: isAr ? '📐 الرياضيات' : '📐 Mathematics' },
+                    { value: 'science',       label: isAr ? '🔬 العلوم' : '🔬 Science' },
+                    { value: 'arabic',        label: isAr ? '📚 اللغة العربية' : '📚 Arabic' },
+                    { value: 'english',       label: isAr ? '🌐 اللغة الإنجليزية' : '🌐 English' },
+                    { value: 'social_studies',label: isAr ? '🌍 الدراسات الاجتماعية' : '🌍 Social Studies' },
+                  ].find(s=>s.value===plan.subject)?.label}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                  ~{plan.totalHours}h total · {plan.dailyHours}h/day
+                  ~{plan.totalHours}h {isAr ? 'الإجمالي' : 'total'} · {plan.dailyHours}h/{isAr ? 'يوم' : 'day'}
                 </div>
               </div>
-              <Button variant="primary" onClick={applySessions}>📅 Apply to Planner</Button>
+              <Button variant="primary" onClick={applySessions}>📅 {isAr ? 'تطبيق على المخطط' : 'Apply to Planner'}</Button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
               {(plan.plan || []).map(day => (
                 <div key={day.day} style={{ padding: '10px 14px', background: 'var(--surface)', borderRadius: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary-light)', marginBottom: 6 }}>
-                    Day {day.day} · {day.date}
+                    {isAr ? 'يوم' : 'Day'} {day.day} · {day.date}
                   </div>
                   {(day.sessions || []).map((s, si) => (
                     <div key={si} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text2)', padding: '2px 0' }}>
@@ -300,7 +341,7 @@ function AIScheduleTab() {
             {plan.tips?.length > 0 && (
               <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(108,99,255,0.06)',
                 borderRadius: 10, borderLeft: '3px solid var(--primary)' }}>
-                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--primary-light)' }}>💡 AI Tips</div>
+                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--primary-light)' }}>💡 {isAr ? 'نصائح الذكاء الاصطناعي' : 'AI Tips'}</div>
                 {plan.tips.map((t, i) => (
                   <div key={i} style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 3 }}>• {t}</div>
                 ))}
@@ -315,7 +356,8 @@ function AIScheduleTab() {
 
 // ── Main Planner Page ──
 export default function PlannerPage() {
-
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [activeTab, setActiveTab] = useState('weekly');
   const [addOpen, setAddOpen] = useState(false);
   const qc = useQueryClient();
@@ -343,26 +385,26 @@ export default function PlannerPage() {
   const totalMinutes = sessions.filter(s => s.status === 'completed').reduce((acc, s) => acc + (s.duration || 0), 0);
 
   const TABS = [
-    { key: 'weekly', label: 'Weekly View', icon: '📅' },
-    { key: 'ai',     label: 'AI Schedule', icon: '🤖' },
+    { key: 'weekly', label: isAr ? 'العرض الأسبوعي' : 'Weekly View', icon: '📅' },
+    { key: 'ai',     label: isAr ? 'جدول الذكاء الاصطناعي' : 'AI Schedule', icon: '🤖' },
   ];
 
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 4 }}>📅 Study Planner</h2>
-          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Plan, track, and optimise your study sessions</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 4 }}>📅 {isAr ? 'مخطط الدراسة' : 'Study Planner'}</h2>
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>{isAr ? 'خطط، تتبع، وحسن جلساتك الدراسية' : 'Plan, track, and optimise your study sessions'}</p>
         </div>
-        <Button variant="primary" onClick={() => setAddOpen(true)}>+ Add Session</Button>
+        <Button variant="primary" onClick={() => setAddOpen(true)}>{isAr ? '+ إضافة جلسة' : '+ Add Session'}</Button>
       </div>
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total Sessions', value: sessions.length, icon: '📅', color: 'var(--primary)' },
-          { label: 'Completed',      value: completed,       icon: '✨', color: 'var(--success)' },
-          { label: 'Hours Studied',  value: `${Math.round(totalMinutes/60)}h`, icon: '💎', color: 'var(--warning)' },
+          { label: isAr ? 'إجمالي الجلسات' : 'Total Sessions', value: sessions.length, icon: '📅', color: 'var(--primary)' },
+          { label: isAr ? 'مكتمل' : 'Completed',      value: completed,       icon: '✨', color: 'var(--success)' },
+          { label: isAr ? 'ساعات الدراسة' : 'Hours Studied',  value: `${Math.round(totalMinutes/60)}h`, icon: '💎', color: 'var(--warning)' },
         ].map(s => (
           <div key={s.label} className="floating-panel" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{s.icon}</div>

@@ -31,6 +31,8 @@ const COLORS  = ['#7C3AED','#3B82F6','#10B981','#F59E0B','#EF4444','#EC4899','#0
 
 /* ── Card ────────────────────────────────────────────────── */
 function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const color = group.color || getColor(group.subject);
   return (
     <motion.div
@@ -83,7 +85,7 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
               }}
               onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,0.18)'; }}
               onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,0.08)'; }}
-              title="Delete group"
+              title={isAr ? "حذف المجموعة" : "Delete group"}
             >✕</button>
           )}
         </div>
@@ -118,6 +120,8 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
 }
 
 function CodeBadge({ code }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [copied, setCopied] = useState(false);
   const copy = e => {
     e.stopPropagation();
@@ -128,7 +132,7 @@ function CodeBadge({ code }) {
   return (
     <button
       onClick={copy}
-      title="Click to copy invite code"
+      title={isAr ? "انقر لنسخ كود الدعوة" : "Click to copy invite code"}
       style={{
         padding: '4px 10px', borderRadius: 8,
         background: copied ? 'rgba(16,185,129,0.12)' : 'rgba(124,58,237,0.1)',
@@ -139,7 +143,7 @@ function CodeBadge({ code }) {
         transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5,
       }}
     >
-      {copied ? '✓ Copied' : `# ${code}`}
+      {copied ? (isAr ? '✓ تم النسخ' : '✓ Copied') : `# ${code}`}
     </button>
   );
 }
@@ -185,15 +189,19 @@ function Modal({ open, onClose, title, children }) {
 
 /* ── Create Group Modal ──────────────────────────────────── */
 function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [form, setForm] = useState({ name:'', description:'', subject:'', institutionType:'school', institution:'', maxStudents:40, color: COLORS[0], emoji: EMOJIS[0] });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const subjects = ['Mathematics','Science','Arabic','English','Physics','Chemistry','Biology','History','Geography','Computer Science','Art','Physical Education'];
+  const subjects = isAr 
+    ? ['الرياضيات','العلوم','اللغة العربية','اللغة الإنجليزية','الفيزياء','الكيمياء','الأحياء','التاريخ','الجغرافيا','علوم الحاسب','الفنون','التربية البدنية']
+    : ['Mathematics','Science','Arabic','English','Physics','Chemistry','Biology','History','Geography','Computer Science','Art','Physical Education'];
 
   const submit = async e => {
     e.preventDefault();
-    if (!form.name || !form.subject) { toast.error('Name and subject required'); return; }
+    if (!form.name || !form.subject) { toast.error(isAr ? 'الاسم والمادة مطلوبان' : 'Name and subject required'); return; }
     setLoading(true);
     try {
       const { data } = await groupsAPI.create({ ...form, maxStudents: Number(form.maxStudents) });
@@ -205,7 +213,7 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
         scalar: 1.2,
         gravity: 0.8
       });
-      toast.success(`Group "${data.group.name}" created! Code: ${data.group.code}`);
+      toast.success(isAr ? `تم إنشاء المجموعة "${data.group.name}"! الكود: ${data.group.code}` : `Group "${data.group.name}" created! Code: ${data.group.code}`);
       onCreated(data.group);
       onClose();
       setForm({ name:'', description:'', subject:'', institutionType:'school', institution:'', maxStudents:40, color: COLORS[0], emoji: EMOJIS[0] });
@@ -222,43 +230,43 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
   );
 
   return (
-    <Modal open={open} onClose={onClose} title={isTeacher ? "✨ Create New Class" : "✨ Create Study Group"}>
+    <Modal open={open} onClose={onClose} title={isTeacher ? (isAr ? "✨ إنشاء فصل جديد" : "✨ Create New Class") : (isAr ? "✨ إنشاء مجموعة دراسية" : "✨ Create Study Group")}>
       <form onSubmit={submit}>
-        {inp(isTeacher ? 'Class Name *' : 'Group Name *', 'name', 'text', isTeacher ? 'e.g. Math Class — Year 2' : 'e.g. Calculus Study Group')}
+        {inp(isTeacher ? (isAr ? 'اسم الفصل *' : 'Class Name *') : (isAr ? 'اسم المجموعة *' : 'Group Name *'), 'name', 'text', isTeacher ? (isAr ? 'مثال: فصل الرياضيات - الصف الثاني' : 'e.g. Math Class — Year 2') : (isAr ? 'مثال: مجموعة التفاضل' : 'e.g. Calculus Study Group'))}
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>Subject *</label>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>{isAr ? 'المادة *' : 'Subject *'}</label>
           <select value={form.subject} onChange={e => set('subject', e.target.value)}
             style={{ width:'100%', padding:'10px 14px', background:'var(--surface2)', border:'1.5px solid var(--border)', borderRadius:10, color:'var(--text)', outline:'none', fontSize:14, fontFamily:'inherit' }}>
-            <option value="">Select subject…</option>
+            <option value="">{isAr ? 'اختر المادة...' : 'Select subject…'}</option>
             {subjects.map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
           </select>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>Institution Type</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>{isAr ? 'نوع المؤسسة' : 'Institution Type'}</label>
             <select value={form.institutionType} onChange={e => set('institutionType', e.target.value)}
               style={{ width:'100%', padding:'10px 14px', background:'var(--surface2)', border:'1.5px solid var(--border)', borderRadius:10, color:'var(--text)', outline:'none', fontSize:14, fontFamily:'inherit' }}>
-              <option value="school">🏫 School</option>
-              <option value="college">🏛️ College</option>
-              <option value="university">🎓 University</option>
+              <option value="school">🏫 {isAr ? 'مدرسة' : 'School'}</option>
+              <option value="college">🏛️ {isAr ? 'كلية' : 'College'}</option>
+              <option value="university">🎓 {isAr ? 'جامعة' : 'University'}</option>
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>Max Students</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 6 }}>{isAr ? 'الحد الأقصى للطلاب' : 'Max Students'}</label>
             <input type="number" min={2} max={200} value={form.maxStudents} onChange={e => set('maxStudents',e.target.value)}
               style={{ width:'100%', padding:'10px 14px', background:'var(--surface2)', border:'1.5px solid var(--border)', borderRadius:10, color:'var(--text)', outline:'none', fontSize:14, fontFamily:'inherit' }} />
           </div>
         </div>
-        {inp('Institution Name (optional)', 'institution', 'text', 'e.g. Cairo University, Al-Azhar School')}
+        {inp(isAr ? 'اسم المؤسسة (اختياري)' : 'Institution Name (optional)', 'institution', 'text', isAr ? 'مثال: جامعة القاهرة، مدرسة الأورمان' : 'e.g. Cairo University, Al-Azhar School')}
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>Description</label>
-          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Brief description of this group…"
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>{isAr ? 'الوصف' : 'Description'}</label>
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder={isAr ? "وصف مختصر لهذه المجموعة..." : "Brief description of this group…"}
             style={{ width:'100%', padding:'10px 14px', background:'var(--surface2)', border:'1.5px solid var(--border)', borderRadius:10, color:'var(--text)', outline:'none', fontSize:14, fontFamily:'inherit', resize:'vertical' }} />
         </div>
         {/* Color & Emoji pickers */}
         <div style={{ display:'flex', gap:12, marginBottom:20 }}>
           <div style={{ flex:1 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>Color</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>{isAr ? 'اللون' : 'Color'}</label>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               {COLORS.map(c => (
                 <button key={c} type="button" onClick={() => set('color',c)} style={{ width:24, height:24, borderRadius:6, background:c, border: form.color===c ? '2px solid white' : '2px solid transparent', cursor:'pointer', outline:'none' }} />
@@ -266,7 +274,7 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
             </div>
           </div>
           <div style={{ flex:1 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>Icon</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>{isAr ? 'الأيقونة' : 'Icon'}</label>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               {EMOJIS.map(e => (
                 <button key={e} type="button" onClick={() => set('emoji',e)} style={{ width:28, height:28, borderRadius:6, background: form.emoji===e ? 'var(--surface4)' : 'var(--surface2)', border: form.emoji===e ? '1px solid var(--border2)' : '1px solid transparent', cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>{e}</button>
@@ -281,7 +289,7 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
           fontFamily:'inherit', opacity: loading ? 0.7 : 1,
           boxShadow:'0 4px 20px rgba(124,58,237,0.35)',
         }}>
-          {loading ? 'Creating…' : (isTeacher ? '✨ Create Class' : '✨ Create Study Group')}
+          {loading ? (isAr ? 'جاري الإنشاء...' : 'Creating…') : (isTeacher ? (isAr ? '✨ إنشاء فصل' : '✨ Create Class') : (isAr ? '✨ إنشاء مجموعة دراسية' : '✨ Create Study Group'))}
         </button>
       </form>
     </Modal>
@@ -290,13 +298,15 @@ function CreateGroupModal({ open, onClose, onCreated, isTeacher }) {
 
 /* ── Join Group Modal ────────────────────────────────────── */
 function JoinGroupModal({ open, onClose, onJoined }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [code, setCode]     = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const submit = async e => {
     e.preventDefault();
-    if (code.trim().length !== 6) { toast.error('Enter the 6-character invite code'); return; }
+    if (code.trim().length !== 6) { toast.error(isAr ? 'أدخل كود الدعوة المكون من 6 أحرف' : 'Enter the 6-character invite code'); return; }
     setLoading(true);
     try {
       const { data } = await groupsAPI.join(code.trim());
@@ -308,30 +318,30 @@ function JoinGroupModal({ open, onClose, onJoined }) {
         scalar: 1.1,
         ticks: 200
       });
-      toast.success(`Joined "${data.group.name}" successfully! 🎉`);
+      toast.success(isAr ? `تم الانضمام إلى "${data.group.name}" بنجاح! 🎉` : `Joined "${data.group.name}" successfully! 🎉`);
       onJoined(data.group);
       onClose();
       setCode('');
     } catch (err) {
       if (err.response?.status === 402) {
-        toast.info(err.response.data.error || 'Payment required to join this group.');
+        toast.info(err.response.data.error || (isAr ? 'الدفع مطلوب للانضمام إلى هذه المجموعة.' : 'Payment required to join this group.'));
         onClose();
         navigate(`/payment?amount=${err.response.data.price}&groupId=${err.response.data.groupId}&type=group_join`);
       } else {
-        toast.error(err.response?.data?.error || 'Failed to join group');
+        toast.error(err.response?.data?.error || (isAr ? 'فشل الانضمام إلى المجموعة' : 'Failed to join group'));
       }
     }
     finally { setLoading(false); }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="🔑 Join a Group">
+    <Modal open={open} onClose={onClose} title={isAr ? "🔑 الانضمام إلى مجموعة" : "🔑 Join a Group"}>
       <form onSubmit={submit}>
         <p style={{ fontSize: 13.5, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>
-          Ask your teacher for the 6-character invite code and enter it below.
+          {isAr ? 'اطلب من معلمك كود الدعوة المكون من 6 أحرف وأدخله أدناه.' : 'Ask your teacher for the 6-character invite code and enter it below.'}
         </p>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>Invite Code</label>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', display:'block', marginBottom: 8 }}>{isAr ? 'كود الدعوة' : 'Invite Code'}</label>
           <input
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase().slice(0, 6))}
@@ -353,7 +363,7 @@ function JoinGroupModal({ open, onClose, onJoined }) {
           fontFamily:'inherit', opacity: loading ? 0.7 : 1,
           boxShadow:'0 4px 20px rgba(59,130,246,0.35)',
         }}>
-          {loading ? 'Joining…' : '🔑 Join Group'}
+          {loading ? (isAr ? 'جاري الانضمام...' : 'Joining…') : (isAr ? '🔑 انضمام للمجموعة' : '🔑 Join Group')}
         </button>
       </form>
     </Modal>
@@ -381,11 +391,11 @@ export default function GroupsPage() {
   const groups = data?.data?.groups || [];
 
   const deleteGroup = async (id, name) => {
-    if (!window.confirm(`Delete group "${name}"? This cannot be undone.`)) return;
+    if (!window.confirm(lang === 'ar' ? `هل أنت متأكد من حذف المجموعة "${name}"؟ لا يمكن التراجع عن هذا.` : `Delete group "${name}"? This cannot be undone.`)) return;
     try {
       await groupsAPI.remove(id);
       qc.invalidateQueries({ queryKey: ['groups'] });
-      toast.success('Group deleted');
+      toast.success(lang === 'ar' ? 'تم حذف المجموعة' : 'Group deleted');
     } catch { }
   };
 
@@ -432,7 +442,7 @@ export default function GroupsPage() {
         <div style={{ display:'flex', justifyContent:'center', padding:60, color:'var(--text3)' }}>
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>⏳</div>
-            <div style={{ fontSize:14 }}>Loading groups…</div>
+            <div style={{ fontSize:14 }}>{lang === 'ar' ? 'جاري تحميل المجموعات...' : 'Loading groups…'}</div>
           </div>
         </div>
       )}
@@ -449,24 +459,24 @@ export default function GroupsPage() {
         >
           <div style={{ fontSize:64, marginBottom:20 }}>{isTeacher ? '🏫' : '🔑'}</div>
           <h3 style={{ fontSize:22, fontWeight:800, fontFamily:'var(--font-head)', marginBottom:10 }}>
-            {isTeacher ? 'Create your first class' : 'No groups yet'}
+            {isTeacher ? (lang === 'ar' ? 'أنشئ فصلك الأول' : 'Create your first class') : (lang === 'ar' ? 'لا توجد مجموعات بعد' : 'No groups yet')}
           </h3>
           <p style={{ fontSize:14, color:'var(--text3)', maxWidth:380, margin:'0 auto 28px', lineHeight:1.7 }}>
             {isTeacher
-              ? 'Create a group for your students, post announcements, assign homework and track progress.'
-              : 'Ask your teacher for a 6-character invite code to join a group.'}
+              ? (lang === 'ar' ? 'أنشئ مجموعة لطلابك، انشر الإعلانات، كلفهم بالواجبات وتتبع تقدمهم.' : 'Create a group for your students, post announcements, assign homework and track progress.')
+              : (lang === 'ar' ? 'اطلب من معلمك كود الدعوة المكون من 6 أحرف للانضمام إلى مجموعة.' : 'Ask your teacher for a 6-character invite code to join a group.')}
           </p>
           {isTeacher ? (
             <button onClick={() => setShowWizard(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
-              + Create First Class
+              {lang === 'ar' ? '+ إنشاء أول فصل' : '+ Create First Class'}
             </button>
           ) : (
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <button onClick={() => setShowJoin(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,#3B82F6,#1D4ED8)', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
-                🔑 Join with Code
+                {lang === 'ar' ? '🔑 انضمام بالكود' : '🔑 Join with Code'}
               </button>
               <button onClick={() => setShowWizard(true)} style={{ padding:'12px 28px', borderRadius:14, background:'linear-gradient(135deg,var(--primary),var(--brand-600))', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
-                + Create Study Group
+                {lang === 'ar' ? '+ إنشاء مجموعة دراسية' : '+ Create Study Group'}
               </button>
             </div>
           )}

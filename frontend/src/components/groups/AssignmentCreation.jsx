@@ -4,8 +4,11 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../context/store';
 import toast from 'react-hot-toast';
 import { groupsAPI } from '../../api/index';
+import { useTranslation } from '../../i18n/index';
 
 export default function AssignmentCreation() {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { id } = useParams(); // group Id
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -20,7 +23,7 @@ export default function AssignmentCreation() {
 
   const submit = async e => {
     e.preventDefault();
-    if (!form.title) { toast.error('Title is required'); return; }
+    if (!form.title) { toast.error(isAr ? 'العنوان مطلوب' : 'Title is required'); return; }
     setLoading(true);
     try {
       await groupsAPI.createAssignment(id, {
@@ -29,10 +32,10 @@ export default function AssignmentCreation() {
         dueDate: form.dueDate,
         maxScore: Number(form.maxScore),
       });
-      toast.success('Assignment published successfully!');
+      toast.success(isAr ? 'تم نشر التكليف بنجاح!' : 'Assignment published successfully!');
       navigate(`/groups/${id}?tab=assignments`);
     } catch {
-      toast.error('Failed to create assignment');
+      toast.error(isAr ? 'فشل إنشاء التكليف' : 'Failed to create assignment');
     } finally {
       setLoading(false);
     }
@@ -47,21 +50,21 @@ export default function AssignmentCreation() {
   const labelStyles = { display: 'block', fontSize: '13px', fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px', direction: isAr ? 'rtl' : 'ltr' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
         <div>
           <button onClick={() => navigate(`/groups/${id}`)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: 0, marginBottom: '16px' }}>
-            ← Back to Group
+            {isAr ? 'العودة للمجموعة →' : '← Back to Group'}
           </button>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', color: 'var(--text)' }}>Create Assignment</h1>
-          <p style={{ color: 'var(--text2)', fontSize: '15px' }}>Configure instructions, rubrics, and settings for this task.</p>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.03em', color: 'var(--text)' }}>{isAr ? 'إنشاء تكليف' : 'Create Assignment'}</h1>
+          <p style={{ color: 'var(--text2)', fontSize: '15px' }}>{isAr ? 'تكوين التعليمات والمعايير وإعدادات هذه المهمة.' : 'Configure instructions, rubrics, and settings for this task.'}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-           <button style={{ padding: '12px 24px', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 700, cursor: 'pointer' }}>Save Draft</button>
+           <button style={{ padding: '12px 24px', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 700, cursor: 'pointer' }}>{isAr ? 'حفظ كمسودة' : 'Save Draft'}</button>
            <button onClick={submit} disabled={loading} style={{ padding: '12px 24px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), var(--brand-600))', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(99,102,241,0.2)' }}>
-              {loading ? 'Publishing...' : 'Publish Assignment'}
+              {loading ? (isAr ? 'جاري النشر...' : 'Publishing...') : (isAr ? 'نشر التكليف' : 'Publish Assignment')}
            </button>
         </div>
       </div>
@@ -71,19 +74,19 @@ export default function AssignmentCreation() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '32px' }}>
-            <label style={labelStyles}>Assignment Title *</label>
+            <label style={labelStyles}>{isAr ? 'عنوان التكليف *' : 'Assignment Title *'}</label>
             <input 
               style={{ ...inputStyles, fontSize: '20px', fontWeight: 800, padding: '16px' }} 
-              placeholder="e.g. Chapter 4 Integration Practice..."
+              placeholder={isAr ? "مثال: تدريب على تكامل الفصل الرابع..." : "e.g. Chapter 4 Integration Practice..."}
               value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} 
             />
 
             <div style={{ marginTop: '24px' }}>
-              <label style={labelStyles}>Instructions</label>
+              <label style={labelStyles}>{isAr ? 'التعليمات' : 'Instructions'}</label>
               <textarea 
                 rows={8}
                 style={{ ...inputStyles, resize: 'vertical', lineHeight: 1.6 }} 
-                placeholder="Write detailed instructions or rubrics here. Students will see this when they open the assignment."
+                placeholder={isAr ? "اكتب تعليمات مفصلة هنا. سيراها الطلاب عند فتح التكليف." : "Write detailed instructions or rubrics here. Students will see this when they open the assignment."}
                 value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} 
               />
             </div>
@@ -91,13 +94,13 @@ export default function AssignmentCreation() {
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '32px' }}>
              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Attachments</h3>
-                <button style={{ padding: '8px 16px', background: 'var(--primary-50)', color: 'var(--primary-600)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>+ Add File</button>
+                <h3 style={{ fontSize: '18px', fontWeight: 800 }}>{isAr ? 'المرفقات' : 'Attachments'}</h3>
+                <button style={{ padding: '8px 16px', background: 'var(--primary-50)', color: 'var(--primary-600)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>+ {isAr ? 'إضافة ملف' : 'Add File'}</button>
              </div>
              <div style={{ border: '2px dashed var(--border2)', borderRadius: '16px', padding: '40px', textAlign: 'center', color: 'var(--text3)' }}>
                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📁</div>
-               <p style={{ fontWeight: 600 }}>Drag & drop files here, or click to browse.</p>
-               <p style={{ fontSize: '12px', marginTop: '8px' }}>Supports PDF, DOCX, Images, and Zips up to 50MB.</p>
+               <p style={{ fontWeight: 600 }}>{isAr ? 'اسحب وأفلت الملفات هنا، أو انقر للتصفح.' : 'Drag & drop files here, or click to browse.'}</p>
+               <p style={{ fontSize: '12px', marginTop: '8px' }}>{isAr ? 'يدعم ملفات PDF و DOCX والصور والملفات المضغوطة بحجم أقصى 50 ميغابايت.' : 'Supports PDF, DOCX, Images, and Zips up to 50MB.'}</p>
              </div>
           </motion.div>
 
@@ -107,38 +110,38 @@ export default function AssignmentCreation() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>Grading & Dates</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>{isAr ? 'الدرجات والتواريخ' : 'Grading & Dates'}</h3>
             
             <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyles}>Due Date & Time</label>
+              <label style={labelStyles}>{isAr ? 'تاريخ ووقت التسليم' : 'Due Date & Time'}</label>
               <input type="datetime-local" style={inputStyles} value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} />
             </div>
 
             <div>
-              <label style={labelStyles}>Maximum Score</label>
+              <label style={labelStyles}>{isAr ? 'الدرجة القصوى' : 'Maximum Score'}</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <input type="number" min={1} style={{ ...inputStyles, flex: 1 }} value={form.maxScore} onChange={e => setForm({ ...form, maxScore: e.target.value })} />
-                <span style={{ fontWeight: 700, color: 'var(--text3)' }}>Points</span>
+                <span style={{ fontWeight: 700, color: 'var(--text3)' }}>{isAr ? 'نقاط' : 'Points'}</span>
               </div>
             </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>Advanced Settings</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>{isAr ? 'إعدادات متقدمة' : 'Advanced Settings'}</h3>
             
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', marginBottom: '16px' }}>
               <input type="checkbox" checked={form.allowLate} onChange={e => setForm({ ...form, allowLate: e.target.checked })} style={{ width: '18px', height: '18px', marginTop: '2px' }} />
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>Allow Late Submissions</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px', lineHeight: 1.4 }}>If checked, students can submit after the deadline but it will be flagged.</div>
+                <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>{isAr ? 'السماح بالتسليم المتأخر' : 'Allow Late Submissions'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px', lineHeight: 1.4 }}>{isAr ? 'إذا تم التحديد، يمكن للطلاب التسليم بعد الموعد النهائي ولكن سيتم وضع علامة عليه.' : 'If checked, students can submit after the deadline but it will be flagged.'}</div>
               </div>
             </label>
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
               <input type="checkbox" checked={form.plagiarismCheck} onChange={e => setForm({ ...form, plagiarismCheck: e.target.checked })} style={{ width: '18px', height: '18px', marginTop: '2px' }} />
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>Enable Plagiarism Check</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px', lineHeight: 1.4 }}>Automatically scan submissions against web sources and peers.</div>
+                <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>{isAr ? 'تفعيل فحص الانتحال' : 'Enable Plagiarism Check'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px', lineHeight: 1.4 }}>{isAr ? 'فحص التسليمات تلقائيًا مقابل مصادر الويب والزملاء.' : 'Automatically scan submissions against web sources and peers.'}</div>
               </div>
             </label>
           </motion.div>

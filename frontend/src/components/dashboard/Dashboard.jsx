@@ -8,6 +8,7 @@ import { useAuthStore } from '../../context/store';
 import { plannerAPI, usersAPI, groupsAPI, toolsAPI } from '../../api/index';
 import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { useTranslation } from '../../i18n/index';
 import StreakHeatmap from '../shared/StreakHeatmap';
 import { WeatherWidget, WordOfDayWidget } from '../shared/PublicAPIWidgets';
 
@@ -45,6 +46,8 @@ function DailyQuoteWidget() {
     retry: 1,
   });
   const { isSpeaking, isPaused, isSupported, toggle } = useTextToSpeech();
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const q = data?.data;
 
   return (
@@ -52,7 +55,7 @@ function DailyQuoteWidget() {
       <div style={{ position:'absolute', right:-20, top:-20, fontSize:120, opacity:0.06, transform:'rotate(-10deg)', userSelect:'none', lineHeight:1 }}>"</div>
       <div style={{ position:'relative' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-          <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.15em', opacity:0.7 }}>Daily Inspiration</p>
+          <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.15em', opacity:0.7 }}>{isAr ? 'إلهام اليوم' : 'Daily Inspiration'}</p>
           {isSupported && q && (
             <motion.button
               whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -85,13 +88,22 @@ const stagger = {
    WelcomeBanner
    ════════════════════════════════════════════════════════ */
 function WelcomeBanner({ user }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const hr      = new Date().getHours();
-  const greet   = hr < 5 ? 'Good Night' : hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+  
+  let greet = '';
+  if (isAr) {
+    greet = hr < 5 ? 'طابت ليلتك' : hr < 12 ? 'صباح الخير' : hr < 17 ? 'مساء الخير' : 'مساء الخير';
+  } else {
+    greet = hr < 5 ? 'Good Night' : hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+  }
+  
   const emoji   = hr < 5 ? '🌙' : hr < 12 ? '🌅' : hr < 17 ? '☀️' : '🌆';
   const nextLvl = (Number(user?.level) || 1) * 500;
   const curXp   = Number(user?.xp_points) || 0;
   const pct     = Math.min(100, Math.round((curXp / nextLvl) * 100));
-  const name    = typeof user?.name === 'string' ? user.name.split(' ')[0] : 'Student';
+  const name    = typeof user?.name === 'string' ? user.name.split(' ')[0] : (isAr ? 'طالب' : 'Student');
 
   return (
     <motion.div
@@ -141,16 +153,16 @@ function WelcomeBanner({ user }) {
               {name}
             </h2>
             <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 22, maxWidth: 500, lineHeight: 1.65 }}>
-              Ready to learn? You're on a{' '}
-              <span style={{ color: '#FBBF24', fontWeight: 700 }}>🔥 {user?.streak_days || 0} day streak</span>
-              . Keep the momentum going!
+              {isAr ? 'مستعد للتعلم؟ أنت في سلسلة نشاط ' : "Ready to learn? You're on a "}
+              <span style={{ color: '#FBBF24', fontWeight: 700 }}>🔥 {user?.streak_days || 0} {isAr ? 'أيام' : 'day streak'}</span>
+              {isAr ? '. استمر في هذا الزخم!' : '. Keep the momentum going!'}
             </p>
 
             {/* Badges */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[
-                { label: user?.grade || 'Egyptian Student', icon: '🎓', bg: 'rgba(124,58,237,0.15)', c: 'var(--primary-light)', bc: 'rgba(124,58,237,0.28)' },
-                { label: `Level ${user?.level || 1}`,        icon: '⭐', bg: 'rgba(245,158,11,0.12)', c: '#FBBF24',             bc: 'rgba(245,158,11,0.28)' },
+                { label: user?.grade || (isAr ? 'طالب مصري' : 'Egyptian Student'), icon: '🎓', bg: 'rgba(124,58,237,0.15)', c: 'var(--primary-light)', bc: 'rgba(124,58,237,0.28)' },
+                { label: `${isAr ? 'مستوى' : 'Level'} ${user?.level || 1}`,        icon: '⭐', bg: 'rgba(245,158,11,0.12)', c: '#FBBF24',             bc: 'rgba(245,158,11,0.28)' },
                 { label: `${curXp.toLocaleString()} XP`,    icon: '💎', bg: 'rgba(16,185,129,0.12)', c: '#34D399',             bc: 'rgba(16,185,129,0.28)' },
               ].map(b => (
                 <span key={b.label} style={{
@@ -184,20 +196,20 @@ function WelcomeBanner({ user }) {
           <div style={{ minWidth: 220 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Level Progress
+                {isAr ? 'تقدم المستوى' : 'Level Progress'}
               </span>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary-light)' }}>{pct}%</span>
             </div>
             <ProgressBar value={curXp} max={nextLvl} color="primary" height={10} />
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, textAlign: 'right' }}>
-              {curXp.toLocaleString()} / {nextLvl.toLocaleString()} XP to Level {(Number(user?.level) || 1) + 1}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, ...(isAr ? {textAlign: 'left'} : {textAlign: 'right'}) }}>
+              {curXp.toLocaleString()} / {nextLvl.toLocaleString()} XP {isAr ? `للمستوى ${(Number(user?.level) || 1) + 1}` : `to Level ${(Number(user?.level) || 1) + 1}`}
             </div>
 
             {/* Mini stats */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
               {[
-                { label: 'Streak', value: `${user?.streak_days || 0}d`, icon: '🔥' },
-                { label: 'Rank',   value: user?.rank || '—',             icon: '🏅' },
+                { label: isAr ? 'سلسلة الأيام' : 'Streak', value: `${user?.streak_days || 0}${isAr ? 'ي' : 'd'}`, icon: '🔥' },
+                { label: isAr ? 'التصنيف' : 'Rank',   value: user?.rank || '—',             icon: '🏅' },
               ].map(s => (
                 <div key={s.label} className="floating-card" style={{
                   padding: '8px 12px',
@@ -221,13 +233,25 @@ function WelcomeBanner({ user }) {
    QuickActions
    ════════════════════════════════════════════════════════ */
 function QuickActions({ navigate }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
+  
+  const actions = [
+    { icon:'🤖', label: isAr ? 'المعلم الذكي' : 'AI Tutor',     sub: isAr ? 'اسأل أي شيء' : 'Ask anything',    path:'/ai',           grad:'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+    { icon:'📅', label: isAr ? 'المخطط' : 'Planner',      sub: isAr ? 'جدولة المذاكرة' : 'Schedule study',  path:'/planner',      grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)' },
+    { icon:'✉️', label: isAr ? 'الرسائل' : 'Messages',     sub: isAr ? 'دردش مع زملائك' : 'Chat with peers', path:'/chat/private', grad:'linear-gradient(135deg,#10B981,#059669)' },
+    { icon:'📁', label: isAr ? 'الملفات' : 'Files',        sub: isAr ? 'مواد دراسية' : 'Study materials',  path:'/files',        grad:'linear-gradient(135deg,#F59E0B,#D97706)' },
+    { icon:'⏱',  label: isAr ? 'التركيز' : 'Focus',        sub: isAr ? 'مؤقت بومودورو' : 'Pomodoro timer',  path:'/focus',        grad:'linear-gradient(135deg,#EF4444,#DC2626)' },
+    { icon:'🛠️', label: isAr ? 'الأدوات' : 'Study Tools',  sub: isAr ? 'قاموس · ويكيبيديا' : 'Dict · Wiki · Quiz', path:'/tools',     grad:'linear-gradient(135deg,#EC4899,#BE185D)' },
+  ];
+
   return (
     <div className="floating-panel" style={{ padding: 24, height: '100%' }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 18, letterSpacing: '-0.02em' }}>
-        Quick Access
+        {isAr ? 'وصول سريع' : 'Quick Access'}
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {QUICK_ACTIONS.map((a, i) => (
+        {actions.map((a, i) => (
           <motion.button
             key={a.label}
             onClick={() => navigate(a.path)}
@@ -269,19 +293,21 @@ function QuickActions({ navigate }) {
    TodaySchedule
    ════════════════════════════════════════════════════════ */
 function TodaySchedule({ sessions, isLoading, navigate }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   return (
     <div className="floating-panel" style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.025em', marginBottom: 3 }}>
-            Today's Schedule
+            {isAr ? 'جدول اليوم' : "Today's Schedule"}
           </h3>
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            {format(new Date(), isAr ? 'dd MMMM yyyy' : 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => navigate('/planner')}>
-          View All →
+          {isAr ? 'عرض الكل ←' : 'View All →'}
         </Button>
       </div>
 
@@ -292,11 +318,11 @@ function TodaySchedule({ sessions, isLoading, navigate }) {
       ) : sessions.length === 0 ? (
         <EmptyState
           icon="📅"
-          title="No sessions today"
-          subtitle="Add a study session to your planner and stay on track."
+          title={isAr ? 'لا توجد جلسات اليوم' : "No sessions today"}
+          subtitle={isAr ? 'أضف جلسة دراسية إلى مخططك وابقَ على المسار الصحيح.' : "Add a study session to your planner and stay on track."}
           action={
             <Button variant="primary" size="sm" onClick={() => navigate('/planner')}>
-              + Add Session
+              {isAr ? '+ إضافة جلسة' : '+ Add Session'}
             </Button>
           }
         />
@@ -358,14 +384,16 @@ function TodaySchedule({ sessions, isLoading, navigate }) {
    GroupsWidget — shown on student dashboard
    ════════════════════════════════════════════════════════ */
 function GroupsWidget({ navigate }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { data } = useQuery({ queryKey:['groups'], queryFn:() => groupsAPI.list() });
   const groups = data?.data?.groups || [];
   if (groups.length === 0) return null;
   return (
     <Card style={{ padding:24, marginBottom:28 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', letterSpacing:'-0.02em' }}>📚 My Groups</h3>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/groups')}>View all →</Button>
+        <h3 style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', letterSpacing:'-0.02em' }}>📚 {isAr ? 'مجموعاتي' : 'My Groups'}</h3>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/groups')}>{isAr ? 'عرض الكل ←' : 'View all →'}</Button>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
         {groups.slice(0,3).map(g => {
@@ -419,6 +447,9 @@ function StudentDashboard() {
   });
   const allSessions = allSessData?.data?.sessions || [];
 
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
+
   return (
     <motion.div variants={stagger.container} initial="hidden" animate="visible">
       <motion.div variants={stagger.item}><WelcomeBanner user={user} /></motion.div>
@@ -427,10 +458,10 @@ function StudentDashboard() {
       <GroupsWidget navigate={navigate} />
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:16, marginBottom:28 }}>
-        <StatCard icon="👥" value={studentCount.toLocaleString()} label="Students Online" color="#10B981" sub="Active right now" />
-        <StatCard icon="📅" value={stats.sessions_done || 0} label="Sessions Done" color="#7C3AED" change={stats.sessions_done > 5 ? '+Great pace' : undefined} />
-        <StatCard icon="🎯" value={stats.quizzes_taken || 0} label="Quizzes Taken" color="#06B6D4" sub={`${stats.avg_score || 0}% avg score`} />
-        <StatCard icon="⭐" value={(user?.xp_points || 0).toLocaleString()} label="Total XP" color="#F59E0B" onClick={() => navigate('/achievements')} sub="Tap for achievements" />
+        <StatCard icon="👥" value={studentCount.toLocaleString()} label={isAr ? 'طلاب نشطون' : 'Students Online'} color="#10B981" sub={isAr ? 'متواجدون الآن' : 'Active right now'} />
+        <StatCard icon="📅" value={stats.sessions_done || 0} label={isAr ? 'جلسات مكتملة' : 'Sessions Done'} color="#7C3AED" change={stats.sessions_done > 5 ? (isAr ? '+معدل ممتاز' : '+Great pace') : undefined} />
+        <StatCard icon="🎯" value={stats.quizzes_taken || 0} label={isAr ? 'اختبارات منجزة' : 'Quizzes Taken'} color="#06B6D4" sub={`${stats.avg_score || 0}% ${isAr ? 'متوسط الدرجات' : 'avg score'}`} />
+        <StatCard icon="⭐" value={(user?.xp_points || 0).toLocaleString()} label={isAr ? 'إجمالي XP' : 'Total XP'} color="#F59E0B" onClick={() => navigate('/achievements')} sub={isAr ? 'اضغط للإنجازات' : 'Tap for achievements'} />
       </motion.div>
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:24, marginBottom:28 }}>
@@ -444,11 +475,11 @@ function StudentDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em', marginBottom: 3 }}>
-                🔥 Study Activity
+                🔥 {isAr ? 'النشاط الدراسي' : 'Study Activity'}
               </h3>
-              <p style={{ fontSize: 12, color: 'var(--text3)' }}>Your learning consistency over the last 90 days</p>
+              <p style={{ fontSize: 12, color: 'var(--text3)' }}>{isAr ? 'مدى التزامك بالدراسة آخر ٩٠ يوماً' : 'Your learning consistency over the last 90 days'}</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/analytics')}>Full Analytics →</Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/analytics')}>{isAr ? 'التحليلات كاملة ←' : 'Full Analytics →'}</Button>
           </div>
           <StreakHeatmap sessions={allSessions} days={90} />
         </div>
@@ -462,8 +493,8 @@ function StudentDashboard() {
           <div style={{ minWidth:180, padding:'18px 20px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
             <div style={{ fontSize:40, lineHeight:1 }}>🔥</div>
             <div style={{ fontSize:36, fontWeight:900, fontFamily:'var(--font-head)', color:'#FBBF24', lineHeight:1, letterSpacing:'-0.04em' }}>{user?.streak_days || 0}</div>
-            <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Day Streak</div>
-            <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{user?.streak_days >= 7 ? '🏆 On fire!' : 'Keep going!'}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.1em' }}>{isAr ? 'سلسلة الأيام' : 'Day Streak'}</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>{user?.streak_days >= 7 ? (isAr ? '🏆 أداء ناري!' : '🏆 On fire!') : (isAr ? 'استمر!' : 'Keep going!')}</div>
           </div>
         </div>
       </motion.div>
@@ -474,9 +505,9 @@ function StudentDashboard() {
 
       <motion.div variants={stagger.item} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
         {[
-          { icon:'🤖', label:'AI Tutor',    desc:'Get instant answers for any subject with our AI', color:'#7C3AED', path:'/ai' },
-          { icon:'🛠️', label:'Study Tools', desc:'Dictionary, Wikipedia snap, and Trivia quizzes', color:'#F59E0B', path:'/tools' },
-          { icon:'📊', label:'Analytics',   desc:'Track your progress and identify areas to improve', color:'#06B6D4', path:'/analytics' },
+          { icon:'🤖', label: isAr ? 'المعلم الذكي' : 'AI Tutor',    desc: isAr ? 'احصل على إجابات فورية لأي مادة بواسطة الذكاء الاصطناعي' : 'Get instant answers for any subject with our AI', color:'#7C3AED', path:'/ai' },
+          { icon:'🛠️', label: isAr ? 'الأدوات' : 'Study Tools', desc: isAr ? 'قاموس، ويكيبيديا السريعة، واختبارات ترفيهية' : 'Dictionary, Wikipedia snap, and Trivia quizzes', color:'#F59E0B', path:'/tools' },
+          { icon:'📊', label: isAr ? 'التحليلات' : 'Analytics',   desc: isAr ? 'تتبع تقدمك وحدد نقاط الضعف لتحسينها' : 'Track your progress and identify areas to improve', color:'#06B6D4', path:'/analytics' },
         ].map((f,i) => (
           <motion.div key={f.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0, transition:{ delay:0.3+i*0.08 } }} whileHover={{ y:-4 }} onClick={() => navigate(f.path)}
             style={{ padding:'22px 20px', borderRadius:18, border:'1px solid var(--border)', background:'var(--surface)', cursor:'pointer', transition:'all 0.22s var(--ease)', position:'relative', overflow:'hidden' }}>
@@ -484,7 +515,7 @@ function StudentDashboard() {
             <div style={{ width:48, height:48, borderRadius:14, fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', background:`${f.color}18`, border:`1px solid ${f.color}28`, marginBottom:14 }}>{f.icon}</div>
             <div style={{ fontSize:15, fontWeight:800, fontFamily:'var(--font-head)', color:'var(--text)', marginBottom:6, letterSpacing:'-0.02em' }}>{f.label}</div>
             <div style={{ fontSize:12.5, color:'var(--text3)', lineHeight:1.55 }}>{f.desc}</div>
-            <div style={{ marginTop:14, fontSize:12, fontWeight:700, color:f.color }}>Open →</div>
+            <div style={{ marginTop:14, fontSize:12, fontWeight:700, color:f.color }}>{isAr ? 'فتح ←' : 'Open →'}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -493,9 +524,9 @@ function StudentDashboard() {
       <motion.div variants={stagger.item} style={{ marginTop: 32, marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>
-            📸 Campus Life
+            📸 {isAr ? 'الحرم الجامعي' : 'Campus Life'}
           </h3>
-          <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>Your learning environment</span>
+          <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{isAr ? 'بيئة التعلم الخاصة بك' : 'Your learning environment'}</span>
         </div>
         <div style={{
           display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,

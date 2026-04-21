@@ -4,8 +4,11 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { groupsAPI } from '../../api/index';
+import { useTranslation } from '../../i18n/index';
 
 export default function GradingInterface() {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { id, assignmentId } = useParams();
   const navigate = useNavigate();
   const [activeSubIdx, setActiveSubIdx] = useState(0);
@@ -33,14 +36,14 @@ export default function GradingInterface() {
   }
 
   const handleGrade = async () => {
-    if (!form.score) { toast.error('Score is required'); return; }
+    if (!form.score) { toast.error(isAr ? 'الدرجة مطلوبة' : 'Score is required'); return; }
     setSaving(true);
     try {
       await groupsAPI.gradeSubmission(id, assignmentId, currentSub._id, form);
-      toast.success('Saved successfully!');
+      toast.success(isAr ? 'تم الحفظ بنجاح!' : 'Saved successfully!');
       refetch();
     } catch {
-      toast.error('Failed to save grade');
+      toast.error(isAr ? 'فشل حفظ التقييم' : 'Failed to save grade');
     } finally {
       setSaving(false);
     }
@@ -61,11 +64,11 @@ export default function GradingInterface() {
   };
 
   if (!assignment) {
-    return <div style={{ padding: '60px', textAlign: 'center' }}>Loading Assignment Details...</div>;
+    return <div style={{ padding: '60px', textAlign: 'center' }}>{isAr ? 'جاري تحميل تفاصيل التكليف...' : 'Loading Assignment Details...'}</div>;
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--ink)' }}>
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--ink)', direction: isAr ? 'rtl' : 'ltr' }}>
       
       {/* Left Pane: Document / Content Viewer */}
       <div style={{ flex: 2, background: 'var(--surface2)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -76,13 +79,13 @@ export default function GradingInterface() {
              <button onClick={() => navigate(`/groups/${id}`)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
              <div>
                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>{assignment.title}</div>
-               <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{submissions.length} total submissions</div>
+               <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{submissions.length} {isAr ? 'إجمالي التسليمات' : 'total submissions'}</div>
              </div>
            </div>
            
            {/* Pagination Nav */}
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)' }}>Student {activeSubIdx + 1} of {submissions.length}</span>
+             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)' }}>{isAr ? `طالب ${activeSubIdx + 1} من ${submissions.length}` : `Student ${activeSubIdx + 1} of ${submissions.length}`}</span>
              <div style={{ display: 'flex', gap: '4px' }}>
                <button onClick={prevSub} disabled={activeSubIdx === 0} style={{ padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', cursor: activeSubIdx === 0 ? 'not-allowed' : 'pointer' }}>↑</button>
                <button onClick={nextSub} disabled={activeSubIdx === submissions.length - 1} style={{ padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', cursor: activeSubIdx === submissions.length - 1 ? 'not-allowed' : 'pointer' }}>↓</button>
@@ -96,14 +99,14 @@ export default function GradingInterface() {
             <motion.div key={currentSub._id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} style={{ width: '100%', maxWidth: '800px', minHeight: '800px', background: '#fff', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.08)', padding: '60px' }}>
                 {/* Mocked PDF / Document Paper */}
                 <h2 style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'serif', borderBottom: '2px solid #000', paddingBottom: '16px', marginBottom: '32px' }}>
-                  {currentSub.studentName || 'Student'} - Assignment Submission
+                  {currentSub.studentName || (isAr ? 'طالب' : 'Student')} - {isAr ? 'تسليم التكليف' : 'Assignment Submission'}
                 </h2>
                 <div style={{ fontSize: '16px', lineHeight: 1.8, fontFamily: 'serif', color: '#333', whiteSpace: 'pre-wrap' }}>
-                  {currentSub.content || 'Submission content was empty or file was not attached correctly.'}
+                  {currentSub.content || (isAr ? 'محتوى التسليم فارغ أو لم يتم إرفاق الملف بشكل صحيح.' : 'Submission content was empty or file was not attached correctly.')}
                 </div>
             </motion.div>
           ) : (
-            <div style={{ color: 'var(--text3)', marginTop: '100px', textAlign: 'center' }}>Select a submission to grade</div>
+            <div style={{ color: 'var(--text3)', marginTop: '100px', textAlign: 'center' }}>{isAr ? 'اختر تسليماً للتقييم' : 'Select a submission to grade'}</div>
           )}
         </div>
       </div>
@@ -112,7 +115,7 @@ export default function GradingInterface() {
       <div style={{ flex: 1, minWidth: '350px', maxWidth: '420px', background: 'var(--surface)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
          <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              📋 Evaluation Panel
+              {isAr ? '📋 لوحة التقييم' : '📋 Evaluation Panel'}
             </h3>
          </div>
 
@@ -125,12 +128,12 @@ export default function GradingInterface() {
                   {currentSub.studentName?.[0] || 'S'}
                 </div>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>{currentSub.studentName || 'Unknown Student'}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Submitted {new Date(currentSub.submittedAt).toLocaleString()}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>{currentSub.studentName || (isAr ? 'طالب غير معروف' : 'Unknown Student')}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{isAr ? 'تم التسليم' : 'Submitted'} {new Date(currentSub.submittedAt).toLocaleString()}</div>
                 </div>
-                <div style={{ marginLeft: 'auto' }}>
+                <div style={{ [isAr ? 'marginRight' : 'marginLeft']: 'auto' }}>
                   <span style={{ fontSize: '10px', fontWeight: 800, background: currentSub.status === 'graded' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: currentSub.status === 'graded' ? '#10B981' : '#F59E0B', padding: '4px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
-                    {currentSub.status}
+                    {currentSub.status === 'graded' ? (isAr ? 'تم التقييم' : 'graded') : (isAr ? 'قيد الانتظار' : 'pending')}
                   </span>
                 </div>
              </div>
@@ -138,7 +141,7 @@ export default function GradingInterface() {
              {/* Grading Form */}
              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: '8px' }}>Final Score (Out of {assignment.maxScore})</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: '8px' }}>{isAr ? `الدرجة النهائية (من ${assignment.maxScore})` : `Final Score (Out of ${assignment.maxScore})`}</label>
                   <input 
                     type="number" 
                     value={form.score}
@@ -149,29 +152,29 @@ export default function GradingInterface() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: '8px' }}>Private Feedback</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: '8px' }}>{isAr ? 'تعليق خاص' : 'Private Feedback'}</label>
                   <textarea 
                     rows={6}
                     value={form.feedback}
                     onChange={e => setForm({ ...form, feedback: e.target.value })}
-                    placeholder="Leave constructive feedback for the student..."
+                    placeholder={isAr ? "اترك تعليقاً بناءً للطالب..." : "Leave constructive feedback for the student..."}
                     style={{ width: '100%', padding: '14px', background: 'var(--surface2)', border: '1.5px solid var(--border)', borderRadius: '12px', fontSize: '14px', color: 'var(--text)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
                   <button onClick={handleGrade} disabled={saving} style={{ width: '100%', padding: '16px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981, #059669)', border: 'none', color: '#fff', fontSize: '15px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(16,185,129,0.2)' }}>
-                    {saving ? 'Saving...' : 'Save & Publish Score'}
+                    {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ ونشر الدرجة' : 'Save & Publish Score')}
                   </button>
                   <button onClick={nextSub} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'transparent', border: '1.5px solid var(--border2)', color: 'var(--text2)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-                    Skip to Next Student
+                    {isAr ? 'تخطي للطالب التالي' : 'Skip to Next Student'}
                   </button>
                 </div>
              </div>
 
            </div>
          ) : (
-           <div style={{ padding: '24px', color: 'var(--text3)' }}>No submissions available to grade.</div>
+           <div style={{ padding: '24px', color: 'var(--text3)' }}>{isAr ? 'لا توجد تسليمات متاحة للتقييم.' : 'No submissions available to grade.'}</div>
          )}
       </div>
 

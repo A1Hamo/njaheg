@@ -2,6 +2,7 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../i18n/index';
 
 // ==========================================
 // THEME & COLOR PALETTE (From Pinterest Ref)
@@ -31,6 +32,8 @@ const fadeInUp = {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const { scrollY } = useScroll();
   const yHero = useTransform(scrollY, [0, 500], [0, 100]);
   
@@ -59,18 +62,18 @@ export default function LandingPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 32, display: 'none', '@media (minWidth: 768px)': { display: 'flex' } }}>
-           <a href="#courses" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Courses</a>
-           <a href="#mentorship" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Mentorship</a>
-           <a href="#events" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Events</a>
-           <a href="#community" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Community</a>
+           <a href="#courses" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>{isAr ? 'الدورات' : 'Courses'}</a>
+           <a href="#mentorship" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>{isAr ? 'التوجيه' : 'Mentorship'}</a>
+           <a href="#events" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>{isAr ? 'الفعاليات' : 'Events'}</a>
+           <a href="#community" style={{ color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>{isAr ? 'المجتمع' : 'Community'}</a>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <button onClick={() => navigate('/login')} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Login</button>
+          <button onClick={() => navigate('/login')} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{isAr ? 'دخول' : 'Login'}</button>
           <button onClick={() => navigate('/register')} style={{ 
             background: C.white, color: C.navy, border: 'none', padding: '10px 24px', borderRadius: 99, 
             fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}>Sign Up</button>
+          }}>{isAr ? 'حساب جديد' : 'Sign Up'}</button>
         </div>
       </nav>
 
@@ -88,11 +91,11 @@ export default function LandingPage() {
             <motion.h1 variants={fadeInUp} style={{ 
               fontSize: 'min(5.5vw, 64px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24
             }}>
-              Grow Your Skills to<br/>Advance Your Career Path.
+              {isAr ? 'طوّر مهاراتك لترتقي بمسارك المهني.' : <span dangerouslySetInnerHTML={{__html: 'Grow Your Skills to<br/>Advance Your Career Path.'}} />}
             </motion.h1>
             
             <motion.p variants={fadeInUp} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 18, lineHeight: 1.6, marginBottom: 40, maxWidth: 600, margin: '0 auto 40px' }}>
-              High-definition video & audio live classes built to immediately elevate your career trajectory with elite Egyptian educators.
+              {isAr ? 'فصول مباشرة عالية الدقة صُممت للارتقاء بمسارك المهني مع نخبة من المعلمين المصريين.' : 'High-definition video & audio live classes built to immediately elevate your career trajectory with elite Egyptian educators.'}
             </motion.p>
             
             <motion.button variants={fadeInUp} 
@@ -104,7 +107,7 @@ export default function LandingPage() {
                 fontSize: 16, fontWeight: 700, cursor: 'pointer', transition: 'box-shadow 0.2s',
                 boxShadow: `0 4px 20px ${C.magenta}40`
             }}>
-              Get Started Now
+              {isAr ? 'ابدأ الآن' : 'Get Started Now'}
             </motion.button>
           </motion.div>
 
@@ -116,8 +119,8 @@ export default function LandingPage() {
               <img src="/images/showcase-1.jpeg" alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
               {/* Fake UI floating element */}
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Ahmed Mostafa</div>
-                <div style={{ fontSize: 12, color: C.textM }}>Engineering Track</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>{isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa'}</div>
+                <div style={{ fontSize: 12, color: C.textM }}>{isAr ? 'مسار الهندسة' : 'Engineering Track'}</div>
               </div>
             </motion.div>
 
@@ -125,10 +128,10 @@ export default function LandingPage() {
             <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, type: 'spring' }}
               style={{ width: 300, height: 420, borderRadius: 24, background: C.blue, position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', zIndex: 2 }}>
               <img src="/images/showcase-2.jpeg" alt="Student 2" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
-              <div style={{ position: 'absolute', top: 20, right: 20, background: C.magenta, color: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800 }}>LIVE</div>
+              <div style={{ position: 'absolute', top: 20, right: 20, background: C.magenta, color: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800 }}>{isAr ? 'مباشر' : 'LIVE'}</div>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Sarah Khaled</div>
-                <div style={{ fontSize: 12, color: C.textM }}>Medical Track</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>{isAr ? 'سارة خالد' : 'Sarah Khaled'}</div>
+                <div style={{ fontSize: 12, color: C.textM }}>{isAr ? 'مسار الطب' : 'Medical Track'}</div>
               </div>
             </motion.div>
 
@@ -137,8 +140,8 @@ export default function LandingPage() {
               style={{ width: 280, height: 380, borderRadius: 24, background: C.orange, position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', transform: 'translateY(40px)' }}>
               <img src="/images/showcase-3.jpeg" alt="Student 3" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.9 }} />
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, background: '#fff', padding: 16, borderRadius: 16, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>Omar Youssef</div>
-                <div style={{ fontSize: 12, color: C.textM }}>Languages Track</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.textD }}>{isAr ? 'عمر يوسف' : 'Omar Youssef'}</div>
+                <div style={{ fontSize: 12, color: C.textM }}>{isAr ? 'مسار اللغات' : 'Languages Track'}</div>
               </div>
             </motion.div>
           </motion.div>
@@ -162,7 +165,7 @@ export default function LandingPage() {
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.gray, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📹</div>
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.gray, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>💬</div>
                 </div>
-                <button style={{ background: C.magenta, color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 99, fontWeight: 700 }}>End Class</button>
+                <button style={{ background: C.magenta, color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 99, fontWeight: 700 }}>{isAr ? 'إنهاء الحصة' : 'End Class'}</button>
               </div>
             </motion.div>
 
@@ -176,35 +179,35 @@ export default function LandingPage() {
             {/* Floating UI Elements matching reference */}
             <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4 }}
               style={{ position: 'absolute', top: -30, left: -20, background: '#fff', padding: '12px 20px', borderRadius: 99, boxShadow: '0 10px 20px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, zIndex: 5 }}>
-              <span style={{ fontSize: 20 }}>👏</span> <span style={{ fontWeight: 800, color: C.textD }}>Excellent Answer!</span>
+              <span style={{ fontSize: 20 }}>👏</span> <span style={{ fontWeight: 800, color: C.textD }}>{isAr ? 'إجابة ممتازة!' : 'Excellent Answer!'}</span>
             </motion.div>
           </div>
 
           {/* Right Side: Text & Features */}
           <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once:true }} style={{ flex: '1 1 400px' }}>
             <h2 style={{ fontSize: 'min(4vw, 44px)', fontWeight: 800, color: C.textD, lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24 }}>
-              High Quality Video, Audio & Live Class.
+              {isAr ? 'فصول حية بجودة صوت وصورة عالية.' : 'High Quality Video, Audio & Live Class.'}
             </h2>
             <p style={{ color: C.textM, fontSize: 16, lineHeight: 1.7, marginBottom: 40 }}>
-              Experience high definition classes with crystal clear audio. Our e-learning environment is designed to deliver uninterrupted learning directly to your device globally.
+              {isAr ? 'استمتع بفصول عالية الدقة بوضوح صوت استثنائي. صُممت بيئة التعلم الخاصة بنا لتقديم تجربة دراسية خالية من الانقطاع من أي مكان في العالم.' : 'Experience high definition classes with crystal clear audio. Our e-learning environment is designed to deliver uninterrupted learning directly to your device globally.'}
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 31, 90, 0.1)', color: C.magenta, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎧</div>
-                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Audio Classes</span>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>{isAr ? 'فصول صوتية' : 'Audio Classes'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(14, 165, 233, 0.1)', color: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🔴</div>
-                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Live Classes</span>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>{isAr ? 'فصول مباشرة' : 'Live Classes'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(249, 115, 22, 0.1)', color: C.orange, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎥</div>
-                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>Recorded Class</span>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>{isAr ? 'فصول مسجلة' : 'Recorded Class'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 184, 0, 0.1)', color: C.yellow, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📝</div>
-                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>50+ Notes</span>
+                <span style={{ fontWeight: 700, color: C.textD, fontSize: 15 }}>{isAr ? '٥٠+ ملزمة' : '50+ Notes'}</span>
               </div>
             </div>
 
@@ -212,7 +215,7 @@ export default function LandingPage() {
               marginTop: 48, background: C.navy, color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 99, 
               fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 20px rgba(11, 17, 32, 0.2)'
             }}>
-              Explore Courses →
+              {isAr ? 'استكشف الدورات ←' : 'Explore Courses →'}
             </button>
           </motion.div>
         
@@ -222,20 +225,20 @@ export default function LandingPage() {
       {/* ── COURSE GRID SECTION (Assets 6-10) ── */}
       <section style={{ backgroundColor: '#fff', padding: '100px 5%' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 36, fontWeight: 800, color: C.textD, marginBottom: 12 }}>Explore Top Subjects</h2>
-          <p style={{ color: C.textM, fontSize: 16, marginBottom: 60 }}>Master new topics from the best Egyptian instructors</p>
+          <h2 style={{ fontSize: 36, fontWeight: 800, color: C.textD, marginBottom: 12 }}>{isAr ? 'استكشف أهم المواد' : 'Explore Top Subjects'}</h2>
+          <p style={{ color: C.textM, fontSize: 16, marginBottom: 60 }}>{isAr ? 'أتقن مواضيع جديدة مع أفضل المعلمين المصريين' : 'Master new topics from the best Egyptian instructors'}</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 32 }}>
             {[
-              { title: 'Advanced Physics Concept', tutor: 'Prof. Hassan', img: 'showcase-6.jpeg', tag: 'Physics' },
-              { title: 'Organic Chemistry Masterclass', tutor: 'Dr. Rania', img: 'showcase-7.jpeg', tag: 'Chemistry' },
-              { title: 'Arabic Literature & Grammar', tutor: 'Mr. Tarek', img: 'showcase-8.jpeg', tag: 'Arabic' }
+              { title: isAr ? 'مفاهيم متقدمة في الفيزياء' : 'Advanced Physics Concept', tutor: isAr ? 'أ. حسن' : 'Prof. Hassan', img: 'showcase-6.jpeg', tag: isAr ? 'فيزياء' : 'Physics' },
+              { title: isAr ? 'كيمياء عضوية' : 'Organic Chemistry Masterclass', tutor: isAr ? 'د. رانيا' : 'Dr. Rania', img: 'showcase-7.jpeg', tag: isAr ? 'كيمياء' : 'Chemistry' },
+              { title: isAr ? 'الأدب والنحو العربي' : 'Arabic Literature & Grammar', tutor: isAr ? 'أ. طارق' : 'Mr. Tarek', img: 'showcase-8.jpeg', tag: isAr ? 'لغة عربية' : 'Arabic' }
             ].map((course, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: i*0.15 }}
-                style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,0.06)', border: `1px solid ${C.gray}`, textAlign: 'left' }}>
+                style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,0.06)', border: `1px solid ${C.gray}`, textAlign: isAr ? 'right' : 'left' }}>
                 <div style={{ height: 200, position: 'relative' }}>
                   <img src={`/images/${course.img}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', top: 16, left: 16, background: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, color: C.textD }}>{course.tag}</div>
+                  <div style={{ position: 'absolute', top: 16, ...(isAr ? { right: 16 } : { left: 16 }), background: '#fff', padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, color: C.textD }}>{course.tag}</div>
                 </div>
                 <div style={{ padding: 24 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.textD, marginBottom: 8, lineHeight: 1.4 }}>{course.title}</h3>
@@ -246,8 +249,8 @@ export default function LandingPage() {
                     <span style={{ fontSize: 14, color: C.textM, fontWeight: 600 }}>{course.tutor}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.gray}`, paddingTop: 20 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.magenta }}>Register Now</span>
-                    <span style={{ fontSize: 18, color: C.gray }}>→</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.magenta }}>{isAr ? 'سجل الآن' : 'Register Now'}</span>
+                    <span style={{ fontSize: 18, color: C.gray, transform: isAr ? 'scaleX(-1)' : 'none' }}>→</span>
                   </div>
                 </div>
               </motion.div>
@@ -265,16 +268,16 @@ export default function LandingPage() {
               <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Najah<span style={{color: C.magenta}}>.</span></span>
             </div>
             <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, fontSize: 14 }}>
-              Egypt's premier advanced E-Learning platform combining deep study analytics, high speed networking, and professional institutional interfaces.
+              {isAr ? 'منصة التعليم الإلكتروني المتقدمة الأولى في مصر تجمع بين التحليلات الدراسية العميقة والشبكات السريعة وواجهات المؤسسات المهنية.' : "Egypt's premier advanced E-Learning platform combining deep study analytics, high speed networking, and professional institutional interfaces."}
             </p>
           </div>
           <div style={{ flex: '1 1 150px' }}>
-            <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 24 }}>Platform</h4>
+            <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 24 }}>{isAr ? 'المنصة' : 'Platform'}</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-              <span style={{ cursor:'pointer' }}>Courses</span>
-              <span style={{ cursor:'pointer' }}>Live Classes</span>
-              <span style={{ cursor:'pointer' }}>Study Materials</span>
-              <span style={{ cursor:'pointer' }}>Mock Exams</span>
+              <span style={{ cursor:'pointer' }}>{isAr ? 'الدورات' : 'Courses'}</span>
+              <span style={{ cursor:'pointer' }}>{isAr ? 'فصول حية' : 'Live Classes'}</span>
+              <span style={{ cursor:'pointer' }}>{isAr ? 'مواد دراسية' : 'Study Materials'}</span>
+              <span style={{ cursor:'pointer' }}>{isAr ? 'اختبارات تجريبية' : 'Mock Exams'}</span>
             </div>
           </div>
         </div>

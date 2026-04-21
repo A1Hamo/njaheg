@@ -155,6 +155,7 @@ function NotifDrawer({ open, onClose }) {
   const isRtl = useUIStore(s => s.language) === 'ar';
   const slideX = isRtl ? '-100%' : '100%';
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <AnimatePresence>
@@ -179,9 +180,9 @@ function NotifDrawer({ open, onClose }) {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
             }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--font-head)' }}>Notifications</div>
+                <div style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--font-head)' }}>{t('nav.notifications')}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
-                  {notifications.filter(n => !n.is_read).length} unread
+                  {notifications.filter(n => !n.is_read).length} {t('common.unread')}
                 </div>
               </div>
               <button onClick={onClose} style={{
@@ -197,7 +198,7 @@ function NotifDrawer({ open, onClose }) {
               {notifications.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-                  <p style={{ color: 'var(--text3)', fontSize: 14 }}>No notifications yet</p>
+                  <p style={{ color: 'var(--text3)', fontSize: 14 }}>{t('common.noNotifications')}</p>
                 </div>
               ) : (
                 notifications.map(n => (
@@ -365,7 +366,7 @@ export function Sidebar({ open, onToggle }) {
                     letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1,
                   }}>Najah</span>
                   <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                    SMART LEARNING
+                    {t('common.smartLearning')}
                   </span>
                 </motion.div>
               )}
@@ -532,6 +533,7 @@ function SidebarUserStrip({ open }) {
   const navigate = useNavigate();
   const isTeacher = user?.role === 'teacher';
   const { institutionMode } = useUIStore();
+  const { t } = useTranslation();
   return (
     <div style={{
       borderTop: '1px solid var(--border)',
@@ -567,7 +569,7 @@ function SidebarUserStrip({ open }) {
                 border: `1px solid ${isTeacher ? 'rgba(14,165,233,0.28)' : 'rgba(124,58,237,0.22)'}`,
                 textTransform:'uppercase', letterSpacing:'0.08em',
               }}>
-                {isTeacher ? '👨‍🏫 Teacher' : '🎓 Student'}
+                {isTeacher ? '👨‍🏫 ' + t('common.teacher') : '🎓 ' + t('common.student')}
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 700, padding:'1px 6px', borderRadius:5,
@@ -576,10 +578,10 @@ function SidebarUserStrip({ open }) {
                 border: `1px solid ${institutionMode === 'university' ? 'rgba(14,165,233,0.2)' : 'rgba(16,185,129,0.2)'}`,
                 textTransform:'uppercase', letterSpacing:'0.06em',
               }}>
-                {institutionMode === 'university' ? '🎓 University' : '🏫 School'}
+                {institutionMode === 'university' ? '🎓 ' + t('common.university') : '🏫 ' + t('common.school')}
               </span>
               {!isTeacher && (
-                <span style={{ fontSize: 10, color: 'var(--text3)' }}>Lvl {user?.level || 1}</span>
+                <span style={{ fontSize: 10, color: 'var(--text3)' }}>{t('common.lvl')} {user?.level || 1}</span>
               )}
             </div>
           </motion.div>
@@ -693,10 +695,10 @@ export function Header({ sidebarOpen, onToggle, onOpenNotifs, onOpenWizard }) {
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* System Status Indicators (Subtle touches of Green, Red, Yellow) */}
-          <div className="hide-mobile" style={{ display: 'flex', gap: 10, marginRight: 15, padding: '0 5px' }}>
-            <div title="Network: Stable" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px rgba(16,185,129,0.5)' }} />
-            <div title="AI: Ready" style={{ width: 7, height: 7, borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.5)' }} />
-            <div title="System: Active" style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.5)' }} />
+          <div className="hide-mobile" style={{ display: 'flex', gap: 10, marginInlineEnd: 15, padding: '0 5px' }}>
+            <div title={t('common.networkStable')} style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px rgba(16,185,129,0.5)' }} />
+            <div title={t('common.aiReady')} style={{ width: 7, height: 7, borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.5)' }} />
+            <div title={t('common.systemActive')} style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.5)' }} />
           </div>
 
           {/* New Group Quick Action */}
@@ -717,25 +719,25 @@ export function Header({ sidebarOpen, onToggle, onOpenNotifs, onOpenWizard }) {
           </motion.button>
 
           {/* Search */}
-          <HeaderBtn title="Search (⌘K)" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
+          <HeaderBtn title={t('common.search') + ' (⌘K)'} onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
             <Icons.search />
           </HeaderBtn>
 
           {/* Institution mode is now locked at registration — no runtime switcher */}
 
           {/* Theme Toggle */}
-          <HeaderBtn onClick={toggleDark} title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          <HeaderBtn onClick={toggleDark} title={darkMode ? t('settings.light') : t('settings.dark')}>
             {darkMode ? '☀️' : '🌙'}
           </HeaderBtn>
 
           {/* Language */}
-          <HeaderBtn onClick={() => { toggleLang(); setLanguage(lang === 'ar' ? 'en' : 'ar'); }} title="Switch language">
+          <HeaderBtn onClick={() => { toggleLang(); setLanguage(lang === 'ar' ? 'en' : 'ar'); }} title={t('settings.language')}>
             {lang === 'ar' ? '🇬🇧 EN' : '🇪🇬 AR'}
           </HeaderBtn>
 
           {/* Notifications — opens drawer */}
           <div style={{ position: 'relative' }}>
-            <HeaderBtn onClick={onOpenNotifs} title="Notifications">
+            <HeaderBtn onClick={onOpenNotifs} title={t('nav.notifications')}>
               <Icons.notifications />
             </HeaderBtn>
             {unreadCount > 0 && (

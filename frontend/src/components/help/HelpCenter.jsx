@@ -168,7 +168,12 @@ export default function HelpCenter() {
             />
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={() => { if (ticket.subject && ticket.message) setSent(true); }}
+              onClick={() => { 
+                if (ticket.subject && ticket.message) {
+                  window.location.href = `mailto:ahmed1abdalkrem1@gmail.com?subject=${encodeURIComponent(ticket.subject)}&body=${encodeURIComponent(ticket.message)}`;
+                  setSent(true); 
+                }
+              }}
               style={{
                 padding: '13px 32px', borderRadius: 12, alignSelf: 'flex-start',
                 background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',

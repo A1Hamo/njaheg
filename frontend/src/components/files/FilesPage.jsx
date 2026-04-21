@@ -7,12 +7,15 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { filesAPI, aiAPI } from '../../api/index';
 import { Card, Button, Tag, Modal, Input, Select, Spinner, EmptyState, SectionHeader, Btn, ProgressBar } from '../shared/UI';
+import { useTranslation } from '../../i18n/index';
 
 const SUBJECTS = ['mathematics','science','arabic','english','social_studies'];
 const SUBJECT_ICONS = { mathematics:'📐', science:'🔬', arabic:'📚', english:'🌐', social_studies:'🌍' };
 const MIME_ICONS = { 'application/pdf':'📄', 'image/jpeg':'🖼️', 'image/png':'🖼️', 'image/gif':'🖼️', 'image/webp':'🖼️' };
 
 function UploadDropzone({ onUploaded }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [meta, setMeta] = useState({ subject: 'mathematics', tags: '', is_public: false });
@@ -46,13 +49,19 @@ function UploadDropzone({ onUploaded }) {
 
   return (
     <div className="floating-panel" style={{ padding: 28 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 18, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>📥 Secure Vault Upload</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 18, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>{isAr ? '📥 رفع آمن للملفات' : '📥 Secure Vault Upload'}</h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
         <Select value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))}>
-          {SUBJECTS.map(s => <option key={s} value={s}>{SUBJECT_ICONS[s]} {s.replace('_',' ').toUpperCase()}</option>)}
+          {[
+            { value: 'mathematics',   label: isAr ? '📐 الرياضيات' : '📐 Mathematics' },
+            { value: 'science',       label: isAr ? '🔬 العلوم' : '🔬 Science' },
+            { value: 'arabic',        label: isAr ? '📚 اللغة العربية' : '📚 Arabic' },
+            { value: 'english',       label: isAr ? '🌐 اللغة الإنجليزية' : '🌐 English' },
+            { value: 'social_studies',label: isAr ? '🌍 الدراسات الاجتماعية' : '🌍 Social Studies' },
+          ].map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Select>
         <Input 
-          placeholder="Tags: notes, exam, summary..." 
+          placeholder={isAr ? "وسوم: ملاحظات، امتحان، ملخص..." : "Tags: notes, exam, summary..."} 
           value={meta.tags}
           onChange={e => setMeta(m => ({ ...m, tags: e.target.value }))}
         />
@@ -73,7 +82,7 @@ function UploadDropzone({ onUploaded }) {
         {uploading ? (
           <div>
             <Spinner size="lg" />
-            <div style={{ marginTop: 16, fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Uploading Excellence... {progress}%</div>
+            <div style={{ marginTop: 16, fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{isAr ? `جاري الرفع... ${progress}%` : `Uploading Excellence... ${progress}%`}</div>
             <div style={{ marginTop: 12, height: 8, background: 'var(--surface3)', borderRadius: 4, overflow: 'hidden', maxWidth: 300, margin: '12px auto 0' }}>
               <motion.div style={{ height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--brand-400))', boxShadow: '0 0 15px var(--primary)' }}
                 animate={{ width: `${progress}%` }} transition={{ ease: 'linear' }} />
@@ -88,9 +97,9 @@ function UploadDropzone({ onUploaded }) {
               {isDragActive ? '📂' : '✨'}
             </motion.div>
             <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>
-              {isDragActive ? 'Release to Upload' : 'Drag & drop academic assets here'}
+              {isDragActive ? (isAr ? 'أفلت للرفع' : 'Release to Upload') : (isAr ? 'اسحب وأفلت الملفات الأكاديمية هنا' : 'Drag & drop academic assets here')}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>OR CLICK TO BROWSE LOCAL FILES</div>
+            <div style={{ fontSize: 11, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{isAr ? 'أو انقر لتصفح الملفات' : 'OR CLICK TO BROWSE LOCAL FILES'}</div>
           </>
         )}
       </motion.div>
@@ -99,6 +108,8 @@ function UploadDropzone({ onUploaded }) {
 }
 
 function FileCard({ file, onDelete, onAnalyze }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   return (
     <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -133,7 +144,7 @@ function FileCard({ file, onDelete, onAnalyze }) {
 
       <div style={{ display: 'flex', gap: 10 }}>
         {file.mime_type === 'application/pdf' && (
-          <Btn size="sm" variant="glass" onClick={() => onAnalyze(file)}>🤖 AI ANALYZE</Btn>
+          <Btn size="sm" variant="glass" onClick={() => onAnalyze(file)}>🤖 {isAr ? 'تحليل AI' : 'AI ANALYZE'}</Btn>
         )}
         <a href={file.file_url} target="_blank" rel="noopener noreferrer">
           <Btn size="sm" variant="ghost">👁</Btn>
@@ -145,7 +156,8 @@ function FileCard({ file, onDelete, onAnalyze }) {
 }
 
 export default function FilesPage() {
-
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [subject, setSubject] = useState('');
   const [search, setSearch] = useState('');
   const [analyzeFile, setAnalyzeFile] = useState(null);
@@ -167,8 +179,8 @@ export default function FilesPage() {
     <div className="animate-fade-up">
       <SectionHeader 
         icon="📁" 
-        title="Knowledge Vault" 
-        subtitle="Manage your academic repository. Access, analyze, and organize your study materials with ease." 
+        title={isAr ? "مخزن المعرفة" : "Knowledge Vault"} 
+        subtitle={isAr ? "إدارة مستودعك الأكاديمي. يمكنك الوصول والتحليل وتنظيم المواد الدراسية بسهولة." : "Manage your academic repository. Access, analyze, and organize your study materials with ease."} 
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 24, marginBottom: 32 }}>
@@ -176,14 +188,20 @@ export default function FilesPage() {
           <UploadDropzone onUploaded={() => qc.invalidateQueries(['files'])} />
           
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', background: 'var(--surface2)', padding: 8, borderRadius: 14, border: '1px solid var(--border)' }}>
-            <Btn size="sm" variant={!subject ? 'primary' : 'ghost'} onClick={() => setSubject('')}>ALL ASSETS</Btn>
-            {SUBJECTS.map(s => (
-              <Btn key={s} size="sm" variant={subject === s ? 'primary' : 'ghost'} onClick={() => setSubject(s)}>
-                {SUBJECT_ICONS[s]} {s.replace('_',' ').toUpperCase()}
+            <Btn size="sm" variant={!subject ? 'primary' : 'ghost'} onClick={() => setSubject('')}>{isAr ? 'جميع الملفات' : 'ALL ASSETS'}</Btn>
+            {[
+              { value: 'mathematics',   label: isAr ? 'الرياضيات' : 'Mathematics' },
+              { value: 'science',       label: isAr ? 'العلوم' : 'Science' },
+              { value: 'arabic',        label: isAr ? 'اللغة العربية' : 'Arabic' },
+              { value: 'english',       label: isAr ? 'اللغة الإنجليزية' : 'English' },
+              { value: 'social_studies',label: isAr ? 'الدراسات الاجتماعية' : 'Social Studies' },
+            ].map(s => (
+              <Btn key={s.value} size="sm" variant={subject === s.value ? 'primary' : 'ghost'} onClick={() => setSubject(s.value)}>
+                {SUBJECT_ICONS[s.value]} {s.label.toUpperCase()}
               </Btn>
             ))}
             <div style={{ marginLeft: 'auto', width: 240 }}>
-              <Input placeholder="Search Vault..." value={search} onChange={e => setSearch(e.target.value)} prefix="🔍" />
+              <Input placeholder={isAr ? "البحث في المخزن..." : "Search Vault..."} value={search} onChange={e => setSearch(e.target.value)} prefix="🔍" />
             </div>
           </div>
 
@@ -191,7 +209,7 @@ export default function FilesPage() {
             {isLoading ? (
               [1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 14 }} />)
             ) : files.length === 0 ? (
-              <Card><EmptyState icon="📦" title="Vault is Empty" subtitle="Start uploading your study guides and notes to populate your repository." /></Card>
+              <Card><EmptyState icon="📦" title={isAr ? "المخزن فارغ" : "Vault is Empty"} subtitle={isAr ? "ابدأ في رفع الأدلة والملاحظات الدراسية لملء مستودعك." : "Start uploading your study guides and notes to populate your repository."} /></Card>
             ) : (
               <AnimatePresence>
                 {files.map(f => (
@@ -207,27 +225,34 @@ export default function FilesPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div className="floating-panel" style={{ padding: 28 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 20, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>Vault Analytics</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 900, marginBottom: 20, fontFamily: 'var(--font-head)', letterSpacing: '-0.02em' }}>{isAr ? 'تحليلات المخزن' : 'Vault Analytics'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
             <div className="floating-card" style={{ padding: 16, borderRadius: 14, textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--font-head)', color: 'var(--primary)' }}>{files.length}</div>
-              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL ASSETS</div>
+              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isAr ? 'إجمالي الملفات' : 'TOTAL ASSETS'}</div>
             </div>
             <div className="floating-card" style={{ padding: 16, borderRadius: 14, textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 900, fontFamily: 'var(--font-head)', color: 'var(--warning)' }}>{files.filter(f => f.mime_type === 'application/pdf').length}</div>
-              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>PDF GUIDES</div>
+              <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isAr ? 'أدلة PDF' : 'PDF GUIDES'}</div>
             </div>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h4 style={{ fontSize: 12, fontWeight: 900, color: 'var(--text2)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Subject Distribution</h4>
+            <h4 style={{ fontSize: 12, fontWeight: 900, color: 'var(--text2)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{isAr ? 'توزيع المواد' : 'Subject Distribution'}</h4>
             {SUBJECTS.map(s => {
+              const SUBJECTS_LOC = {
+                mathematics: isAr ? 'الرياضيات' : 'Mathematics',
+                science: isAr ? 'العلوم' : 'Science',
+                arabic: isAr ? 'اللغة العربية' : 'Arabic',
+                english: isAr ? 'اللغة الإنجليزية' : 'English',
+                social_studies: isAr ? 'الدراسات الاجتماعية' : 'Social Studies',
+              };
               const count = files.filter(f => f.subject === s).length;
               const pct = (count / (files.length || 1)) * 100;
               return (
                 <div key={s}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ fontWeight: 800, color: 'var(--text)' }}>{SUBJECT_ICONS[s]} {s.replace('_',' ')}</span>
+                    <span style={{ fontWeight: 800, color: 'var(--text)' }}>{SUBJECT_ICONS[s]} {SUBJECTS_LOC[s]}</span>
                     <span style={{ color: 'var(--text4)', fontWeight: 900 }}>{count}</span>
                   </div>
                   <ProgressBar value={pct} height={7} color="var(--primary)" />
@@ -238,16 +263,16 @@ export default function FilesPage() {
         </div>
           
           <Card style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)', border: 'none', color: '#fff' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8, color: '#fff' }}>AI Vault Analysis</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8, color: '#fff' }}>{isAr ? 'تحليل الذكاء الاصطناعي للمخزن' : 'AI Vault Analysis'}</h3>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: 20 }}>
-              Use our advanced AI to summarize your PDFs, generate quizzes, and answer specific questions from your documents instantly.
+              {isAr ? 'استخدم الذكاء الاصطناعي المتقدم الخاص بنا لتلخيص ملفات PDF وإنشاء اختبارات والإجابة على أسئلة محددة من مستنداتك فورًا.' : 'Use our advanced AI to summarize your PDFs, generate quizzes, and answer specific questions from your documents instantly.'}
             </p>
             <div style={{ fontSize: 40, textAlign: 'center', opacity: 0.5 }}>🤖</div>
           </Card>
         </div>
       </div>
 
-      <Modal open={!!analyzeFile} onClose={() => setAnalyzeFile(null)} title={`🤖 INTELLECT ANALYSIS — ${analyzeFile?.original_name}`} size="lg">
+      <Modal open={!!analyzeFile} onClose={() => setAnalyzeFile(null)} title={`🤖 ${isAr ? 'تحليل الذكاء الاصطناعي' : 'INTELLECT ANALYSIS'} — ${analyzeFile?.original_name}`} size="lg">
         {analyzeFile && <AIFileAnalysis file={analyzeFile} />}
       </Modal>
     </div>
@@ -255,6 +280,8 @@ export default function FilesPage() {
 }
 
 function AIFileAnalysis({ file }) {
+  const { lang } = useTranslation();
+  const isAr = lang === 'ar';
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -283,17 +310,17 @@ function AIFileAnalysis({ file }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Btn variant="glass" onClick={() => runAction('summarize')} disabled={loading}>📋 GENERATE SUMMARY</Btn>
-        <Btn variant="glass" onClick={() => runAction('quiz')} disabled={loading}>📝 GENERATE QUIZ</Btn>
+        <Btn variant="glass" onClick={() => runAction('summarize')} disabled={loading}>📋 {isAr ? 'إنشاء ملخص' : 'GENERATE SUMMARY'}</Btn>
+        <Btn variant="glass" onClick={() => runAction('quiz')} disabled={loading}>📝 {isAr ? 'إنشاء اختبار' : 'GENERATE QUIZ'}</Btn>
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
         <Input 
           value={question} onChange={e => setQuestion(e.target.value)}
-          placeholder="Query this document..."
+          placeholder={isAr ? "استفسر من هذا المستند..." : "Query this document..."}
           onKeyDown={e => e.key === 'Enter' && ask()}
         />
-        <Btn variant="primary" onClick={ask} loading={loading}>ASK INTELLECT</Btn>
+        <Btn variant="primary" onClick={ask} loading={loading}>{isAr ? 'اسأل الذكاء الاصطناعي' : 'ASK INTELLECT'}</Btn>
       </div>
 
       <AnimatePresence>

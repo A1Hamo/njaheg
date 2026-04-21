@@ -9,12 +9,12 @@ import { groupsAPI } from '../../api/index';
 import { useAuthStore, useUIStore } from '../../context/store';
 
 /* ── helpers ──────────────────────────────────────────────── */
-const TABS = [
-  { key:'feed',        label:'📢 Feed' },
-  { key:'assignments', label:'📝 Assignments' },
-  { key:'progress',    label:'📈 Academic Progress' },
-  { key:'members',     label:'👥 Members' },
-  { key:'insights',    label:'📊 Insights',  ownerOnly: true },
+const getTabs = (isAr) => [
+  { key:'feed',        label: isAr ? '📢 الأخبار' : '📢 Feed' },
+  { key:'assignments', label: isAr ? '📝 التكاليف' : '📝 Assignments' },
+  { key:'progress',    label: isAr ? '📈 التقدم الأكاديمي' : '📈 Academic Progress' },
+  { key:'members',     label: isAr ? '👥 الأعضاء' : '👥 Members' },
+  { key:'insights',    label: isAr ? '📊 الرؤى' : '📊 Insights',  ownerOnly: true },
 ];
 
 /* ── shared modal base ───────────────────────────────────── */
@@ -55,14 +55,14 @@ function Modal({ open, onClose, title, children }) {
 
 const inputStyle = { width:'100%', padding:'10px 14px', background:'var(--surface2)', border:'1.5px solid var(--border)', borderRadius:10, color:'var(--text)', outline:'none', fontSize:14, fontFamily:'inherit', marginBottom:14 };
 const labelStyle = { fontSize:12, fontWeight:700, color:'var(--text2)', display:'block', marginBottom:6 };
-const submitBtn  = (label, loading, color='var(--primary)') => (
+const submitBtn  = (label, loading, color='var(--primary)', isAr) => (
   <button type="submit" disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:11, background:`linear-gradient(135deg,${color},${color}cc)`, color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', border:'none', fontFamily:'inherit', opacity: loading ? 0.7 : 1 }}>
-    {loading ? 'Saving…' : label}
+    {loading ? (isAr ? 'جاري الحفظ...' : 'Saving…') : label}
   </button>
 );
 
 /* ── Announcement Card ───────────────────────────────────── */
-function AnnouncementCard({ ann, isOwner, groupId, onPin, onDelete }) {
+function AnnouncementCard({ ann, isOwner, groupId, onPin, onDelete, isAr }) {
   return (
     <motion.div
       initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
@@ -74,9 +74,9 @@ function AnnouncementCard({ ann, isOwner, groupId, onPin, onDelete }) {
       }}
     >
       {ann.pinned && (
-        <span style={{ position:'absolute', top:14, right:16, fontSize:11, fontWeight:700, color:'#FBBF24', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.25)', padding:'2px 8px', borderRadius:6 }}>📌 Pinned</span>
+        <span style={{ position:'absolute', top:14, [isAr ? 'left' : 'right']:16, fontSize:11, fontWeight:700, color:'#FBBF24', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.25)', padding:'2px 8px', borderRadius:6 }}>{isAr ? '📌 مثبت' : '📌 Pinned'}</span>
       )}
-      <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', marginBottom:6, letterSpacing:'-0.02em', paddingRight: ann.pinned ? 80 : 0 }}>{ann.title}</div>
+      <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', marginBottom:6, letterSpacing:'-0.02em', paddingRight: !isAr && ann.pinned ? 80 : 0, paddingLeft: isAr && ann.pinned ? 80 : 0 }}>{ann.title}</div>
       <p style={{ fontSize:13.5, color:'var(--text2)', lineHeight:1.65, marginBottom:12 }}>{ann.body}</p>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <span style={{ fontSize:11, color:'var(--text3)' }}>
@@ -85,10 +85,10 @@ function AnnouncementCard({ ann, isOwner, groupId, onPin, onDelete }) {
         {isOwner && (
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={() => onPin(ann._id)} style={{ fontSize:11, fontWeight:600, color:'#FBBF24', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.18)', borderRadius:7, padding:'3px 9px', cursor:'pointer' }}>
-              {ann.pinned ? 'Unpin' : '📌 Pin'}
+              {ann.pinned ? (isAr ? 'إلغاء التثبيت' : 'Unpin') : (isAr ? '📌 تثبيت' : '📌 Pin')}
             </button>
             <button onClick={() => onDelete(ann._id)} style={{ fontSize:11, fontWeight:600, color:'#F87171', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)', borderRadius:7, padding:'3px 9px', cursor:'pointer' }}>
-              Delete
+              {isAr ? 'حذف' : 'Delete'}
             </button>
           </div>
         )}
@@ -98,7 +98,7 @@ function AnnouncementCard({ ann, isOwner, groupId, onPin, onDelete }) {
 }
 
 /* ── Assignment Card ─────────────────────────────────────── */
-function AssignmentCard({ assignment, isOwner, userId, groupId, onGrade, onSubmit }) {
+function AssignmentCard({ assignment, isOwner, userId, groupId, onGrade, onSubmit, isAr }) {
   const mySubmission  = assignment.submissions?.find(s => s.studentId === userId);
   const isOverdue     = assignment.dueDate && isPast(new Date(assignment.dueDate)) && !mySubmission;
   const totalSubs     = assignment.submissions?.length || 0;
@@ -115,7 +115,7 @@ function AssignmentCard({ assignment, isOwner, userId, groupId, onGrade, onSubmi
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
         <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', flex:1 }}>{assignment.title}</div>
         <span style={{
-          fontSize:11, fontWeight:700, padding:'3px 9px', borderRadius:7, flexShrink:0, marginLeft:10,
+          fontSize:11, fontWeight:700, padding:'3px 9px', borderRadius:7, flexShrink:0, [isAr ? 'marginRight' : 'marginLeft']:10,
           background: mySubmission?.status === 'graded'
             ? 'rgba(16,185,129,0.12)' : mySubmission
             ? 'rgba(59,130,246,0.12)' : isOverdue
@@ -126,7 +126,7 @@ function AssignmentCard({ assignment, isOwner, userId, groupId, onGrade, onSubmi
             ? '#F87171' : '#FBBF24',
           border: '1px solid currentColor',
         }}>
-          {mySubmission?.status === 'graded' ? `✓ Graded ${mySubmission.score}/${assignment.maxScore}` : mySubmission ? '📤 Submitted' : isOverdue ? '⚠ Overdue' : '📋 Pending'}
+          {mySubmission?.status === 'graded' ? (isAr ? `✓ تم التقييم ${mySubmission.score}/${assignment.maxScore}` : `✓ Graded ${mySubmission.score}/${assignment.maxScore}`) : mySubmission ? (isAr ? '📤 تم التسليم' : '📤 Submitted') : isOverdue ? (isAr ? '⚠ متأخر' : '⚠ Overdue') : (isAr ? '📋 قيد الانتظار' : '📋 Pending')}
         </span>
       </div>
       {assignment.description && (
@@ -135,24 +135,24 @@ function AssignmentCard({ assignment, isOwner, userId, groupId, onGrade, onSubmi
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
         <div style={{ display:'flex', gap:12, fontSize:11, color:'var(--text3)' }}>
           {assignment.dueDate && (
-            <span>📅 Due: {format(new Date(assignment.dueDate), 'EEE, MMM d, HH:mm')}</span>
+            <span>{isAr ? '📅 التسليم:' : '📅 Due:'} {format(new Date(assignment.dueDate), 'EEE, MMM d, HH:mm')}</span>
           )}
-          <span>⭐ Max: {assignment.maxScore} pts</span>
-          {isOwner && <span>📤 {totalSubs} submissions</span>}
+          <span>{isAr ? '⭐ أقصى:' : '⭐ Max:'} {assignment.maxScore} {isAr ? 'نقاط' : 'pts'}</span>
+          {isOwner && <span>📤 {totalSubs} {isAr ? 'تسليمات' : 'submissions'}</span>}
         </div>
         {!isOwner && !mySubmission && (
           <button onClick={() => onSubmit(assignment)} style={{ padding:'6px 14px', borderRadius:9, background:'linear-gradient(135deg,#3B82F6,#1D4ED8)', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', border:'none', fontFamily:'inherit' }}>
-            Submit →
+            {isAr ? 'تسليم ←' : 'Submit →'}
           </button>
         )}
         {isOwner && totalSubs > 0 && (
           <button onClick={() => onGrade(assignment)} style={{ padding:'6px 14px', borderRadius:9, background:'rgba(16,185,129,0.12)', color:'#34D399', border:'1px solid rgba(16,185,129,0.25)', fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>
-            📋 Grade ({totalSubs})
+            {isAr ? `📋 تقييم (${totalSubs})` : `📋 Grade (${totalSubs})`}
           </button>
         )}
         {mySubmission?.feedback && (
           <div style={{ width:'100%', marginTop:8, padding:'8px 12px', borderRadius:9, background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)', fontSize:12, color:'var(--text2)' }}>
-            💬 Feedback: {mySubmission.feedback}
+            {isAr ? '💬 تعليق:' : '💬 Feedback:'} {mySubmission.feedback}
           </div>
         )}
       </div>
@@ -209,21 +209,22 @@ export default function GroupDetailPage() {
   const anns        = aData?.data?.announcements || [];
   const assignments = asData?.data?.assignments  || [];
   const insights    = insData?.data?.insights    || null;
+  const isAr        = lang === 'ar';
 
   if (!group) return (
     <div style={{ display:'flex', justifyContent:'center', padding:60, color:'var(--text3)' }}>
-      <div style={{ textAlign:'center' }}><div style={{ fontSize:40, marginBottom:10 }}>⏳</div>Loading…</div>
+      <div style={{ textAlign:'center' }}><div style={{ fontSize:40, marginBottom:10 }}>⏳</div>{isAr ? 'جاري التحميل...' : 'Loading…'}</div>
     </div>
   );
 
   // ── Announcement actions ──
   const postAnn = async e => {
     e.preventDefault();
-    if (!annForm.title || !annForm.body) { toast.error('Fill in title and body'); return; }
+    if (!annForm.title || !annForm.body) { toast.error(isAr ? 'املأ العنوان والرسالة' : 'Fill in title and body'); return; }
     setSaving(true);
     try {
       await groupsAPI.createAnnouncement(id, annForm);
-      toast.success('Announcement posted!');
+      toast.success(isAr ? 'تم نشر الإعلان!' : 'Announcement posted!');
       setAnnModal(false);
       setAnnForm({ title:'', body:'', pinned:false });
       refetchAnns();
@@ -231,16 +232,16 @@ export default function GroupDetailPage() {
     finally { setSaving(false); }
   };
   const pinAnn    = async annId => { await groupsAPI.pinAnnouncement(id, annId); refetchAnns(); };
-  const deleteAnn = async annId => { if (!window.confirm('Delete this announcement?')) return; await groupsAPI.deleteAnnouncement(id, annId); refetchAnns(); };
+  const deleteAnn = async annId => { if (!window.confirm(isAr ? 'هل أنت متأكد من حذف هذا الإعلان؟' : 'Delete this announcement?')) return; await groupsAPI.deleteAnnouncement(id, annId); refetchAnns(); };
 
   // ── Assignment actions ──
   const createAssign = async e => {
     e.preventDefault();
-    if (!assignForm.title) { toast.error('Title required'); return; }
+    if (!assignForm.title) { toast.error(isAr ? 'العنوان مطلوب' : 'Title required'); return; }
     setSaving(true);
     try {
       await groupsAPI.createAssignment(id, assignForm);
-      toast.success('Assignment created!');
+      toast.success(isAr ? 'تم إنشاء التكليف!' : 'Assignment created!');
       setAssignModal(false);
       setAssignForm({ title:'', description:'', dueDate:'', maxScore:100 });
       refetchAsgn();
@@ -253,7 +254,7 @@ export default function GroupDetailPage() {
     setSaving(true);
     try {
       await groupsAPI.submitAssignment(id, submitModal._id, { content: submitContent });
-      toast.success('Submitted successfully! ✅');
+      toast.success(isAr ? 'تم التسليم بنجاح! ✅' : 'Submitted successfully! ✅');
       setSubmitModal(null);
       setSubmitContent('');
       refetchAsgn();
@@ -263,11 +264,11 @@ export default function GroupDetailPage() {
 
   const gradeSub = async e => {
     e.preventDefault();
-    if (gradeForm.score === '') { toast.error('Enter a score'); return; }
+    if (gradeForm.score === '') { toast.error(isAr ? 'أدخل درجة' : 'Enter a score'); return; }
     setSaving(true);
     try {
       await groupsAPI.gradeSubmission(id, gradeModal._id, gradeTarget._id, gradeForm);
-      toast.success('Graded!');
+      toast.success(isAr ? 'تم التقييم!' : 'Graded!');
       setGradeModal(null);
       setGradeTarget(null);
       setGradeForm({ score:'', feedback:'' });
@@ -277,15 +278,15 @@ export default function GroupDetailPage() {
   };
 
   const removeMember = async uid => {
-    if (!window.confirm('Remove this student from the group?')) return;
+    if (!window.confirm(isAr ? 'هل أنت متأكد من إزالة هذا الطالب من المجموعة؟' : 'Remove this student from the group?')) return;
     try {
       await groupsAPI.removeMember(id, uid);
       qc.invalidateQueries({ queryKey:['group',id] });
-      toast.success('Student removed');
+      toast.success(isAr ? 'تمت إزالة الطالب' : 'Student removed');
     } catch { }
   };
 
-  const visibleTabs = TABS.filter(t => !t.ownerOnly || isOwner);
+  const visibleTabs = getTabs(isAr).filter(t => !t.ownerOnly || isOwner);
 
   const color = group.coverGrad || (group.subject.toLowerCase() === 'mathematics' ? '#6366f1' : '#10B981');
 
@@ -302,9 +303,9 @@ export default function GroupDetailPage() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.3))' }} />
           <button 
             onClick={() => navigate('/groups')}
-            style={{ position: 'absolute', top: 16, left: 16, padding: '8px 16px', borderRadius: 9, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ position: 'absolute', top: 16, [isAr ? 'right' : 'left']: 16, padding: '8px 16px', borderRadius: 9, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
-            ← {lang === 'ar' ? 'العودة' : 'Back'}
+            {lang === 'ar' ? 'العودة →' : '← Back'}
           </button>
         </div>
 
@@ -322,15 +323,15 @@ export default function GroupDetailPage() {
               <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>
                 <span>🎓 {group.subject}</span>
                 <span>🏫 {group.grade}</span>
-                <span>👤 {group.teacherName || 'Instructor'}</span>
-                <span>👥 {group.students?.length || 0} Members</span>
+                <span>👤 {group.teacherName || (isAr ? 'المدرب' : 'Instructor')}</span>
+                <span>👥 {group.students?.length || 0} {isAr ? 'أعضاء' : 'Members'}</span>
               </div>
             </div>
             
             <div style={{ display: 'flex', gap: 10, paddingBottom: 8 }}>
               {isOwner && (
                 <div style={{ padding:'8px 16px', borderRadius:10, background:'var(--surface2)', border:'1px solid var(--border)', fontFamily:'var(--font-mono)', fontWeight:800, fontSize:16, color:'var(--primary)', display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:10, fontWeight:700, color:'var(--text3)', fontFamily:'var(--font-body)', letterSpacing:0 }}>CODE</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:'var(--text3)', fontFamily:'var(--font-body)', letterSpacing:0 }}>{isAr ? 'كود' : 'CODE'}</span>
                   {group.code}
                 </div>
               )}
@@ -338,7 +339,7 @@ export default function GroupDetailPage() {
                 onClick={() => navigate('/chat')}
                 style={{ padding: '10px 24px', borderRadius: 12, background: 'var(--primary)', color: '#fff', fontWeight: 800, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                💬 Chat
+                💬 {isAr ? 'الدردشة' : 'Chat'}
               </button>
             </div>
           </div>
@@ -369,16 +370,16 @@ export default function GroupDetailPage() {
         {tab === 'feed' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
-               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>Announcements</h2>
-               {isOwner && <button onClick={() => setAnnModal(true)} style={{ padding:'8px 16px', borderRadius:10, background:'var(--surface2)', border:'1px solid var(--border)', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ New</button>}
+               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>{isAr ? 'الإعلانات' : 'Announcements'}</h2>
+               {isOwner && <button onClick={() => setAnnModal(true)} style={{ padding:'8px 16px', borderRadius:10, background:'var(--surface2)', border:'1px solid var(--border)', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ {isAr ? 'جديد' : 'New'}</button>}
             </div>
             {anns.length === 0 ? (
               <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--text3)' }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>📢</div>
-                <div style={{ fontSize:15, fontWeight:600 }}>No announcements yet</div>
+                <div style={{ fontSize:15, fontWeight:600 }}>{isAr ? 'لا توجد إعلانات بعد' : 'No announcements yet'}</div>
               </div>
             ) : anns.map(a => (
-              <AnnouncementCard key={a._id} ann={a} isOwner={isOwner} groupId={id} onPin={pinAnn} onDelete={deleteAnn} />
+              <AnnouncementCard key={a._id} ann={a} isOwner={isOwner} groupId={id} onPin={pinAnn} onDelete={deleteAnn} isAr={isAr} />
             ))}
           </div>
         )}
@@ -386,19 +387,20 @@ export default function GroupDetailPage() {
         {tab === 'assignments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
-               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>Assignments</h2>
-               {isOwner && <button onClick={() => setAssignModal(true)} style={{ padding:'8px 16px', borderRadius:10, background:'var(--primary)', color: '#fff', fontSize:12, fontWeight:700, cursor:'pointer', border: 'none' }}>+ Create</button>}
+               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>{isAr ? 'التكاليف' : 'Assignments'}</h2>
+               {isOwner && <button onClick={() => setAssignModal(true)} style={{ padding:'8px 16px', borderRadius:10, background:'var(--primary)', color: '#fff', fontSize:12, fontWeight:700, cursor:'pointer', border: 'none' }}>+ {isAr ? 'إنشاء' : 'Create'}</button>}
             </div>
             {assignments.length === 0 ? (
               <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--text3)' }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>📝</div>
-                <div style={{ fontSize:15, fontWeight:600 }}>No assignments yet</div>
+                <div style={{ fontSize:15, fontWeight:600 }}>{isAr ? 'لا توجد تكاليف بعد' : 'No assignments yet'}</div>
               </div>
             ) : assignments.map(a => (
               <AssignmentCard
                 key={a._id} assignment={a} isOwner={isOwner} userId={userId} groupId={id}
                 onSubmit={a => setSubmitModal(a)}
                 onGrade={a => navigate(`/groups/${id}/assignments/${a._id}/grade`)}
+                isAr={isAr}
               />
             ))}
           </div>
@@ -407,7 +409,7 @@ export default function GroupDetailPage() {
         {tab === 'progress' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
-               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>Academic Progress</h2>
+               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>{isAr ? 'التقدم الأكاديمي' : 'Academic Progress'}</h2>
             </div>
             {group.curriculumLinked ? (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -416,24 +418,24 @@ export default function GroupDetailPage() {
                   <div style={{ width: 44, height: 44, borderRadius: 12, background:'rgba(16,185,129,0.15)', color:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>📈</div>
                   <div>
                     <h3 style={{ fontSize:18, fontWeight:800, color:'var(--text)' }}>{group.curriculumLinked}</h3>
-                    <p style={{ fontSize:13, color:'var(--text3)' }}>Curriculum Unit Tracked</p>
+                    <p style={{ fontSize:13, color:'var(--text3)' }}>{isAr ? 'وحدة المنهج المتتبعة' : 'Curriculum Unit Tracked'}</p>
                   </div>
                 </div>
                 <p style={{ fontSize:14, color:'var(--text2)', marginBottom:20, lineHeight: 1.6 }}>
-                  Your progress is strictly linked to this curriculum unit. Completing assignments, attending lectures, and taking AI quizzes in this group will automatically update your overall mastery.
+                  {isAr ? 'تقدمك مرتبط بشكل وثيق بوحدة المنهج هذه. سيؤدي إكمال التكاليف وحضور المحاضرات وإجراء اختبارات الذكاء الاصطناعي في هذه المجموعة إلى تحديث إتقانك العام تلقائيًا.' : 'Your progress is strictly linked to this curriculum unit. Completing assignments, attending lectures, and taking AI quizzes in this group will automatically update your overall mastery.'}
                 </p>
                 <div style={{ display:'flex', gap:20, alignItems:'center', padding: '16px', background: 'var(--surface2)', borderRadius: 12 }}>
                   <div style={{ flex:1, height:12, background:'var(--surface3)', borderRadius:6, overflow:'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
                     <motion.div initial={{ width:0 }} animate={{ width:'45%' }} transition={{ duration: 1.2, ease: 'easeOut' }}
                       style={{ height:'100%', background:'linear-gradient(90deg, #10B981, #34D399)', borderRadius:6 }} />
                   </div>
-                  <div style={{ fontSize:18, fontWeight:800, color:'var(--text)' }}>45% Mastery</div>
+                  <div style={{ fontSize:18, fontWeight:800, color:'var(--text)' }}>45% {isAr ? 'إتقان' : 'Mastery'}</div>
                 </div>
               </motion.div>
             ) : (
               <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--text3)' }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>🔗</div>
-                <div style={{ fontSize:15, fontWeight:600 }}>No specific curriculum unit linked to this group.</div>
+                <div style={{ fontSize:15, fontWeight:600 }}>{isAr ? 'لا توجد وحدة منهج محددة مرتبطة بهذه المجموعة.' : 'No specific curriculum unit linked to this group.'}</div>
               </div>
             )}
           </div>
@@ -442,14 +444,14 @@ export default function GroupDetailPage() {
         {tab === 'members' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
-               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>Members</h2>
+               <h2 style={{ fontSize:15, fontWeight:800, color: 'var(--text)' }}>{isAr ? 'الأعضاء' : 'Members'}</h2>
             </div>
             {/* Instructor */}
             <div style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16 }}>
               <div style={{ width:40, height:40, borderRadius:12, background:'var(--primary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>👨‍🏫</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{group.teacherName || 'Teacher'}</div>
-                <div style={{ fontSize:11, color:'var(--text3)' }}>Group Owner</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{group.teacherName || (isAr ? 'المعلم' : 'Teacher')}</div>
+                <div style={{ fontSize:11, color:'var(--text3)' }}>{isAr ? 'مالك المجموعة' : 'Group Owner'}</div>
               </div>
             </div>
             {group.students?.map(s => (
@@ -457,12 +459,12 @@ export default function GroupDetailPage() {
                 style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16 }}>
                 <div style={{ width:38, height:38, borderRadius:11, background: 'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, flexShrink:0 }}>🎓</div>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{s.name || 'Student'}</div>
-                  <div style={{ fontSize:11, color:'var(--text3)' }}>Student</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{s.name || (isAr ? 'طالب' : 'Student')}</div>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>{isAr ? 'طالب' : 'Student'}</div>
                 </div>
                 {isOwner && (
                   <button onClick={() => removeMember(s.userId)} style={{ padding:'4px 10px', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)', color:'#F87171', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                    Remove
+                    {isAr ? 'إزالة' : 'Remove'}
                   </button>
                 )}
               </motion.div>
@@ -473,10 +475,10 @@ export default function GroupDetailPage() {
         {tab === 'insights' && isOwner && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
             {[
-              { label:'Total Students',   value: insights?.totalStudents || 0,    icon:'👥', color:'#6366f1' },
-              { label:'Assignments',       value: insights?.totalAssignments || 0, icon:'📝', color:'#6366f1' },
-              { label:'Submission Rate',   value: `${insights?.submissionRate || 0}%`, icon:'📤', color:'#10B981' },
-              { label:'Avg Score',         value: insights?.avgScore != null ? `${insights.avgScore}%` : '—', icon:'⭐', color:'#F59E0B' },
+              { label: isAr ? 'إجمالي الطلاب' : 'Total Students',   value: insights?.totalStudents || 0,    icon:'👥', color:'#6366f1' },
+              { label: isAr ? 'التكاليف' : 'Assignments',       value: insights?.totalAssignments || 0, icon:'📝', color:'#6366f1' },
+              { label: isAr ? 'معدل التسليم' : 'Submission Rate',   value: `${insights?.submissionRate || 0}%`, icon:'📤', color:'#10B981' },
+              { label: isAr ? 'متوسط الدرجات' : 'Avg Score',         value: insights?.avgScore != null ? `${insights.avgScore}%` : '—', icon:'⭐', color:'#F59E0B' },
             ].map(s => (
               <motion.div key={s.label} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
                 style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:20, padding:'24px 20px', textAlign:'center' }}>
@@ -492,16 +494,16 @@ export default function GroupDetailPage() {
       {/* Modals remain same as defined above */}
       <AnimatePresence>
         {annModal && (
-          <Modal open={annModal} onClose={() => setAnnModal(false)} title="📢 Post Announcement">
+          <Modal open={annModal} onClose={() => setAnnModal(false)} title={isAr ? "📢 نشر إعلان" : "📢 Post Announcement"}>
             <form onSubmit={postAnn}>
-              <label style={labelStyle}>Title</label>
-              <input style={inputStyle} value={annForm.title} onChange={e => setAnnForm(f=>({...f,title:e.target.value}))} placeholder="Announcement title…" />
-              <label style={labelStyle}>Message</label>
-              <textarea rows={5} style={{...inputStyle, resize:'vertical', marginBottom:14}} value={annForm.body} onChange={e => setAnnForm(f=>({...f,body:e.target.value}))} placeholder="Write your announcement here…" />
+              <label style={labelStyle}>{isAr ? 'العنوان' : 'Title'}</label>
+              <input style={inputStyle} value={annForm.title} onChange={e => setAnnForm(f=>({...f,title:e.target.value}))} placeholder={isAr ? "عنوان الإعلان..." : "Announcement title…"} />
+              <label style={labelStyle}>{isAr ? 'الرسالة' : 'Message'}</label>
+              <textarea rows={5} style={{...inputStyle, resize:'vertical', marginBottom:14}} value={annForm.body} onChange={e => setAnnForm(f=>({...f,body:e.target.value}))} placeholder={isAr ? "اكتب إعلانك هنا..." : "Write your announcement here…"} />
               <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'var(--text2)', marginBottom:18, cursor:'pointer' }}>
-                <input type="checkbox" checked={annForm.pinned} onChange={e => setAnnForm(f=>({...f,pinned:e.target.checked}))} /> Pin this announcement
+                <input type="checkbox" checked={annForm.pinned} onChange={e => setAnnForm(f=>({...f,pinned:e.target.checked}))} /> {isAr ? 'تثبيت هذا الإعلان' : 'Pin this announcement'}
               </label>
-              {submitBtn('📢 Post Announcement', saving, '#F59E0B')}
+              {submitBtn(isAr ? '📢 نشر إعلان' : '📢 Post Announcement', saving, '#F59E0B', isAr)}
             </form>
           </Modal>
         )}
@@ -509,23 +511,23 @@ export default function GroupDetailPage() {
 
       <AnimatePresence>
         {assignModal && (
-          <Modal open={assignModal} onClose={() => setAssignModal(false)} title="📝 Create Assignment">
+          <Modal open={assignModal} onClose={() => setAssignModal(false)} title={isAr ? "📝 إنشاء تكليف" : "📝 Create Assignment"}>
             <form onSubmit={createAssign}>
-              <label style={labelStyle}>Title *</label>
-              <input style={inputStyle} value={assignForm.title} onChange={e => setAssignForm(f=>({...f,title:e.target.value}))} placeholder="Assignment title…" />
-              <label style={labelStyle}>Description</label>
-              <textarea rows={3} style={{...inputStyle, resize:'vertical', marginBottom:14}} value={assignForm.description} onChange={e => setAssignForm(f=>({...f,description:e.target.value}))} placeholder="Assignment instructions…" />
+              <label style={labelStyle}>{isAr ? 'العنوان *' : 'Title *'}</label>
+              <input style={inputStyle} value={assignForm.title} onChange={e => setAssignForm(f=>({...f,title:e.target.value}))} placeholder={isAr ? "عنوان التكليف..." : "Assignment title…"} />
+              <label style={labelStyle}>{isAr ? 'الوصف' : 'Description'}</label>
+              <textarea rows={3} style={{...inputStyle, resize:'vertical', marginBottom:14}} value={assignForm.description} onChange={e => setAssignForm(f=>({...f,description:e.target.value}))} placeholder={isAr ? "تعليمات التكليف..." : "Assignment instructions…"} />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:4 }}>
                 <div>
-                  <label style={labelStyle}>Due Date</label>
+                  <label style={labelStyle}>{isAr ? 'تاريخ التسليم' : 'Due Date'}</label>
                   <input type="datetime-local" style={inputStyle} value={assignForm.dueDate} onChange={e => setAssignForm(f=>({...f,dueDate:e.target.value}))} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Max Score</label>
+                  <label style={labelStyle}>{isAr ? 'الدرجة القصوى' : 'Max Score'}</label>
                   <input type="number" style={inputStyle} min={1} max={1000} value={assignForm.maxScore} onChange={e => setAssignForm(f=>({...f,maxScore:Number(e.target.value)}))} />
                 </div>
               </div>
-              {submitBtn('+ Create Assignment', saving)}
+              {submitBtn(isAr ? '+ إنشاء تكليف' : '+ Create Assignment', saving, 'var(--primary)', isAr)}
             </form>
           </Modal>
         )}

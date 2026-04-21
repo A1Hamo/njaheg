@@ -8,7 +8,7 @@ import { AppShell } from './components/shared/Layout';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { Spinner } from './components/shared/UI';
 import { CommandPalette } from './components/shared/CommandPalette';
-import { I18nProvider } from './i18n/index';
+import { I18nProvider, useTranslation } from './i18n/index';
 import './styles/global.css';
 
 // ── Lazy load all pages ──────────────────────────────────────
@@ -62,6 +62,7 @@ const qc = new QueryClient({
 
 // ── Full-page loader ─────────────────────────────────────────
 function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
@@ -76,7 +77,7 @@ function PageLoader() {
         <circle cx="22" cy="12" r="2.5" fill="#fff"/>
       </svg>
       <Spinner size="lg" />
-      <p style={{ fontSize: 13, color: 'var(--text3)' }}>Loading Najah…</p>
+      <p style={{ fontSize: 13, color: 'var(--text3)' }}>{t('common.loading')}</p>
     </div>
   );
 }
@@ -125,6 +126,7 @@ function GlobalSync() {
 
 // ── 404 page ─────────────────────────────────────────────────
 function NotFound() {
+  const { t } = useTranslation();
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
@@ -148,7 +150,7 @@ function NotFound() {
           background: 'linear-gradient(135deg, var(--text) 30%, #6366F1 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
         }}>
-          Page Not Found
+          {t('errors.notFound')}
         </h2>
         <p style={{ color: 'var(--text3)', fontSize: 15, marginBottom: 32, lineHeight: 1.65 }}>
           The page you're looking for doesn't exist or has been moved.
@@ -159,7 +161,7 @@ function NotFound() {
           display: 'inline-block', boxShadow: '0 4px 20px rgba(99,102,241,0.3)',
           transition: 'all 0.3s var(--ease)',
         }}>
-          ← Back to Dashboard
+          ← {t('nav.dashboard')}
         </a>
       </div>
     </div>
