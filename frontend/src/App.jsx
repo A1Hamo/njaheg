@@ -25,6 +25,9 @@ const NotesPage         = lazy(() => import('./components/notes/NotesPage'));
 const BoardPage         = lazy(() => import('./components/board/BoardPage'));
 const ChatPage          = lazy(() => import('./components/chat/ChatPage'));
 const AIAssistant       = lazy(() => import('./components/ai/AIAssistant'));
+const NajahAI           = lazy(() => import('./components/ai/NajahAI'));
+const AdminLoginPage    = lazy(() => import('./components/admin/AdminLoginPage'));
+const AdminDashboard    = lazy(() => import('./components/admin/AdminDashboard'));
 const FocusPage         = lazy(() => import('./components/focus/FocusPage'));
 const AchievementsPage  = lazy(() => import('./components/achievements/AchievementsPage'));
 const NotificationsPage = lazy(() => import('./components/notifications/NotificationsPage'));
@@ -47,6 +50,7 @@ const TeacherRegWizard     = lazy(() => import('./components/auth/teacher/Teache
 const TeacherPendingPage   = lazy(() => import('./components/auth/teacher/PendingApproval'));
 const PaymentPage          = lazy(() => import('./components/payment/PaymentPage'));
 const HelpCenter           = lazy(() => import('./components/help/HelpCenter'));
+const AffiliateDashboard   = lazy(() => import('./components/teacher/AffiliateDashboard'));
 
 // ── QueryClient ─────────────────────────────────────────────
 const qc = new QueryClient({
@@ -104,7 +108,8 @@ function Public({ children }) {
 
 // ── Theme + language sync ────────────────────────────────────
 function GlobalSync() {
-  const { darkMode, language } = useUIStore();
+  const { darkMode, language, setInstitutionMode } = useUIStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     // Clear potentially corrupted Service Workers
@@ -113,6 +118,30 @@ function GlobalSync() {
         for (let r of regs) r.unregister();
       });
     }
+
+    // Load White-Label Branding
+    fetch(import.meta.env.VITE_API_URL + '/admin/branding')
+      .then(res => res.json())
+      .then(data => {
+        if (data.primaryColor) {
+          document.documentElement.style.setProperty('--primary', data.primaryColor);
+          document.documentElement.style.setProperty('--indigo-500', data.primaryColor);
+          document.documentElement.style.setProperty('--primary-dark', data.primaryColor + 'cc');
+        }
+        if (data.platformName) {
+          document.title = data.platformName;
+          localStorage.setItem('platformName', data.platformName);
+          localStorage.setItem('logoEmoji', data.logoEmoji || '🎓');
+        }
+      }).catch(console.error);
+
+    // Capture Affiliate Referral
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref) {
+      localStorage.setItem('affiliate_ref', ref);
+      console.log('Referral tracked:', ref);
+    }
   }, []);
 
   useEffect(() => {
@@ -120,6 +149,14 @@ function GlobalSync() {
     document.documentElement.setAttribute('dir',  language === 'ar' ? 'rtl' : 'ltr');
     document.documentElement.setAttribute('lang', language);
   }, [darkMode, language]);
+
+  // Sync institutionMode whenever user data changes (e.g. after admin role update)
+  useEffect(() => {
+    const instType = user?.institution_type || user?.institutionType;
+    if (instType) {
+      setInstitutionMode(instType === 'university' ? 'university' : 'school');
+    }
+  }, [user?.institution_type, user?.institutionType]);
 
   return null;
 }
@@ -228,6 +265,7 @@ export default function App() {
             <Route path="/analytics"       element={<Protected><AnalyticsPage /></Protected>} />
             <Route path="/profile"         element={<Protected><ProfilePage /></Protected>} />
             <Route path="/settings"        element={<Protected><SettingsPage /></Protected>} />
+            <Route path="/affiliates"      element={<Protected><AffiliateDashboard /></Protected>} />
             <Route path="/exam"            element={<Protected><ExamPage /></Protected>} />
             <Route path="/quiz-history"    element={<Protected><QuizHistoryPage /></Protected>} />
             <Route path="/groups"          element={<Protected><GroupsPage /></Protected>} />
@@ -239,6 +277,11 @@ export default function App() {
             <Route path="/tools"           element={<Protected><StudyTools /></Protected>} />
             <Route path="/payment"        element={<Protected><PaymentPage /></Protected>} />
             <Route path="/help"           element={<Protected><HelpCenter /></Protected>} />
+            <Route path="/ai-search"      element={<Protected><NajahAI /></Protected>} />
+
+            {/* ── Admin (owner only, standalone) ── */}
+            <Route path="/admin/login"     element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />
+            <Route path="/admin/dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
 
             {/* ── 404 ── */}
             <Route path="*" element={<NotFound />} />

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../i18n/index';
 import { SCHOOL_CURRICULUM, UNIVERSITY_CURRICULUM } from '../../data/egyptianCurriculum';
 import toast from 'react-hot-toast';
+import PaidGroupActivationModal from './PaidGroupActivationModal';
 
 const GROUP_TYPES = [
   { id: 'school_class',   icon: '🏫', colorHex: '#6366f1', bgHex: 'rgba(99,102,241,0.08)', borderHex: 'rgba(99,102,241,0.25)' },
@@ -41,6 +42,8 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
   const navigate     = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  // Paid-group activation modal state
+  const [activationData, setActivationData] = useState(null); // { group, listingFee, platformFeePercent }
 
   const [form, setForm] = useState({
     groupType:   '',
@@ -84,12 +87,21 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
         price: form.isPaid ? Number(form.price) : 0,
         curriculumLinked: form.curriculumLinked ? form.curriculumLinked.unit : null,
       };
-      
+
       const { data } = await groupsAPI.create(payload);
-      toast.success(lang === 'ar' ? '✅ تم إنشاء المجموعة بنجاح!' : '✅ Group created!');
-      if (onCreated) onCreated(data.group);
-      if (onClose) onClose();
-      // Remove navigate so the new group appears instantly on the grid
+
+      if (data.requiresPayment) {
+        // Don't close wizard — show the activation payment modal instead
+        setActivationData({
+          group: data.group,
+          listingFee: data.listingFee,
+          platformFeePercent: data.platformFeePercent,
+        });
+      } else {
+        toast.success(lang === 'ar' ? '✅ تم إنشاء المجموعة بنجاح!' : '✅ Group created!');
+        if (onCreated) onCreated(data.group);
+        if (onClose) onClose();
+      }
     } catch (err) {
       console.error(err);
       toast.error(lang === 'ar' ? '❌ فشل إنشاء المجموعة' : '❌ Failed to create group');
@@ -109,6 +121,7 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
   const gradeSubjects = form.gradeId ? (allGrades.find(g => g.grade === +form.gradeId)?.subjects || []) : [];
 
   return (
+    <>
     <div style={{
       position: 'fixed', inset: 0, zIndex: 800,
       background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
@@ -494,8 +507,29 @@ export default function CreateGroupWizard({ onClose, onCreated }) {
         </div>
       </motion.div>
     </div>
+
+    {/* Paid Group Activation Modal — shown after creating a paid group */}
+    {activationData && (
+      <PaidGroupActivationModal
+        group={activationData.group}
+        listingFee={activationData.listingFee}
+        platformFeePercent={activationData.platformFeePercent}
+        onActivated={(activeGroup) => {
+          setActivationData(null);
+          if (onCreated) onCreated(activeGroup);
+          if (onClose) onClose();
+        }}
+        onClose={() => {
+          setActivationData(null);
+          if (onCreated) onCreated(activationData.group);
+          if (onClose) onClose();
+        }}
+      />
+    )}
+  </>
   );
 }
+
 
 function Field({ label, value, onChange, placeholder = '', type = 'text' }) {
   return (

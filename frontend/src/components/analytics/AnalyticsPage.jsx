@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
               const maxM = Math.max(...d.weeklyActivity.map(x=>Number(x.minutes)),1);
               const h = Math.max(12, Math.round((Number(day.minutes)/maxM)*140));
               return (
-                <div key={day.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                <div key={day.date || idx} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
                   <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
                     whileHover={{ scale: 1.05, filter: 'brightness(1.2)' }}
                     style={{ 
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
                       boxShadow: idx === 6 ? '0 0 15px rgba(244, 63, 94, 0.4)' : 'none'
                     }} 
                   />
-                  <div style={{ fontSize:11, fontWeight: 800, color: idx === 6 ? 'var(--text)' : 'var(--text4)' }}>{day.date?.slice(5)}</div>
+                  <div style={{ fontSize:11, fontWeight: 800, color: idx === 6 ? 'var(--text)' : 'var(--text4)' }}>{day.date?.toString().slice(5, 10)}</div>
                 </div>
               );
             })}
@@ -140,27 +140,30 @@ export default function AnalyticsPage() {
           </div>
         </div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-          {Array.from({ length: 140 }).map((_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (139 - i));
-            const dateStr = date.toISOString().split('T')[0];
-            const dayData = streakDays.find(s => s.date.split('T')[0] === dateStr);
-            const count = Number(dayData?.sessions || 0);
-            
-            return (
-              <motion.div key={dateStr} 
-                title={`${dateStr}: ${count} ${isAr ? 'جلسات' : 'sessions'}`}
-                whileHover={{ scale: 1.25, zIndex: 10 }}
-                style={{ 
-                  width:16, height:16, borderRadius:4,
-                  background: count >= 3 ? 'var(--accent2)' : count >= 1 ? 'var(--primary)' : 'var(--surface3)',
-                  opacity: count >= 1 ? 1 : 0.2,
-                  cursor: 'pointer',
-                  boxShadow: count >= 3 ? '0 0 10px rgba(244, 63, 94, 0.4)' : 'none'
-                }} 
-              />
-            );
-          })}
+          {(() => {
+            const now = new Date();
+            return Array.from({ length: 140 }).map((_, i) => {
+              const date = new Date(now);
+              date.setDate(date.getDate() - (139 - i));
+              const dateStr = date.toISOString().split('T')[0];
+              const dayData = streakDays.find(s => s.date?.toString().split('T')[0] === dateStr);
+              const count = Number(dayData?.sessions || 0);
+              
+              return (
+                <motion.div key={`${dateStr}-${i}`} 
+                  title={`${dateStr}: ${count} ${isAr ? 'جلسات' : 'sessions'}`}
+                  whileHover={{ scale: 1.25, zIndex: 10 }}
+                  style={{ 
+                    width:16, height:16, borderRadius:4,
+                    background: count >= 3 ? 'var(--accent2)' : count >= 1 ? 'var(--primary)' : 'var(--surface3)',
+                    opacity: count >= 1 ? 1 : 0.2,
+                    cursor: 'pointer',
+                    boxShadow: count >= 3 ? '0 0 10px rgba(244, 63, 94, 0.4)' : 'none'
+                  }} 
+                />
+              );
+            });
+          })()}
         </div>
         <p style={{ marginTop: 20, fontSize: 13, color: 'var(--text3)', textAlign: 'center' }}>
           {isAr ? 'تصور تفانيك على مدار 140 يومًا الماضية. حافظ على الشعلة حية! 🔥' : 'Visualizing your dedication over the last 140 days. Keep the flame alive! 🔥'}

@@ -622,29 +622,33 @@ export function AuthCallback() {
   const isAr = language === 'ar';
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const refresh = searchParams.get('refresh');
+    const code = searchParams.get('code');
 
-    if (token) {
-      localStorage.setItem('token', token);
-      if (refresh) localStorage.setItem('refresh', refresh);
-
-      authAPI.me()
-        .then(res => {
-          setAuth({ ...res.data.user, token, refresh });
-          toast.success(isAr ? 'تم تسجيل الدخول بنجاح عبر جوجل!' : 'Successfully logged in with Google!');
-          navigate('/');
-        })
-        .catch(err => {
-          console.error(err);
-          toast.error(isAr ? 'تعذر استرداد بيانات الملف الشخصي.' : 'Unable to retrieve profile data.');
-          navigate('/login');
-        });
-    } else {
-      toast.error(isAr ? 'فشلت المصادقة. لم يتم توفير رمز.' : 'Authentication failed. No token provided.');
+    if (!code) {
+      toast.error(isAr ? 'فشلت المصادقة. لم يتم توفير رمز.' : 'Authentication failed. No code provided.');
       navigate('/login');
+      return;
     }
-  }, [searchParams, navigate, setAuth]);
+
+    // Exchange the short-lived one-time code for real tokens (secure: no tokens in URL)
+    authAPI.exchangeCode(code)
+      .then(async ({ data }) => {
+        const { token, refresh } = data;
+        localStorage.setItem('token', token);
+        if (refresh) localStorage.setItem('refresh', refresh);
+
+        // Fetch full user profile
+        const { data: meData } = await authAPI.me();
+        setAuth({ user: meData.user, token, refresh });
+        toast.success(isAr ? 'تم تسجيل الدخول بنجاح عبر جوجل!' : 'Successfully logged in with Google!');
+        navigate('/');
+      })
+      .catch(err => {
+        console.error('[AuthCallback] Code exchange failed:', err);
+        toast.error(isAr ? 'تعذر استرداد بيانات الجلسة.' : 'Session exchange failed. Please try again.');
+        navigate('/login');
+      });
+  }, []);
 
   return (
     <AuthLayout role="student" setRole={null}>

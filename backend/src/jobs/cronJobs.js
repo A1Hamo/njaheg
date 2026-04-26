@@ -60,24 +60,41 @@ function startCronJobs() {
   // ── Weekly summary Sundays 9 AM ──
   cron.schedule('0 9 * * 0', async () => {
     try {
-      const { rows } = await pool.query(`
-        SELECT u.id, u.name, u.email,
-               COUNT(ss.id) FILTER(WHERE ss.status='completed') AS sessions_done,
-               COALESCE(SUM(ss.duration) FILTER(WHERE ss.status='completed'),0) AS total_min,
-               u.streak_days, u.xp_points, u.level
-        FROM users u LEFT JOIN study_sessions ss ON ss.user_id=u.id
-          AND ss.created_at > NOW()-INTERVAL '7 days'
-        WHERE u.is_active=true GROUP BY u.id
-      `);
-      for (const u of rows) {
-        if (Number(u.sessions_done) > 0) {
-          await pool.query(`INSERT INTO notifications (user_id,type,title,body) VALUES ($1,'weekly_summary',$2,$3)`,
-            [u.id, '📊 Weekly Summary Ready',
-             `This week: ${u.sessions_done} sessions, ${Math.round(Number(u.total_min)/60)}h studied, Level ${u.level} ⭐`]);
-          pushNotification(u.id, { type:'weekly_summary', title:'📊 Your Week in Review', body:`${u.sessions_done} sessions completed!` });
-        }
+      // Process in batches of 100 to avoid loading all users into memory at once
+      const BATCH_SIZE = 100;
+      let offset = 0;
+      let totalSent = 0;
+
+      while (true) {
+        const { rows } = await pool.query(`
+          SELECT u.id, u.name, u.email,
+                 COUNT(ss.id) FILTER(WHERE ss.status='completed') AS sessions_done,
+                 COALESCE(SUM(ss.duration) FILTER(WHERE ss.status='completed'),0) AS total_min,
+                 u.streak_days, u.xp_points, u.level
+          FROM users u LEFT JOIN study_sessions ss ON ss.user_id=u.id
+            AND ss.created_at > NOW()-INTERVAL '7 days'
+          WHERE u.is_active=true GROUP BY u.id
+          LIMIT $1 OFFSET $2
+        `, [BATCH_SIZE, offset]);
+
+        if (rows.length === 0) break;
+
+        await Promise.all(rows.map(async u => {
+          if (Number(u.sessions_done) > 0) {
+            await pool.query(`INSERT INTO notifications (user_id,type,title,body) VALUES ($1,'weekly_summary',$2,$3)`,
+              [u.id, '📊 Weekly Summary Ready',
+               `This week: ${u.sessions_done} sessions, ${Math.round(Number(u.total_min)/60)}h studied, Level ${u.level} ⭐`]);
+            pushNotification(u.id, { type:'weekly_summary', title:'📊 Your Week in Review', body:`${u.sessions_done} sessions completed!` });
+            totalSent++;
+          }
+        }));
+
+        offset += BATCH_SIZE;
+        // Brief pause between batches to avoid overwhelming DB + email service
+        await new Promise(r => setTimeout(r, 1000));
       }
-      logger.info(`Weekly summaries sent to ${rows.length} users`);
+
+      logger.info(`Weekly summaries sent to ${totalSent} users`);
     } catch (err) { logger.error('Weekly summary cron:', err); }
   }, { timezone: 'Africa/Cairo' });
 

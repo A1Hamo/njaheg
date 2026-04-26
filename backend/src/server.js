@@ -48,6 +48,9 @@ const groupRoutes         = require('./routes/groups');
 const toolRoutes          = require('./routes/tools');
 const curriculumRoutes    = require('./routes/curriculum');
 const paymentRoutes       = require('./routes/payment');
+const adminRoutes         = require('./routes/admin');
+const aiSearchRoutes      = require('./routes/ai-search');
+const affiliateRoutes     = require('./routes/affiliates');
 
 const app        = express();
 const httpServer = createServer(app);
@@ -88,21 +91,32 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use(compression());
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = [
+    // Build allowed list from env (production) + always allow localhost in dev
+    const fromEnv = (process.env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const prodList = [
       process.env.CLIENT_URL,
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
       'https://njaheg-theta.vercel.app',
       'https://njaheg-production.up.railway.app',
-      'http://localhost',
-      'https://localhost',
+      ...fromEnv,
     ].filter(Boolean);
-    // Allow requests with no origin (curl, Postman, same-origin) and all localhost dev ports
-    if (!origin || allowed.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
-    callback(null, true); // permissive in dev; lock down in production via env
+
+    const devPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+    const isDevOrigin = !origin || devPattern.test(origin);
+
+    if (process.env.NODE_ENV !== 'production') {
+      // Development: allow all localhost ports + same-origin requests
+      if (isDevOrigin || prodList.includes(origin)) return callback(null, true);
+    } else {
+      // Production: only explicitly listed origins
+      if (!origin || prodList.includes(origin)) return callback(null, true);
+      logger.warn(`[CORS] Blocked request from unlisted origin: ${origin}`);
+      return callback(new Error(`CORS policy: ${origin} not allowed`));
+    }
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
@@ -136,6 +150,9 @@ app.use('/api/groups',        groupRoutes);
 app.use('/api/tools',         toolRoutes);
 app.use('/api/curriculum',    curriculumRoutes);
 app.use('/api/payment',       paymentRoutes);
+app.use('/api/admin',         adminRoutes);
+app.use('/api/ai-search',     aiSearchRoutes);
+app.use('/api/affiliates',    affiliateRoutes);
 
 // ── 404 ──
 app.use('*', (_req, res) => res.status(404).json({ error: 'Not found' }));

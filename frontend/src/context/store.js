@@ -15,10 +15,11 @@ export const useAuthStore = create(
         if (token)   localStorage.setItem('token',   token);
         if (refresh) localStorage.setItem('refresh', refresh);
         set({ user, token, refresh, isAuthenticated: true });
-        // Lock institution mode from user profile (set during registration)
-        if (user?.institutionType) {
+        // Sync institution mode from user profile (authoritative source)
+        const institutionType = user?.institution_type || user?.institutionType;
+        if (institutionType) {
           useUIStore.getState().setInstitutionMode(
-            user.institutionType === 'university' ? 'university' : 'school'
+            institutionType === 'university' ? 'university' : 'school'
           );
         }
       },
@@ -61,9 +62,18 @@ export const useUIStore = create(
 
 export const playPing = () => {
   try {
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
+    // Use Web Audio API to generate a short ping tone — no external dependency
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
   } catch {}
 };
 
@@ -99,8 +109,10 @@ export const useChatStore = create(set => ({
     const old = s.messages[room] || [];
     const msgId = msg.id || msg._id?.toString();
     if (old.some(m => (m.id || m._id?.toString()) === msgId)) return s;
+    // Keep only last 100 messages per room to prevent memory leak
+    const updated = [...old, { ...msg, id: msgId }].slice(-100);
     return {
-      messages: { ...s.messages, [room]: [...old, { ...msg, id: msgId }] }
+      messages: { ...s.messages, [room]: updated }
     };
   }),
 

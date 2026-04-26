@@ -75,12 +75,17 @@ async function checkAchievements(userId, event) {
       } else if (event === 'streak') {
         const { rows } = await pool.query(`SELECT streak_days FROM users WHERE id=$1`, [userId]);
         earned = parseInt(rows[0].streak_days) >= need;
-      } else if (event === 'quiz_generated' || event === 'quiz_submitted' || event === 'ai_chat') {
-        const tbl = event === 'quiz_submitted' ? 'quiz_attempts' : null;
-        if (tbl) {
-          const { rows } = await pool.query(`SELECT COUNT(*) FROM ${tbl} WHERE user_id=$1`, [userId]);
-          earned = parseInt(rows[0].count) >= need;
-        } else { earned = true; }
+      } else if (event === 'quiz_generated') {
+        // Count quiz attempts where type = 'generated'
+        const { rows } = await pool.query(`SELECT COUNT(*) FROM quiz_attempts WHERE user_id=$1 AND type='generated'`, [userId]);
+        earned = parseInt(rows[0].count) >= need;
+      } else if (event === 'quiz_submitted') {
+        const { rows } = await pool.query(`SELECT COUNT(*) FROM quiz_attempts WHERE user_id=$1`, [userId]);
+        earned = parseInt(rows[0].count) >= need;
+      } else if (event === 'ai_chat') {
+        // Count from ai_conversations table
+        const { rows } = await pool.query(`SELECT COUNT(*) FROM ai_conversations WHERE user_id=$1`, [userId]);
+        earned = parseInt(rows[0].count) >= need;
       } else if (event === 'board_post') {
         const { rows } = await pool.query(`SELECT COUNT(*) FROM board_posts WHERE user_id=$1`, [userId]);
         earned = parseInt(rows[0].count) >= need;

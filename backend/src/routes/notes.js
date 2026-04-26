@@ -10,14 +10,33 @@ nr.use(authenticate);
 nr.get('/', async (req,res) => {
   try {
     const { subject, search, pinned, page=1, limit=30 } = req.query;
-    const offset=(Number(page)-1)*Number(limit), p=[req.user.id]; 
-    let q='SELECT * FROM notes WHERE user_id=$1', i=2;
-    if (subject) { q+=` AND subject=$${i++}`; p.push(subject); }
-    if (pinned==='true') { q+=' AND is_pinned=true'; }
-    if (search)  { q+=` AND (title ILIKE $${i} OR content ILIKE $${i})`; p.push(`%${search}%`); i++; }
-    q+=` ORDER BY is_pinned DESC, updated_at DESC LIMIT $${i++} OFFSET $${i}`; 
-    p.push(Number(limit),offset);
-    const { rows } = await pool.query(q,p);
+    const offset = (Number(page) - 1) * Number(limit);
+
+    // Build query safely — stable param indices via array push
+    const params = [req.user.id];
+    const conditions = ['user_id=$1'];
+
+    if (subject) {
+      params.push(subject);
+      conditions.push(`subject=$${params.length}`);
+    }
+    if (pinned === 'true') {
+      conditions.push('is_pinned=true');
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(title ILIKE $${params.length} OR content ILIKE $${params.length})`);
+    }
+
+    // Push LIMIT then OFFSET last so indices are always correct
+    params.push(Number(limit));
+    const limitIdx = params.length;
+    params.push(offset);
+    const offsetIdx = params.length;
+
+    const q = `SELECT * FROM notes WHERE ${conditions.join(' AND ')} ORDER BY is_pinned DESC, updated_at DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+
+    const { rows } = await pool.query(q, params);
     res.json({ notes: rows });
   } catch (err) {
     logger.error('GET /notes error:', err);

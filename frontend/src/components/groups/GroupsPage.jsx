@@ -9,6 +9,7 @@ import { groupsAPI } from '../../api/index';
 import { useAuthStore } from '../../context/store';
 import { useTranslation } from '../../i18n/index';
 import CreateGroupWizard from './CreateGroupWizard';
+import PaidGroupActivationModal from './PaidGroupActivationModal';
 
 /* ── helpers ────────────────────────────────────────────── */
 const SUBJECT_COLORS = {
@@ -30,38 +31,48 @@ const EMOJIS = ['📚','🧮','🔬','🌍','📖','✏️','🎨','💡','🏆'
 const COLORS  = ['#7C3AED','#3B82F6','#10B981','#F59E0B','#EF4444','#EC4899','#06B6D4','#8B5CF6','#F43F5E','#14B8A6'];
 
 /* ── Card ────────────────────────────────────────────────── */
-function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
+function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete, onActivate }) {
   const { lang } = useTranslation();
   const isAr = lang === 'ar';
   const color = group.color || getColor(group.subject);
+  const isPending = group.status === 'pending_payment';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -8, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      onClick={() => onOpen(group._id)}
+      onClick={() => !isPending && onOpen(group._id)}
       className="floating-card"
       style={{
-        overflow: 'hidden',
-        cursor: 'pointer',
-        position: 'relative',
-        padding: 0,
-        height: '100%'
+        overflow: 'hidden', cursor: isPending ? 'default' : 'pointer',
+        position: 'relative', padding: 0, height: '100%',
+        opacity: isPending ? 0.85 : 1,
       }}
     >
       {/* Color stripe */}
-      <div style={{ height: 5, background: color }} />
+      <div style={{ height: 5, background: isPending ? '#F59E0B' : color }} />
+
+      {/* Pending badge */}
+      {isPending && (
+        <div style={{
+          position: 'absolute', top: 14, insetInlineStart: 14,
+          background: 'rgba(245,158,11,0.9)', color: '#fff',
+          fontSize: 10, fontWeight: 800, padding: '3px 10px',
+          borderRadius: 99, backdropFilter: 'blur(6px)',
+          textTransform: 'uppercase', letterSpacing: '0.05em',
+        }}>⏳ {isAr ? 'في انتظار الدفع' : 'Pending Payment'}</div>
+      )}
 
       <div style={{ padding: '20px 22px 22px' }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: color,
+            background: isPending ? '#F59E0B' : color,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26,
-            color: '#fff',
-            boxShadow: `0 8px 16px -4px ${color}66`
+            fontSize: 26, color: '#fff',
+            boxShadow: `0 8px 16px -4px ${isPending ? '#F59E0B' : color}66`,
           }}>
             {group.emoji || '📚'}
           </div>
@@ -73,7 +84,7 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
               {INSTITUTION_ICONS[group.institutionType] || '🏫'} {group.institutionType} · {group.subject}
             </div>
           </div>
-            {isOwner && (
+          {isOwner && (
             <button
               onClick={e => { e.stopPropagation(); onDelete(group._id, group.name); }}
               style={{
@@ -81,39 +92,51 @@ function GroupCard({ group, isTeacher, isOwner, onOpen, onDelete }) {
                 background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)',
                 color: '#F87171', cursor: 'pointer', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', fontSize: 13,
-                transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,0.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,0.08)'; }}
-              title={isAr ? "حذف المجموعة" : "Delete group"}
+              title={isAr ? 'حذف المجموعة' : 'Delete group'}
             >✕</button>
           )}
         </div>
 
-        {/* Description */}
         {group.description && (
           <p style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55, marginBottom: 14, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {group.description}
           </p>
         )}
 
-        {/* Footer row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>
-              👥 {group.students?.length || 0}/{group.maxStudents}
-            </span>
-          </div>
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>
+            👥 {group.students?.length || 0}/{group.maxStudents}
+          </span>
 
-          {/* Invite code badge */}
-          {isOwner && (
-            <CodeBadge code={group.code} />
+          {group.isPaid && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B', background: 'rgba(245,158,11,0.1)', padding: '3px 8px', borderRadius: 6 }}>
+              💰 EGP {group.price}
+            </span>
           )}
+
+          {isOwner && !isPending && <CodeBadge code={group.code} />}
 
           {!isOwner && group.institution && (
             <span style={{ fontSize: 11, color: 'var(--text3)' }}>🏛 {group.institution}</span>
           )}
         </div>
+
+        {/* Activate button for pending groups */}
+        {isOwner && isPending && (
+          <button
+            onClick={e => { e.stopPropagation(); onActivate(group); }}
+            style={{
+              marginTop: 14, width: '100%', padding: '10px', borderRadius: 10,
+              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              color: '#fff', fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(245,158,11,0.35)',
+            }}
+          >
+            ⚡ {isAr ? 'ادفع رسوم النشر لتفعيل المجموعة' : 'Pay Listing Fee to Activate'}
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -324,7 +347,7 @@ function JoinGroupModal({ open, onClose, onJoined }) {
       setCode('');
     } catch (err) {
       if (err.response?.status === 402) {
-        toast.info(err.response.data.error || (isAr ? 'الدفع مطلوب للانضمام إلى هذه المجموعة.' : 'Payment required to join this group.'));
+        toast(err.response.data.error || (isAr ? 'الدفع مطلوب للانضمام إلى هذه المجموعة.' : 'Payment required to join this group.'), { icon: 'ℹ️' });
         onClose();
         navigate(`/payment?amount=${err.response.data.price}&groupId=${err.response.data.groupId}&type=group_join`);
       } else {
@@ -383,6 +406,8 @@ export default function GroupsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [showJoin,   setShowJoin]   = useState(false);
+  // Activation modal for pending groups
+  const [activatingGroup, setActivatingGroup] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['groups'],
@@ -487,13 +512,14 @@ export default function GroupsPage() {
       {!isLoading && groups.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:20 }}>
           {groups.map((g, i) => (
-            <GroupCard
+          <GroupCard
               key={g._id}
               group={g}
               isTeacher={isTeacher}
               isOwner={g.teacherId === (user?.id || user?.userId) || g.owner?.toString() === (user?.id || user?.userId)?.toString() || g.ownerId === (user?.id || user?.userId)}
               onOpen={id => navigate(`/groups/${id}`)}
               onDelete={deleteGroup}
+              onActivate={grp => setActivatingGroup(grp)}
             />
           ))}
         </div>
@@ -502,6 +528,17 @@ export default function GroupsPage() {
       {/* Modals */}
       <CreateGroupModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} isTeacher={isTeacher} />
       <JoinGroupModal   open={showJoin}   onClose={() => setShowJoin(false)}   onJoined={handleJoined}  />
+
+      {/* Activation modal for cards clicked "Activate" */}
+      {activatingGroup && (
+        <PaidGroupActivationModal
+          group={activatingGroup}
+          listingFee={Math.max(10, Math.round(activatingGroup.price * 0.05))}
+          platformFeePercent={activatingGroup.platformFeePercent || 5}
+          onActivated={() => { setActivatingGroup(null); qc.invalidateQueries({ queryKey: ['groups'] }); }}
+          onClose={() => setActivatingGroup(null)}
+        />
+      )}
 
       {/* New wizard */}
       <AnimatePresence>

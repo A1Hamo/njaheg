@@ -20,6 +20,22 @@ plannerRouter.get('/', async (req, res) => {
 plannerRouter.post('/', async (req, res) => {
   const { subject,topic,start_time,end_time,notes,linked_file } = req.body;
   if (!subject || !start_time || !end_time) return res.status(400).json({ error: 'subject, start_time, end_time required' });
+
+  // Conflict detection: reject if the new session overlaps an existing one
+  const { rows: conflicts } = await pool.query(`
+    SELECT id, subject, start_time, end_time FROM study_sessions
+    WHERE user_id=$1
+      AND status != 'cancelled'
+      AND tsrange(start_time, end_time) && tsrange($2::timestamptz, $3::timestamptz)
+  `, [req.user.id, start_time, end_time]);
+
+  if (conflicts.length > 0) {
+    return res.status(409).json({
+      error: 'تعارض في المواعيد — يوجد حصة في نفس الوقت',
+      conflicts: conflicts.map(c => ({ id: c.id, subject: c.subject, start_time: c.start_time, end_time: c.end_time })),
+    });
+  }
+
   const duration = Math.round((new Date(end_time) - new Date(start_time)) / 60000);
   const { rows } = await pool.query(
     `INSERT INTO study_sessions (user_id,subject,topic,start_time,end_time,duration,notes,linked_file)

@@ -1,11 +1,26 @@
 const express = require('express');
 const axios = require('axios');
 const twilio = require('twilio');
+const rateLimit = require('express-rate-limit');
 const { authenticate } = require('../middleware/auth');
+const { validatePaymobHMAC } = require('../middleware/validatePaymobHMAC');
 const { pool } = require('../config/postgres');
 const Transaction = require('../models/Transaction');
+const TopUpCode = require('../models/TopUpCode');
+const Coupon = require('../models/Coupon');
+const Affiliate = require('../models/Affiliate');
+const { broadcastToAdmin } = require('../config/socket');
+const logger = require('../utils/logger');
 
 const router = express.Router();
+
+// Rate limiter for simulate-success (dev only) — 3 req/hour/user
+const simulateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyGenerator: req => (req.user?.id || req.ip),
+  message: { error: 'Simulate rate limit reached (3/hour).' },
+});
 
 // Initialize external gateways and SMS clients using environment variables
 // Note to USER: These require real API keys in your .env file to function 100% genuine.
@@ -39,6 +54,7 @@ router.post('/initiate', authenticate, async (req, res) => {
       amount: amount,
       gateway: gateway,
       orderId: 'TBD',
+      affiliateRef: extraData?.affiliate_ref || null,
       metadata: { title, ...extraData }
     });
 
@@ -134,16 +150,14 @@ router.post('/initiate', authenticate, async (req, res) => {
  * @desc   Webhook endpoint for Payment Gateways (Paymob) to send Success/Failure
  * @route  POST /api/payment/webhook
  */
-router.post('/webhook', async (req, res) => {
-  // Always return 200 immediately to gateway
+router.post('/webhook', validatePaymobHMAC, async (req, res) => {
+  // Return 200 immediately after HMAC validation
   res.status(200).send('Webhook Received');
 
   try {
     const payload = req.body;
     
-    // Validate HMAC (Important for genuine security)
-    // const hmac = req.query.hmac; 
-    // Security check omitted here for brevity, but MUST be implemented in prod.
+    // HMAC validation is handled by validatePaymobHMAC middleware above.
 
     const isSuccess = payload.obj?.success;
     const orderId = payload.obj?.order?.id;
@@ -159,7 +173,38 @@ router.post('/webhook', async (req, res) => {
     if (isSuccess) {
       transaction.status = 'success';
       transaction.transactionId = transId;
+
+      // Handle Affiliate Commission
+      if (transaction.affiliateRef) {
+        try {
+          const aff = await Affiliate.findOne({ code: transaction.affiliateRef });
+          if (aff) {
+            const commission = (transaction.amount * aff.commissionRate) / 100;
+            transaction.affiliateCommission = commission;
+            
+            aff.conversions += 1;
+            aff.totalEarned += commission;
+            await aff.save();
+
+            // Credit the affiliate (teacher/marketer) wallet in Postgres
+            await pool.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2', [commission, aff.userId]);
+            console.log(`Credited affiliate ${aff.userId} with ${commission} EGP commission.`);
+          }
+        } catch (affErr) {
+          console.error('Affiliate processing error:', affErr);
+        }
+      }
+
       await transaction.save();
+
+      // Broadcast to Admin Live Feed
+      broadcastToAdmin('admin_new_transaction', {
+        id: transaction._id,
+        amount: transaction.amount,
+        gateway: transaction.gateway,
+        title: transaction.metadata?.title || 'Webhook Payment',
+        timestamp: new Date()
+      });
 
       // AUTO-ENROLL STUDENT IN GROUP
       if (transaction.type === 'group_join' && transaction.group) {
@@ -217,7 +262,21 @@ router.post('/webhook', async (req, res) => {
  * @desc   Simulate a successful payment for development purposes without keys
  * @route  POST /api/payment/simulate-success
  */
-router.post('/simulate-success', authenticate, async (req, res) => {
+// ── Protect simulate-success: dev-only + rate limited + audit logged ──
+function devOnly(req, res, next) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  next();
+}
+
+router.post('/simulate-success', devOnly, authenticate, simulateLimiter, async (req, res) => {
+  // Audit log
+  logger.warn('[AUDIT] /simulate-success used', {
+    userId:  req.user?.id,
+    ip:      req.ip,
+    time:    new Date().toISOString(),
+  });
   const { transactionId, phone } = req.body;
 
   try {
@@ -226,7 +285,38 @@ router.post('/simulate-success', authenticate, async (req, res) => {
 
     transaction.status = 'success';
     transaction.transactionId = 'SIM_TRANS_' + Date.now();
+
+    // Handle Affiliate Commission
+    if (transaction.affiliateRef) {
+      try {
+        const aff = await Affiliate.findOne({ code: transaction.affiliateRef });
+        if (aff) {
+          const commission = (transaction.amount * aff.commissionRate) / 100;
+          transaction.affiliateCommission = commission;
+          
+          aff.conversions += 1;
+          aff.totalEarned += commission;
+          await aff.save();
+
+          // Credit the affiliate (teacher/marketer) wallet in Postgres
+          await pool.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2', [commission, aff.userId]);
+          console.log(`[Sim] Credited affiliate ${aff.userId} with ${commission} EGP commission.`);
+        }
+      } catch (affErr) {
+        console.error('Affiliate processing error:', affErr);
+      }
+    }
+
     await transaction.save();
+
+    // Broadcast to Admin Live Feed
+    broadcastToAdmin('admin_new_transaction', {
+      id: transaction._id,
+      amount: transaction.amount,
+      gateway: transaction.gateway,
+      title: transaction.metadata?.title || 'Simulated Payment',
+      timestamp: new Date()
+    });
 
     // AUTO-ENROLL STUDENT IN GROUP (Simulated)
     if (transaction.type === 'group_join' && transaction.group) {
@@ -284,6 +374,80 @@ router.get('/history', authenticate, async (req, res) => {
     res.status(200).json({ success: true, transactions });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch transaction history' });
+  }
+});
+
+// ── POST /api/payment/redeem-code ──────────────────────────────
+router.post('/redeem-code', authenticate, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code is required' });
+
+    const topUp = await TopUpCode.findOne({ code, isUsed: false });
+    if (!topUp) return res.status(400).json({ error: 'Invalid or already used code.' });
+
+    topUp.isUsed = true;
+    topUp.usedBy = req.user.id;
+    topUp.usedAt = new Date();
+    await topUp.save();
+
+    const { rows } = await pool.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2 RETURNING wallet_balance', [topUp.amount, req.user.id]);
+    
+    // Broadcast for admin
+    broadcastToAdmin('admin_new_transaction', {
+      id: topUp._id,
+      amount: topUp.amount,
+      gateway: 'WALLET_TOPUP',
+      title: `Top-Up Code Redeemed: ${code}`,
+      timestamp: new Date()
+    });
+
+    res.json({ success: true, amount: topUp.amount, newBalance: rows[0].wallet_balance, message: `Successfully added ${topUp.amount} EGP to your wallet!` });
+  } catch (err) {
+    res.status(500).json({ error: 'Redeem error: ' + err.message });
+  }
+});
+
+// ── POST /api/payment/validate-coupon ─────────────────────────
+router.post('/validate-coupon', authenticate, async (req, res) => {
+  try {
+    const { code, amount } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code is required' });
+
+    const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+    if (!coupon) return res.status(400).json({ error: 'Invalid or expired coupon' });
+
+    if (coupon.validUntil && new Date() > coupon.validUntil) {
+      coupon.isActive = false;
+      await coupon.save();
+      return res.status(400).json({ error: 'Coupon has expired' });
+    }
+
+    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+      coupon.isActive = false;
+      await coupon.save();
+      return res.status(400).json({ error: 'Coupon usage limit reached' });
+    }
+
+    let discountAmount = 0;
+    if (coupon.type === 'percentage') {
+      discountAmount = (amount * coupon.value) / 100;
+    } else {
+      discountAmount = coupon.value;
+    }
+
+    // Don't let discount exceed amount
+    discountAmount = Math.min(discountAmount, amount);
+    const newTotal = amount - discountAmount;
+
+    res.json({ 
+      success: true, 
+      coupon: { code: coupon.code, type: coupon.type, value: coupon.value },
+      discountAmount, 
+      newTotal 
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Coupon validation error' });
   }
 });
 

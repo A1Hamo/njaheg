@@ -126,6 +126,7 @@ export default function TeacherDashboard() {
     { icon:'📢', label: isAr ? 'الإعلانات' : 'Announcements',   sub: isAr ? 'نشر للفصول' : 'Post to your classes',    grad:'linear-gradient(135deg,#F59E0B,#D97706)', path:'/groups' },
     { icon:'📝', label: isAr ? 'الواجبات' : 'Assignments',     sub: isAr ? 'تحديد واجبات واختبارات' : 'Set homework & quizzes',  grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)', path:'/groups' },
     { icon:'📊', label: isAr ? 'التحليلات' : 'Analytics',       sub: isAr ? 'رؤى التعلم' : 'View learning insights',  grad:'linear-gradient(135deg,#10B981,#059669)', path:'/analytics' },
+    { icon:'🚀', label: isAr ? 'التسويق' : 'Marketing',       sub: isAr ? 'نظام العمولات' : 'Affiliate system',      grad:'linear-gradient(135deg,#6366F1,#8B5CF6)', path:'/affiliates' },
     { icon:'💬', label: isAr ? 'الرسائل' : 'Messages',        sub: isAr ? 'دردش مع الطلاب' : 'Chat with students',      grad:'linear-gradient(135deg,#EC4899,#BE185D)', path:'/chat' },
     { icon:'📁', label: isAr ? 'المصادر' : 'Resources',       sub: isAr ? 'رفع مواد دراسية' : 'Upload study materials',  grad:'linear-gradient(135deg,#06B6D4,#0891B2)', path:'/files' },
   ];

@@ -121,10 +121,26 @@ async function login(req, res) {
 
 async function googleCallback(req, res) {
   const user = req.user;
-  const token   = signAccess(user.id);
+  const token   = signAccess(user);
   const refresh = signRefresh(user.id);
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  res.redirect(`${clientUrl}/auth/callback?token=${token}&refresh=${refresh}`);
+
+  // Security: never expose tokens in the URL (browser history, server logs, proxies).
+  // Instead store them in Redis with a short-lived one-time code.
+  const { v4: uuidv4 } = require('uuid');
+  const code = uuidv4();
+  await cacheSet(`oauth_code:${code}`, { token, refresh }, 60); // TTL = 60 seconds
+  res.redirect(`${clientUrl}/auth/callback?code=${code}`);
+}
+
+async function exchangeCode(req, res) {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Code required' });
+  const data = await cacheGet(`oauth_code:${code}`);
+  if (!data) return res.status(400).json({ error: 'Invalid or expired code' });
+  // One-time use — delete immediately after exchange
+  await cacheDel(`oauth_code:${code}`);
+  res.json({ token: data.token, refresh: data.refresh });
 }
 
 async function refreshToken(req, res) {
@@ -132,7 +148,18 @@ async function refreshToken(req, res) {
   if (!refresh) return res.status(400).json({ error: 'Refresh token required' });
   try {
     const decoded = verifyRefresh(refresh);
-    res.json({ token: signAccess(decoded.id) });
+
+    // Check if old token is blacklisted
+    const blacklisted = await cacheGet(`refresh_blacklist:${refresh}`);
+    if (blacklisted) return res.status(401).json({ error: 'Refresh token revoked' });
+
+    // Blacklist old refresh token (TTL matches original expiry window)
+    await cacheSet(`refresh_blacklist:${refresh}`, 1, 30 * 24 * 3600);
+
+    // Issue new pair
+    const newAccess  = signAccess(decoded.id);
+    const newRefresh = signRefresh(decoded.id);
+    res.json({ token: newAccess, refresh: newRefresh });
   } catch {
     res.status(401).json({ error: 'Invalid or expired refresh token' });
   }
@@ -188,4 +215,4 @@ async function getMe(req, res) {
   res.json({ user: safe });
 }
 
-module.exports = { register, guestRegister, login, googleCallback, refreshToken, logout, verifyEmail, forgotPassword, resetPassword, getMe };
+module.exports = { register, guestRegister, login, googleCallback, exchangeCode, refreshToken, logout, verifyEmail, forgotPassword, resetPassword, getMe };

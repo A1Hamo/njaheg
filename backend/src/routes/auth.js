@@ -10,6 +10,7 @@ r.post('/guest',           c.guestRegister);
 r.post('/login',           authLimiter, c.login);
 r.post('/refresh',         c.refreshToken);
 r.post('/logout',          authenticate, c.logout);
+r.post('/exchange-code',   c.exchangeCode);  // OAuth token exchange (one-time code)
 r.get ('/verify/:token',   c.verifyEmail);
 r.post('/forgot-password', authLimiter, c.forgotPassword);
 r.post('/reset-password',  authLimiter, c.resetPassword);

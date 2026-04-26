@@ -4,9 +4,20 @@ import toast from 'react-hot-toast';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Standard client — 30s timeout for regular endpoints
 const client = axios.create({ baseURL: API, timeout: 30000 });
 
+// Dedicated AI client — 90s timeout (PDF summary / quiz generation can take 60s+)
+export const aiClient = axios.create({ baseURL: API, timeout: 90000 });
+
 client.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token');
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
+});
+
+// Apply same auth interceptor to aiClient
+aiClient.interceptors.request.use(cfg => {
   const token = localStorage.getItem('token');
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
@@ -69,6 +80,8 @@ export const authAPI = {
   resetPassword:  d  => client.post('/auth/reset-password', d),
   googleLogin:    () => { window.location.href = `${API}/auth/google`; },
   guestRegister:  () => client.post('/auth/guest'),
+  // OAuth code exchange: call this on /auth/callback?code=XXX
+  exchangeCode:   code => client.post('/auth/exchange-code', { code }),
 };
 
 export const usersAPI = {
@@ -131,19 +144,19 @@ export const chatAPI = {
 };
 
 export const aiAPI = {
-  chat:              d  => client.post('/ai/chat', d),
-  chatStream:        d  => client.post('/ai/chat/stream', d),
-  search:            d  => client.post('/ai/search', d),
+  chat:              d  => aiClient.post('/ai/chat', d),
+  chatStream:        d  => aiClient.post('/ai/chat/stream', d),
+  search:            d  => aiClient.post('/ai/search', d),
   getConversations:  () => client.get('/ai/conversations'),
   getConversation:   id => client.get(`/ai/conversations/${id}`),
   deleteConversation:id => client.delete(`/ai/conversations/${id}`),
-  summarize:         d  => client.post('/ai/summarize', d),
-  generateQuiz:      d  => client.post('/ai/quiz', d),
+  summarize:         d  => aiClient.post('/ai/summarize', d),
+  generateQuiz:      d  => aiClient.post('/ai/quiz', d),
   submitQuiz:        d  => client.post('/ai/quiz/submit', d),
-  studyPlan:         d  => client.post('/ai/study-plan', d),
-  askFile:           d  => client.post('/ai/ask-file', d),
-  youtubeSummarize:  d  => client.post('/ai/youtube-summarize', d),
-  analyzeImage:      d  => client.post('/ai/image-analyze', d),
+  studyPlan:         d  => aiClient.post('/ai/study-plan', d),
+  askFile:           d  => aiClient.post('/ai/ask-file', d),
+  youtubeSummarize:  d  => aiClient.post('/ai/youtube-summarize', d),
+  analyzeImage:      d  => aiClient.post('/ai/image-analyze', d),
   getProvider:       () => client.get('/ai/provider'),
   getCapabilities:   () => client.get('/ai/internal/capabilities'),
 };
@@ -172,13 +185,14 @@ export const quizAPI = {
 
 export const groupsAPI = {
   // Groups
-  list:        ()        => client.get('/groups'),
-  create:      d         => client.post('/groups', d),
-  get:         id        => client.get(`/groups/${id}`),
-  update:      (id, d)   => client.patch(`/groups/${id}`, d),
-  remove:      id        => client.delete(`/groups/${id}`),
-  join:        code      => client.post('/groups/join', { code }),
-  removeMember:(id, uid) => client.delete(`/groups/${id}/members/${uid}`),
+  list:          ()        => client.get('/groups'),
+  create:        d         => client.post('/groups', d),
+  get:           id        => client.get(`/groups/${id}`),
+  update:        (id, d)   => client.patch(`/groups/${id}`, d),
+  remove:        id        => client.delete(`/groups/${id}`),
+  join:          code      => client.post('/groups/join', { code }),
+  removeMember:  (id, uid) => client.delete(`/groups/${id}/members/${uid}`),
+  activateGroup: (id, d)   => client.post(`/groups/${id}/activate`, d),
 
   // Announcements
   getAnnouncements:    id              => client.get(`/groups/${id}/announcements`),
@@ -207,4 +221,32 @@ export const paymentAPI = {
   initiate:        d => client.post('/payment/initiate', d),
   history:         () => client.get('/payment/history'),
   simulateSuccess: d => client.post('/payment/simulate-success', d),
+  redeemCode:      d => client.post('/payment/redeem-code', d),
+  validateCoupon:  d => client.post('/payment/validate-coupon', d),
 };
+
+export const adminAPI = {
+  login:       d  => client.post('/admin/login', d),
+  me:          () => client.get('/admin/me'),
+  stats:       () => client.get('/admin/stats'),
+  earnings:    p  => client.get('/admin/earnings', { params: p }),
+  users:       p  => client.get('/admin/users', { params: p }),
+  updateUser:  (id, d) => client.patch(`/admin/users/${id}`, d),
+  groups:      () => client.get('/admin/groups'),
+  updateFee:   d  => client.patch('/admin/settings/fee', d),
+};
+
+export const aiSearchAPI = {
+  chat:     d => client.post('/ai-search/chat', d),
+  search:   d => client.post('/ai-search/search', d),
+  explain:  d => client.post('/ai-search/explain', d),
+  homework: d => client.post('/ai-search/homework', d),
+  news:     d => client.post('/ai-search/news', d),
+};
+
+export const affiliateAPI = {
+  getLinks:   () => client.get('/affiliates'),
+  createLink: d  => client.post('/affiliates', d),
+  getStats:   () => client.get('/affiliates/stats'),
+};
+

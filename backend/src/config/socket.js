@@ -18,7 +18,7 @@ function setupSocketIO(io) {
       if (!token) return next(new Error('No token'));
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const { rows } = await pool.query(
-        'SELECT id,name,avatar_url,grade FROM users WHERE id=$1 AND is_active=true',
+        'SELECT id,name,avatar_url,grade,role FROM users WHERE id=$1 AND is_active=true',
         [decoded.id]
       );
       if (!rows[0]) return next(new Error('User not found'));
@@ -45,6 +45,13 @@ function setupSocketIO(io) {
 
     socket.on('leave_room', ({ subject }) => {
       socket.leave(`room:${subject.toLowerCase()}`);
+    });
+
+    socket.on('join_admin_room', () => {
+      if (socket.user?.role === 'platform_owner') {
+        socket.join('admin_dashboard');
+        logger.info(`Admin joined admin_dashboard room: ${socket.user.name}`);
+      }
     });
 
     socket.on('send_message', async ({ subject, content, type = 'text', fileUrl, replyTo }) => {
@@ -315,4 +322,8 @@ async function broadcastToRoom(subject, event, data) {
   if (ioInstance) ioInstance.to(`room:${subject.toLowerCase()}`).emit(event, data);
 }
 
-module.exports = { setupSocketIO, pushNotification, broadcastToRoom };
+async function broadcastToAdmin(event, data) {
+  if (ioInstance) ioInstance.to('admin_dashboard').emit(event, data);
+}
+
+module.exports = { setupSocketIO, pushNotification, broadcastToRoom, broadcastToAdmin };

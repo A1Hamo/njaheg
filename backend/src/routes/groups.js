@@ -56,10 +56,13 @@ async function uniqueCode() {
    GROUPS
 ═══════════════════════════════════════════════════════ */
 
-// POST /api/groups  — any authenticated user creates a group
+// POST /api/groups  — create group (paid groups start as pending_payment)
 router.post('/', auth, async (req, res) => {
   const { name, description, subject, grade, institutionType, institution, maxStudents, color, emoji, privacy, isPaid, price, curriculumLinked } = req.body;
   if (!name || !subject) return res.status(400).json({ error: 'Name and subject are required' });
+
+  const feePercent = parseFloat(process.env.PLATFORM_FEE_PERCENT || '5');
+  const paidGroup  = !!(isPaid && parseFloat(price) > 0);
 
   const code  = await uniqueCode();
   const group = await Group.create({
@@ -70,14 +73,72 @@ router.post('/', auth, async (req, res) => {
     color: color || '#7C3AED',
     emoji: emoji || '📚',
     privacy: privacy || 'public',
-    isPaid: isPaid || false,
-    price: price || 0,
+    isPaid: paidGroup,
+    price: paidGroup ? parseFloat(price) : 0,
+    platformFeePercent: feePercent,
+    // Paid groups start pending until teacher completes listing-fee payment
+    status: paidGroup ? 'pending_payment' : 'active',
+    listingFeePaid: !paidGroup, // free groups are immediately active
     curriculumLinked: curriculumLinked || null,
     teacherId:   req.user.id || req.user.userId,
     teacherName: req.user.name || '',
   });
 
-  res.status(201).json({ group });
+  // Calculate listing fee (5% of expected first 10 students)
+  const listingFee = paidGroup ? Math.max(10, Math.round(parseFloat(price) * 0.05)) : 0;
+
+  res.status(201).json({
+    group,
+    requiresPayment: paidGroup,
+    listingFee,
+    platformFeePercent: feePercent,
+    message: paidGroup
+      ? `Group created. Pay the EGP ${listingFee} listing fee to activate it.`
+      : 'Group created and active.',
+  });
+});
+
+// POST /api/groups/:id/activate  — teacher pays listing fee → group goes live
+router.post('/:id/activate', auth, async (req, res) => {
+  try {
+    const { gateway = 'instapay', phone } = req.body;
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const uid = req.user.id || req.user.userId;
+    if (String(group.teacherId) !== String(uid))
+      return res.status(403).json({ error: 'Only the group owner can activate it' });
+
+    if (group.listingFeePaid)
+      return res.status(409).json({ error: 'Group is already active' });
+
+    const Transaction = require('../models/Transaction');
+    const listingFee  = Math.max(10, Math.round(group.price * 0.05));
+
+    // Create the listing-fee transaction record
+    const tx = await Transaction.create({
+      userId:   uid,
+      group:    group._id,
+      amount:   listingFee,
+      gateway:  gateway,
+      orderId:  'LISTING_' + group._id,
+      type:     'one_time',
+      metadata: { title: `Listing fee – ${group.name}`, listingFee: true },
+    });
+
+    // Immediately mark as paid (real gateway would use webhook)
+    tx.status = 'success';
+    await tx.save();
+
+    group.status             = 'active';
+    group.listingFeePaid     = true;
+    group.listingFeeTransactionId = tx._id.toString();
+    await group.save();
+
+    res.json({ success: true, group, transactionId: tx._id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/groups  — teacher: own groups | student: joined groups
@@ -288,6 +349,23 @@ router.patch('/:id/assignments/:aId/submissions/:sId', auth, ownerOnly, async (r
   sub.status   = 'graded';
   sub.gradedAt = new Date();
   await assignment.save();
+
+  // Notify the student that their work has been graded
+  try {
+    const { pool } = require('../config/postgres');
+    const { pushNotification } = require('../config/socket');
+    const notifTitle = '📊 تم تصحيح واجبك';
+    const notifBody  = `حصلت على ${score} من ${assignment.maxScore} في واجب "${assignment.title}"`;
+    await pool.query(
+      `INSERT INTO notifications (user_id, type, title, body, data) VALUES ($1, 'grade', $2, $3, $4)`,
+      [sub.studentId, notifTitle, notifBody, JSON.stringify({ assignmentId: assignment._id, groupId: req.params.id, score, maxScore: assignment.maxScore })]
+    );
+    pushNotification(sub.studentId, { type: 'grade', title: notifTitle, body: notifBody });
+  } catch (notifErr) {
+    // Non-fatal: grading succeeded even if notification fails
+    console.error('[Grading] Notification error:', notifErr.message);
+  }
+
   res.json({ ok: true });
 });
 

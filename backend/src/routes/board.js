@@ -15,10 +15,21 @@ br.get('/', async (req,res) => {
   const p=[req.user.id]; let i=2;
   if (subject) { q+=` AND bp.subject=$${i++}`; p.push(subject); }
   if (search)  { q+=` AND bp.title ILIKE $${i++}`; p.push(`%${search}%`); }
+
+  // Count query uses same filters (without pagination)
+  let cq = `SELECT COUNT(*) FROM board_posts bp WHERE 1=1`;
+  const cp = []; let ci = 1;
+  if (subject) { cq += ` AND bp.subject=$${ci++}`; cp.push(subject); }
+  if (search)  { cq += ` AND bp.title ILIKE $${ci++}`; cp.push(`%${search}%`); }
+
   q+=sort==='popular'?' ORDER BY bp.likes_count DESC':' ORDER BY bp.created_at DESC';
   q+=` LIMIT $${i++} OFFSET $${i}`; p.push(Number(limit),offset);
-  const { rows }=await pool.query(q,p);
-  res.json({ posts: rows });
+
+  const [{ rows }, countResult] = await Promise.all([
+    pool.query(q,p),
+    pool.query(cq, cp),
+  ]);
+  res.json({ posts: rows, total: parseInt(countResult.rows[0].count), page: Number(page), limit: Number(limit) });
 });
 
 br.post('/', async (req,res) => {
@@ -38,15 +49,28 @@ br.post('/', async (req,res) => {
 br.post('/:id/like', async (req,res) => {
   const { id }=req.params, uid=req.user.id;
   const { rows:ex }=await pool.query('SELECT 1 FROM board_likes WHERE post_id=$1 AND user_id=$2',[id,uid]);
+
   if (ex[0]) {
+    // Unlike — single query, no XP involved
     await pool.query('DELETE FROM board_likes WHERE post_id=$1 AND user_id=$2',[id,uid]);
     await pool.query('UPDATE board_posts SET likes_count=GREATEST(0,likes_count-1) WHERE id=$1',[id]);
-    res.json({ liked:false });
-  } else {
-    await pool.query('INSERT INTO board_likes (post_id,user_id) VALUES ($1,$2)',[id,uid]);
-    await pool.query('UPDATE board_posts SET likes_count=likes_count+1 WHERE id=$1',[id]);
-    await pool.query(`UPDATE users SET xp_points=xp_points+5 WHERE id=(SELECT user_id FROM board_posts WHERE id=$1)`,[id]);
+    return res.json({ liked:false });
+  }
+
+  // Like — wrap 3 writes in a transaction to prevent inconsistent state
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('INSERT INTO board_likes (post_id,user_id) VALUES ($1,$2)',[id,uid]);
+    await client.query('UPDATE board_posts SET likes_count=likes_count+1 WHERE id=$1',[id]);
+    await client.query(`UPDATE users SET xp_points=xp_points+5 WHERE id=(SELECT user_id FROM board_posts WHERE id=$1)`,[id]);
+    await client.query('COMMIT');
     res.json({ liked:true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
 });
 

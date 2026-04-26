@@ -3,16 +3,26 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { paymentAPI } from '../../api/index';
+import { paymentAPI, usersAPI } from '../../api/index';
 import { useTranslation } from '../../i18n/index';
+import { useAuthStore } from '../../context/store';
 
 export default function PaymentPage() {
   const { t, lang } = useTranslation();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [selectedGateway, setSelectedGateway] = useState('card');
   const [showCheckout, setShowCheckout] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [topUpCode, setTopUpCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const { data: profileData } = useQuery({ queryKey: ['profile'], queryFn: usersAPI.getProfile });
+  const walletBalance = profileData?.data?.user?.wallet_balance || user?.wallet_balance || 0;
 
   const { data: historyData, isLoading } = useQuery({
     queryKey: ['paymentHistory'],
@@ -28,13 +38,23 @@ export default function PaymentPage() {
     }))
   ];
 
+  const baseAmount = 250;
+  const finalAmount = appliedCoupon ? appliedCoupon.newTotal : baseAmount;
+
   const handlePay = async () => {
     setProcessing(true);
     try {
       // Step 1: Initiate genuine payment
+      const affiliateRef = localStorage.getItem('affiliate_ref');
       const { data } = await paymentAPI.initiate({
-        amount: 250, gateway: selectedGateway, title: 'Secure Gateway Checkout',
-        extraData: { phone: '+201000000000' }
+        amount: finalAmount, 
+        gateway: selectedGateway, 
+        title: 'Secure Gateway Checkout',
+        extraData: { 
+          phone: '+201000000000', 
+          coupon: appliedCoupon?.coupon?.code,
+          affiliate_ref: affiliateRef 
+        }
       });
 
       if (data.iframeUrl) {
@@ -61,6 +81,39 @@ export default function PaymentPage() {
     }
   };
 
+  const handleRedeem = async (e) => {
+    e.preventDefault();
+    if (!topUpCode) return;
+    setRedeeming(true);
+    try {
+      const { data } = await paymentAPI.redeemCode({ code: topUpCode });
+      toast.success(data.message);
+      setTopUpCode('');
+      qc.invalidateQueries(['paymentHistory']);
+      qc.invalidateQueries(['profile']);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Invalid code');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCode) return;
+    setValidatingCoupon(true);
+    try {
+      const { data } = await paymentAPI.validateCoupon({ code: couponCode, amount: baseAmount });
+      setAppliedCoupon(data);
+      toast.success(`Coupon applied! Discount: ${data.discountAmount} EGP`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Invalid coupon');
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   return (
     <div style={{ padding: '24px', direction: lang === 'ar' ? 'rtl' : 'ltr', display: 'flex', flexDirection: 'column', gap: 24, minHeight: '100vh' }}>
       {/* ── Header banner ── */}
@@ -81,7 +134,7 @@ export default function PaymentPage() {
           </div>
           <div style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', padding: '12px 20px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.2)' }}>
             <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{lang === 'ar' ? 'الرصيد المتاح' : 'Wallet Balance'}</div>
-            <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>EGP 0.00</div>
+            <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>EGP {Number(walletBalance).toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -148,6 +201,14 @@ export default function PaymentPage() {
               <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 20 }}>{lang === 'ar' ? 'إتمام الدفع' : 'Secure Checkout'}</h2>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+                <button onClick={() => setSelectedGateway('topup')} style={{
+                  padding: 12, borderRadius: 12, border: `2px solid ${selectedGateway === 'topup' ? '#3B82F6' : 'var(--border)'}`,
+                  background: selectedGateway === 'topup' ? 'rgba(59,130,246,0.05)' : 'var(--surface2)', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center'
+                }}>
+                  <div style={{ fontSize: 22, marginBottom: 4 }}>🎫</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', textAlign: 'center' }}>Top-Up Code</div>
+                </button>
                 <button onClick={() => setSelectedGateway('card')} style={{
                   padding: 12, borderRadius: 12, border: `2px solid ${selectedGateway === 'card' ? 'var(--primary)' : 'var(--border)'}`,
                   background: selectedGateway === 'card' ? 'rgba(99,102,241,0.05)' : 'var(--surface2)', cursor: 'pointer',
@@ -233,16 +294,56 @@ export default function PaymentPage() {
                       </p>
                     </div>
                   )}
+
+                  {selectedGateway === 'topup' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div style={{ padding: 16, background: 'rgba(59,130,246,0.1)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)' }}>
+                        <p style={{ fontSize: 13, color: '#2563EB', lineHeight: 1.6, fontWeight: 600, textAlign: 'center' }}>
+                          {lang === 'ar' ? 'أدخل كود الشحن لإضافة الرصيد إلى محفظتك على المنصة.' : 'Enter your prepaid top-up code to add balance to your wallet instantly.'}
+                        </p>
+                      </div>
+                      <form onSubmit={handleRedeem} style={{ display: 'flex', gap: 8 }}>
+                        <input type="text" value={topUpCode} onChange={e => setTopUpCode(e.target.value)} placeholder="NAJAH-..." className="form-input" style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'monospace', letterSpacing: 1 }} />
+                        <button type="submit" disabled={redeeming || !topUpCode} style={{ padding: '0 20px', borderRadius: 10, background: '#3B82F6', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: redeeming || !topUpCode ? 0.7 : 1 }}>
+                          {redeeming ? '⏳' : 'Redeem'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </motion.div>
               </AnimatePresence>
 
-              <button onClick={handlePay} disabled={processing} style={{
-                width: '100%', padding: 16, borderRadius: 12, background: 'var(--primary)', color: '#fff',
-                fontWeight: 800, fontSize: 16, marginTop: 24, border: 'none', cursor: processing ? 'not-allowed' : 'pointer',
-                opacity: processing ? 0.7 : 1
-              }}>
-                {processing ? '⏳ Processing...' : (lang === 'ar' ? 'تأكيد الدفع 250 ج.م' : 'Pay 250 EGP')}
-              </button>
+              {/* ── Coupon Section ── */}
+              {selectedGateway !== 'topup' && (
+                <div style={{ marginTop: 20, marginBottom: 16, padding: 16, borderRadius: 12, background: 'var(--surface2)', border: '1px dashed var(--border)' }}>
+                  {!appliedCoupon ? (
+                    <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: 8 }}>
+                      <input type="text" value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="Discount Code" className="form-input" style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13 }} />
+                      <button type="submit" disabled={validatingCoupon || !couponCode} style={{ padding: '0 16px', borderRadius: 8, background: 'var(--text2)', color: 'var(--surface)', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: 12 }}>
+                        {validatingCoupon ? '⏳' : 'Apply'}
+                      </button>
+                    </form>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text3)' }}>Coupon Applied</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#10B981' }}>{appliedCoupon.coupon.code} (-{appliedCoupon.discountAmount} EGP)</div>
+                      </div>
+                      <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>Remove</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedGateway !== 'topup' && (
+                <button onClick={handlePay} disabled={processing} style={{
+                  width: '100%', padding: 16, borderRadius: 12, background: 'var(--primary)', color: '#fff',
+                  fontWeight: 800, fontSize: 16, border: 'none', cursor: processing ? 'not-allowed' : 'pointer',
+                  opacity: processing ? 0.7 : 1
+                }}>
+                  {processing ? '⏳ Processing...' : (lang === 'ar' ? `تأكيد الدفع ${finalAmount} ج.م` : `Pay ${finalAmount} EGP`)}
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

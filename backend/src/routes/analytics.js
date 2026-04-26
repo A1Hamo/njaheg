@@ -2,10 +2,18 @@
 const router = require('express').Router();
 const { pool } = require('../config/postgres');
 const { authenticate } = require('../middleware/auth');
+const { cacheGet, cacheSet } = require('../config/redis');
 router.use(authenticate);
 
 router.get('/dashboard', async (req, res) => {
-  const uid = req.user.id;
+  const uid  = req.user.id;
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const cacheKey = `analytics:${uid}:${today}`;
+
+  // Return cached result if available (5-minute TTL)
+  const cached = await cacheGet(cacheKey);
+  if (cached) return res.json(cached);
+
   const [sessions, subjectProgress, weeklyActivity, recentQuizzes, pomodoros] = await Promise.all([
     pool.query(`SELECT subject, COUNT(*) as count, COALESCE(SUM(duration),0) as total_mins,
                 COUNT(*) FILTER(WHERE status='completed') as completed
@@ -22,13 +30,18 @@ router.get('/dashboard', async (req, res) => {
                 FROM pomodoro_sessions WHERE user_id=$1 AND created_at > NOW()-INTERVAL '30 days'
                 AND completed=true GROUP BY type`, [uid]),
   ]);
-  res.json({
+
+  const result = {
     subjectBreakdown: sessions.rows,
     subjectProgress:  subjectProgress.rows,
     weeklyActivity:   weeklyActivity.rows,
     recentQuizzes:    recentQuizzes.rows,
     pomodoroStats:    pomodoros.rows,
-  });
+  };
+
+  // Cache for 5 minutes (300 seconds)
+  await cacheSet(cacheKey, result, 300);
+  res.json(result);
 });
 
 router.get('/streak-history', async (req, res) => {
