@@ -21,8 +21,8 @@ async function register(req, res) {
     return res.status(400).json({ error: 'name, email and password required' });
   if (password.length < 8)
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  if (!['student', 'teacher'].includes(role))
-    return res.status(400).json({ error: 'role must be student or teacher' });
+  if (!['student', 'teacher', 'university'].includes(role))
+    return res.status(400).json({ error: 'role must be student, university, or teacher' });
 
   const { rows: existingUsers } = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
   if (existingUsers.length > 0)
@@ -102,6 +102,19 @@ async function login(req, res) {
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+  // If a role was specified in the login request, validate it to ensure students can't login via the teacher portal and vice-versa
+  const requestedRole = req.body.role;
+  if (requestedRole) {
+    // If they selected teacher but the account is not a teacher
+    if (requestedRole === 'teacher' && user.role !== 'teacher') {
+      return res.status(403).json({ error: 'No teacher account found with this email. Please register as a teacher.' });
+    }
+    // If they selected student/university but the account is a teacher
+    if ((requestedRole === 'student' || requestedRole === 'university') && user.role === 'teacher') {
+      return res.status(403).json({ error: 'This email is registered as a teacher. Please use the teacher portal.' });
+    }
+  }
 
   // Update streak
   await pool.query(`

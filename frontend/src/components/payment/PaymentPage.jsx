@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { paymentAPI, usersAPI } from '../../api/index';
+import { paymentAPI, usersAPI, groupsAPI } from '../../api/index';
 import { useTranslation } from '../../i18n/index';
 import { useAuthStore } from '../../context/store';
 
@@ -20,6 +20,10 @@ export default function PaymentPage() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [checkoutTarget, setCheckoutTarget] = useState(null);
 
   const { data: profileData } = useQuery({ queryKey: ['profile'], queryFn: usersAPI.getProfile });
   const walletBalance = profileData?.data?.user?.wallet_balance || user?.wallet_balance || 0;
@@ -38,24 +42,65 @@ export default function PaymentPage() {
     }))
   ];
 
-  const baseAmount = 250;
+  const baseAmount = checkoutTarget ? checkoutTarget.amount : 250;
   const finalAmount = appliedCoupon ? appliedCoupon.newTotal : baseAmount;
 
+  const handleJoinGroup = async (e) => {
+    e.preventDefault();
+    if (!joinCode) return;
+    setJoining(true);
+    try {
+      await groupsAPI.join(joinCode);
+      toast.success(lang === 'ar' ? 'تم الانضمام للمجموعة!' : 'Joined group successfully!');
+      setJoinCode('');
+      qc.invalidateQueries(['profile']);
+    } catch (err) {
+      if (err.response?.status === 402) {
+        setCheckoutTarget({
+          type: 'group_join',
+          amount: err.response.data.price,
+          groupId: err.response.data.groupId,
+          title: `Group Entry: ${joinCode.toUpperCase()}`
+        });
+        setShowCheckout(true);
+        toast.success(lang === 'ar' ? 'مطلوب الدفع للانضمام.' : 'Payment required to join.');
+      } else {
+        toast.error(err.response?.data?.error || 'Error joining group');
+      }
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const handleTopUpReq = (e) => {
+    e.preventDefault();
+    if (!topUpAmount || isNaN(topUpAmount) || Number(topUpAmount) < 10) {
+      toast.error(lang === 'ar' ? 'المبلغ الأدنى هو 10 ج.م' : 'Minimum amount is 10 EGP');
+      return;
+    }
+    setCheckoutTarget({ type: 'wallet_topup', amount: Number(topUpAmount), title: 'Wallet Top-up' });
+    setShowCheckout(true);
+  };
+
   const handlePay = async () => {
+    if (!checkoutTarget) return;
     setProcessing(true);
     try {
       // Step 1: Initiate genuine payment
       const affiliateRef = localStorage.getItem('affiliate_ref');
-      const { data } = await paymentAPI.initiate({
+      const payload = {
         amount: finalAmount, 
         gateway: selectedGateway, 
-        title: 'Secure Gateway Checkout',
+        title: checkoutTarget.title,
+        type: checkoutTarget.type,
+        groupId: checkoutTarget.groupId,
         extraData: { 
           phone: '+201000000000', 
           coupon: appliedCoupon?.coupon?.code,
           affiliate_ref: affiliateRef 
         }
-      });
+      };
+      const { data } = await paymentAPI.initiate(payload);
 
       if (data.iframeUrl) {
         // Real or simulated iFrame
@@ -140,8 +185,27 @@ export default function PaymentPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        {/* ── Left Column: Invoices ── */}
+        {/* ── Left Column: Invoices & Actions ── */}
         <div style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* Quick Actions (Join Group & Top Up) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <form onSubmit={handleJoinGroup} style={{ background: 'var(--surface)', padding: 16, borderRadius: 16, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>{lang === 'ar' ? 'الانضمام لمجموعة (كود)' : 'Join Group (Code)'}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="CODE..." style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13 }} />
+                <button disabled={joining || !joinCode} style={{ padding: '0 16px', borderRadius: 10, background: 'var(--primary)', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}>{joining ? '⏳' : 'Join'}</button>
+              </div>
+            </form>
+            <form onSubmit={handleTopUpReq} style={{ background: 'var(--surface)', padding: 16, borderRadius: 16, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', marginBottom: 8 }}>{lang === 'ar' ? 'شحن الرصيد' : 'Top Up Wallet'}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="number" min={10} value={topUpAmount} onChange={e => setTopUpAmount(e.target.value)} placeholder="Amount EGP" style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13 }} />
+                <button disabled={!topUpAmount} style={{ padding: '0 16px', borderRadius: 10, background: '#10B981', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Top Up</button>
+              </div>
+            </form>
+          </div>
+
           <div style={{ display: 'flex', gap: 10, background: 'var(--surface2)', padding: 6, borderRadius: 14 }}>
             {['upcoming', 'paid'].map(t => (
               <button key={t} onClick={() => setActiveTab(t)} style={{
@@ -169,7 +233,7 @@ export default function PaymentPage() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--primary)', marginBottom: 6 }}>{p.amount} EGP</div>
                   {activeTab === 'upcoming' ? (
-                    <button onClick={() => setShowCheckout(true)} style={{
+                    <button onClick={() => { setCheckoutTarget({ type:'invoice', amount:p.amount, title:p.title }); setShowCheckout(true); }} style={{
                       padding: '8px 16px', borderRadius: 8, background: 'var(--primary)', color: '#fff',
                       fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: 12
                     }}>

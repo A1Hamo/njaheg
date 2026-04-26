@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useUIStore } from '../../context/store';
 
 function downloadCSV(data, filename) {
   if (!data || !data.length) return toast.error('No data to export');
@@ -235,6 +236,7 @@ const TABS = [
 
 export default function AdminDashboard() {
   const nav = useNavigate();
+  const { darkMode, toggleDark, language, setLanguage } = useUIStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats]         = useState(null);
   const [earnings, setEarnings]   = useState(null);
@@ -432,7 +434,22 @@ export default function AdminDashboard() {
             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{owner.email}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={toggleDark} style={{
+            background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff',
+            width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }} title="Toggle Theme">
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} style={{
+            background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff',
+            width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }} title="Language">
+            {language === 'en' ? 'AR' : 'EN'}
+          </button>
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)', margin: '0 4px' }} />
           <button onClick={fetchStats} style={{
             background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff',
             padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13,

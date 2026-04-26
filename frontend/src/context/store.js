@@ -16,7 +16,7 @@ export const useAuthStore = create(
         if (refresh) localStorage.setItem('refresh', refresh);
         set({ user, token, refresh, isAuthenticated: true });
         // Sync institution mode from user profile (authoritative source)
-        const institutionType = user?.institution_type || user?.institutionType;
+        const institutionType = user?.institution_type || user?.institutionType || (user?.role === 'university' ? 'university' : null);
         if (institutionType) {
           useUIStore.getState().setInstitutionMode(
             institutionType === 'university' ? 'university' : 'school'
@@ -45,6 +45,7 @@ export const getUserRole = (user) => {
   if (user.role === 'admin' || user.admin_level) return 'admin';
   if (user.role === 'teacher') return 'teacher';
   if (
+    user.role === 'university' ||
     UNI_GRADES.includes(user.grade) ||
     user.institution_type === 'university' ||
     user.institutionType === 'university'

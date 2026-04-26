@@ -143,7 +143,8 @@ export default function ProfilePage() {
 
             <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap', marginBottom:32 }}>
               {[
-                { label: profile?.grade, color: 'var(--primary)', bg: 'rgba(124,58,237,0.1)' },
+                { label: profile?.role === 'university' ? (isAr ? 'طالب جامعي' : 'University Student') : profile?.role === 'teacher' ? (isAr ? 'معلم' : 'Teacher') : (isAr ? 'طالب مدرسي' : 'School Student'), color: '#38bdf8', bg: 'rgba(56,189,248,0.1)' },
+                { label: profile?.grade || 'N/A', color: 'var(--primary)', bg: 'rgba(124,58,237,0.1)' },
                 { label: `RANK ${profile?.level}`, color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
                 { label: `🔥 ${profile?.streak_days} DAY STREAK`, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' }
               ].map(badge => (

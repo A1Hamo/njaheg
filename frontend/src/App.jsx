@@ -106,12 +106,17 @@ function Protected({ children }) {
 
 // ── Admin-only route (uses separate adminToken) ─────────────
 function AdminProtected({ children }) {
-  const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+  const adminToken = localStorage.getItem('adminToken');
+  const token = adminToken || localStorage.getItem('token');
   const { user } = useAuthStore();
-  // Must be logged in AND be an admin
-  if (!token || (user && user.role !== 'admin' && !user.admin_level)) {
+  
+  if (!token) return <Navigate to="/admin/login" replace />;
+  
+  // If they don't have an explicit admin token, they must be a DB admin
+  if (!adminToken && user && user.role !== 'admin' && !user.admin_level) {
     return <Navigate to="/admin/login" replace />;
   }
+  
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 

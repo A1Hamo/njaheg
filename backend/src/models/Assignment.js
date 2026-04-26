@@ -2,14 +2,16 @@
 const mongoose = require('mongoose');
 
 const submissionSchema = new mongoose.Schema({
-  studentId:   { type: String, required: true },
-  studentName: { type: String },
-  content:     { type: String, maxlength: 5000 },
-  score:       { type: Number, min: 0 },
-  feedback:    { type: String, maxlength: 1000 },
-  status:      { type: String, enum: ['submitted', 'graded', 'late'], default: 'submitted' },
-  submittedAt: { type: Date, default: Date.now },
-  gradedAt:    { type: Date },
+  studentId:      { type: String, required: true },
+  studentName:    { type: String },
+  content:        { type: String }, // Can be text or base64
+  attachmentData: { type: String }, // Base64 for file
+  attachmentType: { type: String }, // mime type (e.g., image/jpeg, application/pdf)
+  score:          { type: Number, min: 0 },
+  feedback:       { type: String, maxlength: 1000 },
+  status:         { type: String, enum: ['submitted', 'graded', 'late'], default: 'submitted' },
+  submittedAt:    { type: Date, default: Date.now },
+  gradedAt:       { type: Date },
 }, { _id: true });
 
 const assignmentSchema = new mongoose.Schema({

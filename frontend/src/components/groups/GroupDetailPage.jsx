@@ -181,6 +181,7 @@ export default function GroupDetailPage() {
   const [annForm,       setAnnForm]       = useState({ title:'', body:'', pinned:false });
   const [assignForm,    setAssignForm]    = useState({ title:'', description:'', dueDate:'', maxScore:100 });
   const [submitContent, setSubmitContent] = useState('');
+  const [submitFile,    setSubmitFile]    = useState(null);
   const [gradeForm,     setGradeForm]     = useState({ score:'', feedback:'' });
   const [saving,        setSaving]        = useState(false);
 
@@ -253,12 +254,23 @@ export default function GroupDetailPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await groupsAPI.submitAssignment(id, submitModal._id, { content: submitContent });
+      const payload = { content: submitContent };
+      if (submitFile) {
+        const reader = new FileReader();
+        reader.readAsDataURL(submitFile);
+        await new Promise(r => reader.onload = r);
+        payload.attachmentData = reader.result;
+        payload.attachmentType = submitFile.type;
+      }
+      await groupsAPI.submitAssignment(id, submitModal._id, payload);
       toast.success(isAr ? 'تم التسليم بنجاح! ✅' : 'Submitted successfully! ✅');
       setSubmitModal(null);
       setSubmitContent('');
+      setSubmitFile(null);
       refetchAsgn();
-    } catch { }
+    } catch (err) { 
+      toast.error(err.response?.data?.error || (isAr ? 'حدث خطأ' : 'Error submitting')); 
+    }
     finally { setSaving(false); }
   };
 
@@ -399,7 +411,7 @@ export default function GroupDetailPage() {
               <AssignmentCard
                 key={a._id} assignment={a} isOwner={isOwner} userId={userId} groupId={id}
                 onSubmit={a => setSubmitModal(a)}
-                onGrade={a => navigate(`/groups/${id}/assignments/${a._id}/grade`)}
+                onGrade={a => setGradeModal(a)}
                 isAr={isAr}
               />
             ))}
@@ -533,7 +545,77 @@ export default function GroupDetailPage() {
         )}
       </AnimatePresence>
       
-      {/* (Other modals like submit/grade can be kept or refined similarly) */}
+      <AnimatePresence>
+        {submitModal && (
+          <Modal open={!!submitModal} onClose={() => { setSubmitModal(null); setSubmitContent(''); setSubmitFile(null); }} title={isAr ? `تسليم: ${submitModal.title}` : `Submit: ${submitModal.title}`}>
+            <form onSubmit={submitAssign}>
+              <label style={labelStyle}>{isAr ? 'إجابتك / المحتوى' : 'Your Answer / Content'}</label>
+              <textarea rows={5} style={{...inputStyle, resize:'vertical', marginBottom:14}} value={submitContent} onChange={e => setSubmitContent(e.target.value)} placeholder={isAr ? "اكتب إجابتك هنا..." : "Type your answer here…"} />
+              <label style={labelStyle}>{isAr ? 'إرفاق ملف (صورة/PDF)' : 'Attach File (Image/PDF)'}</label>
+              <input type="file" accept="image/*,.pdf" onChange={e => setSubmitFile(e.target.files[0])} style={{ marginBottom: 18 }} />
+              {submitBtn(isAr ? '📤 تأكيد التسليم' : '📤 Submit Assignment', saving, '#3B82F6', isAr)}
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {gradeModal && !gradeTarget && (
+          <Modal open={!!gradeModal} onClose={() => setGradeModal(null)} title={isAr ? `تقييم: ${gradeModal.title}` : `Grade: ${gradeModal.title}`}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
+              {gradeModal.submissions?.map(s => (
+                <div key={s._id} style={{ padding: 14, background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <strong style={{ fontSize: 14 }}>{s.studentName}</strong>
+                    <span style={{ fontSize: 12, color: s.status === 'graded' ? '#10B981' : '#F59E0B', fontWeight: 700 }}>
+                      {s.status === 'graded' ? (isAr ? `✓ مقيّم (${s.score})` : `✓ Graded (${s.score})`) : (isAr ? '⏳ بانتظار التقييم' : '⏳ Pending')}
+                    </span>
+                  </div>
+                  {s.content && <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.content}</p>}
+                  {s.attachmentData && (
+                    <div style={{ marginBottom: 8 }}>
+                      {s.attachmentType?.startsWith('image/') ? (
+                        <img src={s.attachmentData} alt="attachment" style={{ maxWidth: '100%', borderRadius: 8, maxHeight: 200, objectFit: 'contain' }} />
+                      ) : s.attachmentType === 'application/pdf' ? (
+                        <a href={s.attachmentData} download={`submission-${s.studentName}.pdf`} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>{isAr ? '📥 تحميل PDF' : '📥 Download PDF'}</a>
+                      ) : (
+                        <span style={{ fontSize: 12, color: 'var(--text3)' }}>{isAr ? 'ملف مرفق' : 'Attached File'}</span>
+                      )}
+                    </div>
+                  )}
+                  <button onClick={() => { setGradeTarget(s); setGradeForm({ score: s.score || '', feedback: s.feedback || '' }); }} style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--primary)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    {isAr ? 'التقييم' : 'Grade'}
+                  </button>
+                </div>
+              ))}
+              {(!gradeModal.submissions || gradeModal.submissions.length === 0) && (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)' }}>{isAr ? 'لا توجد تسليمات بعد' : 'No submissions yet'}</div>
+              )}
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {gradeTarget && (
+          <Modal open={!!gradeTarget} onClose={() => { setGradeTarget(null); setGradeForm({ score:'', feedback:'' }); }} title={isAr ? `تقييم ${gradeTarget.studentName}` : `Grading ${gradeTarget.studentName}`}>
+            <form onSubmit={gradeSub}>
+              <label style={labelStyle}>{isAr ? `الدرجة (من ${gradeModal.maxScore}) *` : `Score (out of ${gradeModal.maxScore}) *`}</label>
+              <input type="number" min={0} max={gradeModal.maxScore} required style={inputStyle} value={gradeForm.score} onChange={e => setGradeForm(f=>({...f,score:e.target.value}))} />
+              
+              <label style={labelStyle}>{isAr ? 'ملاحظات (اختياري)' : 'Feedback (Optional)'}</label>
+              <textarea rows={3} style={{...inputStyle, resize:'vertical'}} value={gradeForm.feedback} onChange={e => setGradeForm(f=>({...f,feedback:e.target.value}))} />
+              
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => { setGradeTarget(null); setGradeForm({ score:'', feedback:'' }); }} style={{ flex: 1, padding: '11px', borderRadius: 11, background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer', fontWeight: 700 }}>
+                  {isAr ? 'إلغاء' : 'Cancel'}
+                </button>
+                {submitBtn(isAr ? 'حفظ التقييم' : 'Save Grade', saving, '#10B981', isAr)}
+              </div>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

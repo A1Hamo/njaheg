@@ -313,21 +313,25 @@ router.get('/:id/assignments', auth, async (req, res) => {
 
 // POST /api/groups/:id/assignments/:aId/submit  — student submits
 router.post('/:id/assignments/:aId/submit', auth, async (req, res) => {
-  const { content } = req.body;
+  const { content, attachmentData, attachmentType } = req.body;
   const assignment = await Assignment.findById(req.params.aId);
   if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
 
   const uid = req.user.id || req.user.userId;
   const existing = assignment.submissions.find(s => s.studentId === uid);
   if (existing) {
-    existing.content     = content;
-    existing.submittedAt = new Date();
-    existing.status      = assignment.dueDate && new Date() > assignment.dueDate ? 'late' : 'submitted';
+    existing.content        = content;
+    existing.attachmentData = attachmentData;
+    existing.attachmentType = attachmentType;
+    existing.submittedAt    = new Date();
+    existing.status         = assignment.dueDate && new Date() > assignment.dueDate ? 'late' : 'submitted';
   } else {
     assignment.submissions.push({
-      studentId:   uid,
-      studentName: req.user.name || '',
+      studentId:      uid,
+      studentName:    req.user.name || '',
       content,
+      attachmentData,
+      attachmentType,
       status: assignment.dueDate && new Date() > assignment.dueDate ? 'late' : 'submitted',
     });
   }

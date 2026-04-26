@@ -44,9 +44,8 @@ try {
  * @route  POST /api/payment/initiate
  */
 router.post('/initiate', authenticate, async (req, res) => {
-  const { amount, gateway, groupId, title, extraData } = req.body;
+    const { amount, gateway, groupId, title, extraData, type } = req.body;
 
-  try {
     // 1. Create a 100% genuine accurate Transaction record (pending)
     const transaction = await Transaction.create({
       userId: req.user.id,
@@ -54,6 +53,7 @@ router.post('/initiate', authenticate, async (req, res) => {
       amount: amount,
       gateway: gateway,
       orderId: 'TBD',
+      type: type || (groupId ? 'group_join' : 'wallet_topup'),
       affiliateRef: extraData?.affiliate_ref || null,
       metadata: { title, ...extraData }
     });
@@ -224,6 +224,11 @@ router.post('/webhook', validatePaymobHMAC, async (req, res) => {
             console.log(`Auto-enrolled user ${transaction.userId} into group ${group._id}`);
           } catch(e) { console.error('Enrollment error:', e); }
         }
+      } else if (transaction.type === 'wallet_topup') {
+        try {
+          await pool.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2', [transaction.amount, transaction.userId]);
+          console.log(`Topped up user ${transaction.userId} wallet by ${transaction.amount} EGP`);
+        } catch (e) { console.error('Wallet topup error:', e); }
       }
 
       // SEND REAL SMS CONFIRMATION VIA TWILIO
@@ -331,6 +336,11 @@ router.post('/simulate-success', devOnly, authenticate, simulateLimiter, async (
         });
         await group.save();
       }
+    } else if (transaction.type === 'wallet_topup') {
+      try {
+        await pool.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2', [transaction.amount, transaction.userId]);
+        console.log(`[Sim] Topped up user ${transaction.userId} wallet by ${transaction.amount} EGP`);
+      } catch (e) { console.error('Wallet topup error:', e); }
     }
 
     // If user provided a phone number, attempt to send a real SMS if Twilio is configured

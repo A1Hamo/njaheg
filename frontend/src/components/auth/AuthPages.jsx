@@ -245,14 +245,14 @@ function AuthLayout({ children, wide = false, role = 'student', setRole }) {
           <div style={{
             display: 'flex', background: 'var(--surface2)', padding: 4, borderRadius: 12, border: '1px solid var(--border)', marginBottom: 32, width: '100%', maxWidth: 360
           }}>
-            {['student', 'teacher'].map(r => (
+            {['student', 'university', 'teacher'].map(r => (
               <button key={r} onClick={() => setRole(r)} style={{
                 flex: 1, padding: '10px', fontSize: 13, fontWeight: 700, borderRadius: 8,
-                background: role === r ? (r === 'teacher' ? 'var(--teacher)' : 'var(--student)') : 'transparent',
+                background: role === r ? (r === 'teacher' ? 'var(--teacher)' : r === 'university' ? '#10B981' : 'var(--student)') : 'transparent',
                 color: role === r ? '#fff' : 'var(--text3)',
                 textTransform: 'capitalize', transition: 'all 0.2s', boxShadow: role === r ? 'var(--shadow-sm)' : 'none'
               }}>
-                {r === 'teacher' ? (isAr ? '👨‍🏫 معلم' : '👨‍🏫 Teacher') : (isAr ? '🎓 طالب' : '🎓 Student')}
+                {r === 'teacher' ? (isAr ? '👨‍🏫 معلم' : '👨‍🏫 Teacher') : r === 'university' ? (isAr ? '🎓 جامعي' : '🎓 University') : (isAr ? '🎒 طالب' : '🎒 Student')}
               </button>
             ))}
           </div>
@@ -301,7 +301,7 @@ export function LoginPage() {
 
   const onSubmit = async d => {
     try {
-      const { data } = await authAPI.login(d);
+      const { data } = await authAPI.login({ ...d, role });
       setAuth(data);
       toast.success('Welcome back! 👋');
       // BUG #3 FIX: redirect back to original destination
@@ -415,12 +415,13 @@ export function RegisterPage() {
   const toggleSubject = s => setSubjects(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   const onSubmit = async d => {
-    if (role === 'student' && !grade) { toast.error(isAr ? 'يرجى اختيار المرحلة الدراسية' : 'Please select your grade/year level'); return; }
+    if ((role === 'student' || role === 'university') && !grade) { toast.error(isAr ? 'يرجى اختيار المرحلة الدراسية' : 'Please select your grade/year level'); return; }
     if (role === 'teacher' && subjects.length === 0) { toast.error(isAr ? 'يرجى اختيار مادة واحدة على الأقل' : 'Please select at least one subject'); return; }
     try {
       const payload = {
-        ...d, role, institutionType: instType,
-        grade: role === 'student' ? grade : undefined,
+        ...d, role, 
+        institutionType: role === 'university' ? 'university' : role === 'student' ? 'school' : instType,
+        grade: (role === 'student' || role === 'university') ? grade : undefined,
         subjects: role === 'teacher' ? subjects.join(',') : undefined,
       };
       const { data } = await authAPI.register(payload);
@@ -451,31 +452,32 @@ export function RegisterPage() {
             <PasswordStrength password={pwdValue} />
           </div>
 
-          {/* Institution Type — shared for ALL roles */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{isAr ? "نوع المؤسسة *" : "Institution Type *"}</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[{ value: 'school', icon: '🏫', label: isAr ? 'مدرسة' : 'School (K-12)' }, { value: 'university', icon: '🎓', label: isAr ? 'جامعة / كلية' : 'University / College' }].map(opt => (
-                <button type="button" key={opt.value} onClick={() => setInstType(opt.value)} style={{
-                  flex: 1, padding: '12px 14px', fontSize: 13, fontWeight: 700, borderRadius: 12, cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
-                  background: instType === opt.value
-                    ? (opt.value === 'university' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)')
-                    : 'transparent',
-                  color: instType === opt.value
-                    ? (opt.value === 'university' ? '#38BDF8' : '#10b981')
-                    : 'var(--text3)',
-                  border: `1.5px solid ${instType === opt.value
-                    ? (opt.value === 'university' ? 'rgba(14,165,233,0.4)' : 'rgba(16,185,129,0.4)')
-                    : 'var(--border)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: instType === opt.value ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
-                }}>
-                  <span style={{ fontSize: 18 }}>{opt.icon}</span> {opt.label}
-                </button>
-              ))}
+          {role === 'teacher' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{isAr ? "نوع المؤسسة *" : "Institution Type *"}</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[{ value: 'school', icon: '🏫', label: isAr ? 'مدرسة' : 'School (K-12)' }, { value: 'university', icon: '🎓', label: isAr ? 'جامعة / كلية' : 'University / College' }].map(opt => (
+                  <button type="button" key={opt.value} onClick={() => setInstType(opt.value)} style={{
+                    flex: 1, padding: '12px 14px', fontSize: 13, fontWeight: 700, borderRadius: 12, cursor: 'pointer',
+                    transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                    background: instType === opt.value
+                      ? (opt.value === 'university' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)')
+                      : 'transparent',
+                    color: instType === opt.value
+                      ? (opt.value === 'university' ? '#38BDF8' : '#10b981')
+                      : 'var(--text3)',
+                    border: `1.5px solid ${instType === opt.value
+                      ? (opt.value === 'university' ? 'rgba(14,165,233,0.4)' : 'rgba(16,185,129,0.4)')
+                      : 'var(--border)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: instType === opt.value ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                  }}>
+                    <span style={{ fontSize: 18 }}>{opt.icon}</span> {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {role === 'student' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -484,6 +486,13 @@ export function RegisterPage() {
                 <option value="">{isAr ? "اختر مرحلتك..." : "Select your grade..."}</option>
                 {STUDENT_GRADES.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
+            </div>
+          )}
+
+          {role === 'university' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{isAr ? "السنة الدراسية أو التخصص *" : "Current Year / Major *"}</label>
+              <input value={grade} onChange={e => setGrade(e.target.value)} required placeholder={isAr ? "مثال: الفرقة الثالثة - طب" : "e.g. 3rd Year - Medicine"} style={{ background: 'var(--surface2)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', outline: 'none' }} />
             </div>
           )}
 
