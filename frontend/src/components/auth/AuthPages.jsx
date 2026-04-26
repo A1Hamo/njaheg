@@ -295,6 +295,7 @@ export function LoginPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const { language } = useUIStore();
   const isAr = language === 'ar';
 
@@ -303,7 +304,9 @@ export function LoginPage() {
       const { data } = await authAPI.login(d);
       setAuth(data);
       toast.success('Welcome back! 👋');
-      navigate('/');
+      // BUG #3 FIX: redirect back to original destination
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Unable to sign in. Check your credentials.');
     }

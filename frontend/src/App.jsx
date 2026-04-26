@@ -1,6 +1,6 @@
 // src/App.jsx — Najah v6 — Landing + Onboarding + full routes
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore, useUIStore } from './context/store';
@@ -86,10 +86,12 @@ function PageLoader() {
   );
 }
 
-// ── Protected route ──────────────────────────────────────────
+// ── Protected route ───────────────────────────────────────────
 function Protected({ children }) {
   const { isAuthenticated } = useAuthStore();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const location = useLocation();
+  // BUG #3 FIX: preserve destination so login can redirect back
+  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
   return (
     <AppShell>
       <ErrorBoundary>
@@ -99,7 +101,18 @@ function Protected({ children }) {
   );
 }
 
-// ── Public route (redirect if already logged in) ─────────────
+// ── Admin-only route (uses separate adminToken) ─────────────
+function AdminProtected({ children }) {
+  const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+  const { user } = useAuthStore();
+  // Must be logged in AND be an admin
+  if (!token || (user && user.role !== 'admin' && !user.admin_level)) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
+// ── Public route (redirect if already logged in) ───────────
 function Public({ children }) {
   const { isAuthenticated } = useAuthStore();
   if (isAuthenticated) return <Navigate to="/" replace />;
@@ -279,9 +292,9 @@ export default function App() {
             <Route path="/help"           element={<Protected><HelpCenter /></Protected>} />
             <Route path="/ai-search"      element={<Protected><NajahAI /></Protected>} />
 
-            {/* ── Admin (owner only, standalone) ── */}
+            {/* ── Admin (owner only, protected standalone) ── */}
             <Route path="/admin/login"     element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />
-            <Route path="/admin/dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
+            <Route path="/admin/dashboard" element={<AdminProtected><AdminDashboard /></AdminProtected>} />
 
             {/* ── 404 ── */}
             <Route path="*" element={<NotFound />} />

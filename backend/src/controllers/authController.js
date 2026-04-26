@@ -83,7 +83,7 @@ async function guestRegister(req, res) {
   logger.info(`Guest user registered: ${user.email}`);
 
   res.status(201).json({
-    token:   signAccess(user.id),
+    token:   signAccess(user),  // FIX: must pass full user object, not user.id
     refresh: signRefresh(user.id),
     user,
     guest: true,

@@ -109,9 +109,42 @@ const TEACHER_SECTIONS_DEF = [
   },
 ];
 
+const UNIVERSITY_SECTIONS_DEF = [
+  {
+    labelKey: 'Overview',
+    items: [
+      { key:'dashboard',    path:'/',             Icon: Icons.dashboard,    tKey:'nav.dashboard' },
+      { key:'ai',           path:'/ai',           Icon: Icons.ai,           tKey:'nav.ai' },
+      { key:'analytics',    path:'/analytics',    Icon: Icons.analytics,    tKey:'nav.analytics' },
+    ],
+  },
+  {
+    labelKey: 'Academic',
+    items: [
+      { key:'planner',      path:'/planner',      Icon: Icons.planner,      tKey:'nav.planner' },
+      { key:'files',        path:'/files',        Icon: Icons.files,        tKey:'nav.files' },
+      { key:'groups',       path:'/groups',       Icon: Icons.groups,       tKey:'nav.groups' },
+      { key:'notes',        path:'/notes',        Icon: Icons.notes,        tKey:'nav.notes' },
+      { key:'exam',         path:'/exam',         Icon: Icons.exam,         tKey:'nav.exam' },
+      { key:'tools',        path:'/tools',        Icon: Icons.tools,        tKey:'nav.tools' },
+    ],
+  },
+  {
+    labelKey: 'Campus',
+    items: [
+      { key:'messages',     path:'/chat',         Icon: Icons.messages,     tKey:'nav.messages', badge: true },
+      { key:'achievements', path:'/achievements', Icon: Icons.achievements, tKey:'nav.achievements' },
+      { key:'notifications',path:'/notifications',Icon: Icons.notifications,tKey:'nav.notifications', badge: true },
+      { key:'payment',      path:'/payment',      Icon: Icons.payment,      tKey:'nav.payment' },
+      { key:'help',         path:'/help',         Icon: Icons.help,         tKey:'nav.help' },
+    ],
+  },
+];
+
 const ALL_NAV_KEYS = [
   ...NAV_SECTIONS_DEF.flatMap(s => s.items),
   ...TEACHER_SECTIONS_DEF.flatMap(s => s.items),
+  ...UNIVERSITY_SECTIONS_DEF.flatMap(s => s.items),
 ];
 
 /* ── Logo Mark ──────────────────────────────────────────────── */
@@ -303,7 +336,13 @@ export function Sidebar({ open, onToggle }) {
   const { t }           = useTranslation();
   const { institutionMode } = useUIStore();
   const isTeacher       = user?.role === 'teacher';
-  const sections        = isTeacher ? TEACHER_SECTIONS_DEF : NAV_SECTIONS_DEF;
+  const isUniversity    = !isTeacher && (
+    user?.institution_type === 'university' || user?.institutionType === 'university' ||
+    ['Year 1','Year 2','Year 3','Year 4','Year 5','Year 6','Postgrad'].includes(user?.grade)
+  );
+  const sections = isTeacher ? TEACHER_SECTIONS_DEF
+    : isUniversity ? UNIVERSITY_SECTIONS_DEF
+    : NAV_SECTIONS_DEF;
 
   return (
     <>

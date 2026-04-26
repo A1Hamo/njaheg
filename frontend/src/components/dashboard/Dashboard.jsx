@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../context/store';
+import { getUserRole } from '../../context/store';
 import { plannerAPI, usersAPI, groupsAPI, toolsAPI } from '../../api/index';
 import { Card, StatCard, ProgressBar, Button, Spinner, EmptyState } from '../shared/UI';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
@@ -12,7 +13,9 @@ import { useTranslation } from '../../i18n/index';
 import StreakHeatmap from '../shared/StreakHeatmap';
 import { WeatherWidget, WordOfDayWidget } from '../shared/PublicAPIWidgets';
 
-const TeacherDashboard = lazy(() => import('../teacher/TeacherDashboard'));
+const TeacherDashboard      = lazy(() => import('../teacher/TeacherDashboard'));
+const SchoolStudentDashboard= lazy(() => import('./SchoolStudentDashboard'));
+const UniversityDashboard   = lazy(() => import('./UniversityStudentDashboard'));
 
 
 /* ── Data mappings ─────────────────────────────────────── */
@@ -563,13 +566,19 @@ function StudentDashboard() {
    ════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const { user } = useAuthStore();
-  if (user?.role === 'teacher') {
-    return (
-      <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:60 }}><Spinner /></div>}>
-        <TeacherDashboard />
-      </Suspense>
-    );
+  const role = getUserRole(user);
+  const loader = <div style={{ display:'flex', justifyContent:'center', padding:60 }}><Spinner /></div>;
+
+  if (role === 'teacher') {
+    return <Suspense fallback={loader}><TeacherDashboard /></Suspense>;
   }
+  if (role === 'university_student') {
+    return <Suspense fallback={loader}><UniversityDashboard /></Suspense>;
+  }
+  if (role === 'school_student') {
+    return <Suspense fallback={loader}><SchoolStudentDashboard /></Suspense>;
+  }
+  // Default: original rich student dashboard (admin / guest fallback)
   return <StudentDashboard />;
 }
 

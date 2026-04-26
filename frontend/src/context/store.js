@@ -38,6 +38,20 @@ export const useAuthStore = create(
   )
 );
 
+// ── Role helper — single source of truth ─────────────────────
+const UNI_GRADES = ['Year 1','Year 2','Year 3','Year 4','Year 5','Year 6','Postgrad'];
+export const getUserRole = (user) => {
+  if (!user) return null;
+  if (user.role === 'admin' || user.admin_level) return 'admin';
+  if (user.role === 'teacher') return 'teacher';
+  if (
+    UNI_GRADES.includes(user.grade) ||
+    user.institution_type === 'university' ||
+    user.institutionType === 'university'
+  ) return 'university_student';
+  return 'school_student';
+};
+
 // ── UI ──────────────────────────────────────────────────
 export const useUIStore = create(
   persist(
