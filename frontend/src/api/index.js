@@ -159,6 +159,10 @@ export const aiAPI = {
   analyzeImage:      d  => aiClient.post('/ai/image-analyze', d),
   getProvider:       () => client.get('/ai/provider'),
   getCapabilities:   () => client.get('/ai/internal/capabilities'),
+  // Teacher AI tools
+  generateLessonPlan:    d => aiClient.post('/ai/lesson-plan',    d),
+  generateExamQuestions: d => aiClient.post('/ai/exam-questions', d),
+  gradeEssay:            d => aiClient.post('/ai/grade-essay',    d),
 };
 
 export const notificationsAPI = {

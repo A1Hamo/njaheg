@@ -123,11 +123,11 @@ export default function TeacherDashboard() {
 
   const QUICK_ACTIONS = [
     { icon:'🏫', label: isAr ? 'مجموعة جديدة' : 'New Group',       sub: isAr ? 'إنشاء فصل' : 'Create a class',          grad:'linear-gradient(135deg,#7C3AED,#5B21B6)', path:'/groups' },
-    { icon:'📢', label: isAr ? 'الإعلانات' : 'Announcements',   sub: isAr ? 'نشر للفصول' : 'Post to your classes',    grad:'linear-gradient(135deg,#F59E0B,#D97706)', path:'/groups' },
-    { icon:'📝', label: isAr ? 'الواجبات' : 'Assignments',     sub: isAr ? 'تحديد واجبات واختبارات' : 'Set homework & quizzes',  grad:'linear-gradient(135deg,#3B82F6,#1D4ED8)', path:'/groups' },
+    { icon:'📝', label: isAr ? 'مخطط الدروس' : 'Lesson Planner',  sub: isAr ? 'توليد بالذكاء الاصطناعي' : 'AI Generation', grad:'linear-gradient(135deg,#7C3AED,#6366F1)', path:'/lesson-planner' },
+    { icon:'🧪', label: isAr ? 'أسئلة امتحان' : 'Exam Builder',   sub: isAr ? 'أسئلة بنقرة واحدة' : '1-click questions',   grad:'linear-gradient(135deg,#6366F1,#4F46E5)', path:'/exam-builder' },
+    { icon:'✍️', label: isAr ? 'مقيّم الإجابات' : 'Essay Grader',  sub: isAr ? 'تصحيح آلي' : 'Auto grading',            grad:'linear-gradient(135deg,#4F46E5,#4338CA)', path:'/essay-grader' },
     { icon:'📊', label: isAr ? 'التحليلات' : 'Analytics',       sub: isAr ? 'رؤى التعلم' : 'View learning insights',  grad:'linear-gradient(135deg,#10B981,#059669)', path:'/analytics' },
-    { icon:'🚀', label: isAr ? 'التسويق' : 'Marketing',       sub: isAr ? 'نظام العمولات' : 'Affiliate system',      grad:'linear-gradient(135deg,#6366F1,#8B5CF6)', path:'/affiliates' },
-    { icon:'💬', label: isAr ? 'الرسائل' : 'Messages',        sub: isAr ? 'دردش مع الطلاب' : 'Chat with students',      grad:'linear-gradient(135deg,#EC4899,#BE185D)', path:'/chat' },
+    { icon:'🚀', label: isAr ? 'التسويق' : 'Marketing',       sub: isAr ? 'نظام العمولات' : 'Affiliate system',      grad:'linear-gradient(135deg,#EC4899,#BE185D)', path:'/affiliates' },
     { icon:'📁', label: isAr ? 'المصادر' : 'Resources',       sub: isAr ? 'رفع مواد دراسية' : 'Upload study materials',  grad:'linear-gradient(135deg,#06B6D4,#0891B2)', path:'/files' },
   ];
 

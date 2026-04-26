@@ -91,11 +91,14 @@ const TEACHER_SECTIONS_DEF = [
   {
     labelKey: 'Class Tools',
     items: [
-      { key:'groups',       path:'/groups',       Icon: Icons.groups,       tKey:'nav.myClasses' },
-      { key:'calendar',     path:'/calendar',     Icon: Icons.planner,      tKey:'nav.calendar' },
-      { key:'curriculum',   path:'/curriculum',   Icon: Icons.notes,        tKey:'nav.curriculum' },
-      { key:'files',        path:'/files',        Icon: Icons.files,        tKey:'nav.resources' },
-      { key:'tools',        path:'/tools',        Icon: Icons.tools,        tKey:'nav.tools' },
+      { key:'groups',         path:'/groups',        Icon: Icons.groups,       tKey:'nav.myClasses' },
+      { key:'calendar',       path:'/calendar',      Icon: Icons.planner,      tKey:'nav.calendar' },
+      { key:'curriculum',     path:'/curriculum',    Icon: Icons.notes,        tKey:'nav.curriculum' },
+      { key:'files',          path:'/files',         Icon: Icons.files,        tKey:'nav.resources' },
+      { key:'lesson-planner', path:'/lesson-planner',Icon: Icons.notes,        tKey:'nav.lessonPlanner' },
+      { key:'exam-builder',   path:'/exam-builder',  Icon: Icons.exam,         tKey:'nav.examBuilder' },
+      { key:'essay-grader',   path:'/essay-grader',  Icon: Icons.analytics,    tKey:'nav.essayGrader' },
+      { key:'tools',          path:'/tools',         Icon: Icons.tools,        tKey:'nav.tools' },
     ],
   },
   {

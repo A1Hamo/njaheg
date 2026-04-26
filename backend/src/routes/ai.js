@@ -27,4 +27,9 @@ ar.post('/ask-file',         aiLimiter, c.answerFromFile);
 ar.post('/image-analyze',    aiLimiter, c.analyzeImage);
 ar.post('/youtube-summarize',aiLimiter, c.youtubeSummarize);
 
+// Teacher-only AI features
+ar.post('/lesson-plan',      aiLimiter, c.generateLessonPlan);
+ar.post('/exam-questions',   aiLimiter, c.generateExamQuestions);
+ar.post('/grade-essay',      aiLimiter, c.gradeEssay);
+
 module.exports = ar;

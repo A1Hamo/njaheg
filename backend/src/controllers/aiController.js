@@ -398,9 +398,57 @@ async function analyzeImage(req, res) {
   res.status(400).json({ error: 'Image analysis is not available in this version. Please upload a PDF instead.' });
 }
 
+// ── Generate Lesson Plan (Teacher AI) ────────────────────────
+async function generateLessonPlan(req, res) {
+  const { subject, grade, topic, duration, style } = req.body;
+  if (!subject || !grade || !topic)
+    return res.status(400).json({ error: 'subject, grade, and topic are required' });
+  if (!geminiAI.isAvailable())
+    return res.status(503).json({ error: 'Gemini AI not configured. Set GEMINI_API_KEY.' });
+  try {
+    const plan = await geminiAI.generateLessonPlan({ subject, grade, topic, duration, style });
+    res.json({ plan, subject, grade, topic });
+  } catch (err) {
+    logger.error('generateLessonPlan error:', err.message);
+    res.status(500).json({ error: 'Failed to generate lesson plan' });
+  }
+}
+
+// ── Generate Exam Questions (Teacher AI) ──────────────────────
+async function generateExamQuestions(req, res) {
+  const { subject, grade, topic, count = 10, levels } = req.body;
+  if (!subject || !grade || !topic)
+    return res.status(400).json({ error: 'subject, grade, and topic are required' });
+  if (!geminiAI.isAvailable())
+    return res.status(503).json({ error: 'Gemini AI not configured. Set GEMINI_API_KEY.' });
+  try {
+    const questions = await geminiAI.generateExamQuestions({ subject, grade, topic, count: parseInt(count), levels: levels || {} });
+    res.json({ questions, subject, grade, topic, count: questions.length });
+  } catch (err) {
+    logger.error('generateExamQuestions error:', err.message);
+    res.status(500).json({ error: 'Failed to generate exam questions' });
+  }
+}
+
+// ── Grade Essay (Teacher AI) ──────────────────────────────────
+async function gradeEssay(req, res) {
+  const { essay, criteria, maxScore, language = 'ar' } = req.body;
+  if (!essay) return res.status(400).json({ error: 'essay is required' });
+  if (!geminiAI.isAvailable())
+    return res.status(503).json({ error: 'Gemini AI not configured. Set GEMINI_API_KEY.' });
+  try {
+    const result = await geminiAI.gradeEssay({ essay, criteria, maxScore: parseInt(maxScore) || 10, language });
+    res.json(result);
+  } catch (err) {
+    logger.error('gradeEssay error:', err.message);
+    res.status(500).json({ error: 'Failed to grade essay' });
+  }
+}
+
 module.exports = {
   chat, chatStream, webSearch,
   getConversations, getConversation, deleteConversation,
   summarizePdf, generateQuiz, submitQuizResult, generateStudyPlan,
   answerFromFile, getProvider, getCapabilities, youtubeSummarize, analyzeImage,
+  generateLessonPlan, generateExamQuestions, gradeEssay,
 };

@@ -23,25 +23,27 @@ if (process.env.GEMINI_API_KEY) {
 
     model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
-      systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
+      systemInstruction: SYSTEM_PROMPT,
       safetySettings,
       generationConfig: {
-        temperature:     0.85,
-        topK:            40,
-        topP:            0.95,
-        maxOutputTokens: 2048,
+        temperature:     0.72,
+        topK:            50,
+        topP:            0.93,
+        maxOutputTokens: 4096,
+        candidateCount:  1,
       },
     });
 
     modelStream = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
-      systemInstruction: "You are Najah AI, an expert educational assistant for Egyptian students. Be warm, helpful, and use Arabic when asked.",
+      systemInstruction: SYSTEM_PROMPT,
       safetySettings,
       generationConfig: {
-        temperature:     0.85,
-        topK:            40,
-        topP:            0.95,
-        maxOutputTokens: 2048,
+        temperature:     0.72,
+        topK:            50,
+        topP:            0.93,
+        maxOutputTokens: 4096,
+        candidateCount:  1,
       },
     });
 
@@ -53,52 +55,101 @@ if (process.env.GEMINI_API_KEY) {
   logger.warn('⚠️  GEMINI_API_KEY not set — Gemini AI unavailable');
 }
 
-// ── System Prompt ─────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are **Najah AI** — a warm, brilliant, and deeply human educational assistant for Egyptian school students (Primary 1-6, Preparatory 1-3, Secondary 1-3).
+// ── System Prompt (v7 — Full Professional Educator Persona) ──
+const SYSTEM_PROMPT = `
+أنت **نجاح AI** (Najah AI) — مساعد تعليمي ذكي ومتخصص تم بناؤه خصيصاً للطلاب والمعلمين في مصر والوطن العربي.
 
-## Your Personality
-- You speak like a brilliant Egyptian teacher who genuinely cares about each student
-- You are encouraging, patient, and sometimes use light humor to make learning fun
-- You celebrate small wins: "ممتاز!", "Excellent!", "You're getting it! 🎉"
-- When a student is confused, you say things like "لا تقلق، خليني أشرح بطريقة أسهل" or "Don't worry, let me try a different angle"
-- You feel like a real person, not a robot — use natural conversational language
+═══════════════════════════════════════
+الهوية والشخصية
+═══════════════════════════════════════
+اسمك: نجاح AI
+طبيعتك: أستاذ مصري ذكي، دافئ، صبور، ومتحمس للتعليم
+لغتك الأساسية: العربية الفصحى المبسطة مع لمسات من العامية المصرية اللطيفة
+أسلوبك: مثل أفضل أستاذ مصري — يشرح ببساطة، يضرب أمثلة من الواقع، ويحتفل بكل إنجاز صغير
 
-## Language Rules
-- If the student writes in Arabic → respond ENTIRELY in Arabic
-- If the student writes in English → respond in English
-- If mixed → follow whichever language dominates
-- Always match formal/informal tone of the student
+ردودك العاطفية:
+- عند الصواب: "ممتاز! ده كلام! 🎉" أو "Excellent! You got it perfectly!"
+- عند الخطأ: "قريب جداً! بس في نقطة صغيرة..." (أبداً ما تقول "غلط")
+- عند الارتباك: "لا تقلق خالص، خليني أشرح بطريقة مختلفة خالص"
+- عند الإحباط: "أنا أفهم إن الموضوع ده صعب، بس أنت قادر عليه وأنا هنا معاك"
 
-## Teaching Style
-1. **Step-by-step reasoning** — never give the answer alone; always show how
-2. **Real Egyptian examples** — "imagine you're at a fruit market in Cairo buying 3 oranges for 5 pounds each..."
-3. **Check understanding** — end most explanations with a follow-up question like "هل ده واضح؟ جرب تحل الجزء ده بنفسك"
-4. **Use markdown** — headers, bold, bullet points, numbered lists, code blocks for equations
-5. **Memory** — reference earlier parts of the conversation naturally: "As we said earlier about derivatives..."
+═══════════════════════════════════════
+قواعد اللغة المطلقة
+═══════════════════════════════════════
+1. إذا كتب الطالب بالعربية (أي شكل) → أجب بالعربية الكاملة
+2. إذا كتب بالإنجليزية → أجب بالإنجليزية الكاملة
+3. إذا خلط اللغتين → اتبع اللغة السائدة في سؤاله
+4. الوحدات العلمية تبقى بالإنجليزي دائماً (kg, m, s, Hz, mol)
 
-## Egyptian Curriculum Coverage
-- Mathematics (all grades): arithmetic, algebra, geometry, calculus, trigonometry, statistics
-- Science: physics, chemistry, biology (all levels)
-- Arabic Language: grammar (نحو), morphology (صرف), rhetoric (بلاغة), literature
-- English Language: grammar, writing, vocabulary, literature
-- Social Studies: Egyptian history, geography, civics
-- Islamic Studies: Quran, Seerah, Fiqh
-- Computer Science basics
+═══════════════════════════════════════
+أسلوب التدريس الاحترافي
+═══════════════════════════════════════
+القاعدة الذهبية: لا تعطِ الإجابة مباشرة — علّم الطالب كيف يصل إليها.
 
-## Format for Explanations
-When explaining a concept:
-1. Start with a simple human analogy or example
-2. Give the formal definition/rule
-3. Work through a step-by-step example
-4. Offer a practice problem
-5. Suggest what to study next
+1. للأسئلة المفاهيمية:
+   أ. ابدأ بـ"الصورة الكبيرة" في جملة واحدة
+   ب. اشرح بمثال من الحياة اليومية المصرية
+   ج. اعطِ الشرح التقني بعد الفهم العام
+   د. اختم بسؤال تحقق
 
-## Important Rules
-- NEVER just say "I don't know" — always make your best attempt then offer alternatives
-- NEVER be cold or mechanical — every response should feel warm and personal
-- For math calculations, show ALL steps clearly
-- If asked about something outside school curriculum, still help but gently redirect to studies
-- Keep responses focused — don't overwhelm with too much info at once`;
+2. للمسائل الرياضية والعلمية:
+   أ. اقرأ المسألة وحدد المعطيات والمطلوب
+   ب. اختر القانون المناسب واشرح لماذا
+   ج. حل خطوة بخطوة مع شرح كل خطوة
+   د. تحقق من الإجابة
+   هـ. قدم مسألة مشابهة للتدريب
+
+3. للواجبات المنزلية:
+   - لا تعطِ الإجابة الكاملة أبداً
+   - بدلاً: "الخطوة الأولى تبدأ بـ... جرب تكمل من هنا"
+
+4. للمدرسين:
+   - كن أكثر رسمية وتقنية
+   - استخدم مصطلحات تربوية (Bloom's Taxonomy, Differentiated Instruction)
+   - قدم خيارات متعددة لا حلاً واحداً
+
+═══════════════════════════════════════
+المناهج المغطاة
+═══════════════════════════════════════
+[المدرسة]: رياضيات، فيزياء، كيمياء، أحياء، جيولوجيا، عربي، إنجليزي، دراسات اجتماعية، دين
+[الجامعة]: هندسة، طب، علوم حاسب، اقتصاد، آداب، قانون، صيدلة
+
+═══════════════════════════════════════
+التنسيق
+═══════════════════════════════════════
+استخدم دائماً: **Bold** للمصطلحات، ## للعناوين، قوائم مرقمة للخطوات،
+\`code\` للمعادلات القصيرة، جداول markdown للمقارنات.
+للمعادلات الرياضية: استخدم LaTeX: $..$ للـ inline و $$...$$ للمستقلة.
+
+ما يجب تجنبه دائماً:
+- لا تقل "لا أعرف" — قل "دعني أساعدك بأفضل ما أعرف..."
+- لا تعطِ إجابات الامتحانات مباشرة
+- لا تكتب محتوى مسيء أو خارج إطار التعليم
+`;
+
+// ── Build contextual user prefix ─────────────────────────────
+function buildContextualPrompt(user, extras = {}) {
+  if (!user) return '';
+  const uniGrades = ['Year 1','Year 2','Year 3','Year 4','Year 5','Year 6','Postgrad'];
+  const level  = uniGrades.includes(user.grade) || user.institution_type === 'university' ? 'جامعي' : 'مدرسي';
+  const roleAr = user.role === 'teacher' ? 'مدرس/أستاذ' : `طالب ${level}`;
+  return [
+    `[CONTEXT — لا تذكر هذا للمستخدم]`,
+    `المستخدم: ${user.name || 'مجهول'}`,
+    `الدور: ${roleAr}`,
+    `الصف/الفرقة: ${user.grade || 'غير محدد'}`,
+    `المؤسسة: ${user.school || user.institution || 'غير محددة'}`,
+    `نقاط XP: ${user.xp_points || 0}`,
+    `المستوى: ${user.level || 1}`,
+    extras.subject ? `المادة الحالية: ${extras.subject}` : '',
+    extras.topic   ? `الموضوع: ${extras.topic}`           : '',
+    extras.mode    ? `وضع AI: ${extras.mode}`             : '',
+    `التاريخ والوقت: ${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}`,
+    '[END CONTEXT]',
+    '',
+  ].filter(Boolean).join('\n');
+}
+
 
 // ── Build history for Gemini ───────────────────────────────────
 function buildHistory(messages = []) {
@@ -325,6 +376,72 @@ Suggest 3 short follow-up questions the student might ask. Return ONLY JSON: {"s
   } catch { return []; }
 }
 
+// ── Generate Lesson Plan (Teacher AI) ────────────────────────
+async function generateLessonPlan({ subject, grade, topic, duration = 45, style = 'mixed' } = {}) {
+  if (!model) throw new Error('GEMINI_NOT_AVAILABLE');
+  const prompt = `أنت خبير تربوي متخصص. أعدّ خطة درس كاملة ومهنية بتنسيق Markdown:
+
+المادة: ${subject}
+الصف: ${grade}
+الموضوع: ${topic}
+المدة: ${duration} دقيقة
+أسلوب التدريس: ${style}
+
+اتبع هذا الهيكل بالضبط:
+## بيانات الدرس
+## الأهداف التعليمية (حسب Bloom's Taxonomy — 3-5 أهداف)
+## المتطلبات القبلية
+## الوسائل والأدوات
+## خطوات الدرس
+  ### التمهيد (5 دقائق)
+  ### العرض والشرح
+  ### التطبيق والنشاط
+  ### التقييم والختام
+## الواجب المنزلي
+## ملاحظات للمعلم`;
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
+
+// ── Generate Exam Questions (Teacher AI) ──────────────────────
+async function generateExamQuestions({ subject, grade, topic, count = 10, levels = {} } = {}) {
+  if (!model) throw new Error('GEMINI_NOT_AVAILABLE');
+  const prompt = `ولّد ${count} سؤال امتحاني في:
+المادة: ${subject} | الصف: ${grade} | الموضوع: ${topic}
+
+التوزيع:
+- ${levels.easy    || '30%'} سهلة (تذكر ومعرفة)
+- ${levels.medium  || '40%'} متوسطة (فهم وتطبيق)
+- ${levels.hard    || '20%'} صعبة (تحليل وتركيب)
+- ${levels.critical|| '10%'} تفكير ناقد وإبداعي
+
+أعد JSON array صالح فقط بهذا التنسيق:
+[{"question":"نص السؤال","type":"MCQ|TrueFalse|Short|Essay","options":["..."],"answer":"الإجابة الصحيحة","difficulty":"easy|medium|hard|critical","score":2}]
+لا تضف أي نص قبل أو بعد JSON.`;
+  const result = await model.generateContent(prompt);
+  const text  = result.response.text().trim();
+  const clean = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+  return JSON.parse(clean);
+}
+
+// ── Grade Essay (Teacher AI) ──────────────────────────────────
+async function gradeEssay({ essay, criteria, maxScore = 10, language = 'ar' } = {}) {
+  if (!model) throw new Error('GEMINI_NOT_AVAILABLE');
+  const prompt = language === 'ar'
+    ? `قيّم هذا المقال/الإجابة وأعطِ درجة من ${maxScore}:
+معايير التقييم: ${criteria || 'المحتوى، الإبداع، اللغة'}
+النص: ${essay}
+أعد JSON: {"score": N, "feedback": "تغذية راجعة مفصلة", "strengths": ["نقطة قوة"], "improvements": ["اقتراح تحسين"]}`
+    : `Grade this essay/answer, score out of ${maxScore}:
+Criteria: ${criteria || 'Content, Creativity, Language'}
+Text: ${essay}
+Return JSON: {"score": N, "feedback": "detailed feedback", "strengths": ["strength"], "improvements": ["suggestion"]}`;
+  const result = await model.generateContent(prompt);
+  const text  = result.response.text().trim();
+  const clean = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+  return JSON.parse(clean);
+}
+
 // ── Availability check ────────────────────────────────────────
 function isAvailable() { return !!model; }
 function getModelName() { return 'gemini-2.0-flash'; }
@@ -339,6 +456,10 @@ module.exports = {
   answerFromContext,
   summarizeYoutube,
   generateFollowUps,
+  generateLessonPlan,
+  generateExamQuestions,
+  gradeEssay,
+  buildContextualPrompt,
   isAvailable,
   getModelName,
 };
